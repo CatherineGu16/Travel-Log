@@ -312,7 +312,8 @@ Same engine as Watchlist-Tracker (`src/sync/`).
 
 ### Header, navigation, settings
 - **Header**: states n/50 and parks n/64 progress, trips this year, and the sync status chip.
-- **Navigation**: Map · Trips · Places · Parks. A bottom tab bar on phone, top bar on desktop.
+- **Navigation**: Map · Trips · Places · Parks, kept in the URL hash so Back works. A bottom tab bar
+  on phone (with Add trip), page links in the header on wider screens.
 - **Settings**: Sync across devices (same as Watchlist), **Map detail** (Outline · Detailed, with a
   note that Detailed contacts OpenFreeMap and Photon), People & groups (see below),
   Export/Import, theme.
@@ -392,7 +393,7 @@ apps independent.
 | M1 ✅ | Scaffold (Vite/React/TS/Tailwind/PWA), copy Watchlist tooling, MapLibre **outline map** fitted to the US (states, lakes, city labels), build all map data | The map zooms and pans smoothly on a laptop and a phone. The parks count is verified (64) |
 | M2 ✅ | Local store (IndexedDB) + **Add trip** form (destination, dates, stops, who went, Family switch) + **people & groups** (avatars, Family group shortcut) + location pins (green for parks) + preview card + state shading by trip count | You can log a multi-stop trip end to end, and it survives a reload |
 | M3 ✅ | **Dotted routes** + stacked pins (×N) with date picker + place reuse and stacked visit dates + trip detail | Selecting a pin shows its route; a second trip to the same place stacks onto its pin, and picking either date shows the right route |
-| M4 | **Trips list** + **Places tab**: grouping, sorting, search, Family / Not family filter shared with the map | Every trip can be found without the map, and family trips filter correctly |
+| M4 ✅ | **Trips list** + **Places tab**: grouping, sorting, search, Family / Not family filter shared with the map | Every trip can be found without the map, and family trips filter correctly |
 | M5 | **National parks**: `park-hikes.json` (names from NPS Things To Do), map layer, All / Visited / Not visited, checklist with stacked dates, "Log a visit", auto-suggest a park link, **hikes checklist** (in the trip form and per park) | Parks show the correct visited state on the map and in the checklist, and hikes can be checked off per park |
 | M6 | GitHub sync: Settings form, `travel.json` fetch/merge/save, **photo avatar** upload + download cache, status chip, `docs/ACCESS_KEY.md` | A trip and a new photo avatar added on phone appear on PC after refresh. Two-device conflict test passes |
 | M7 | Offline place search, **Map detail setting** (OpenFreeMap tiles + Photon search), stats in header, Export/Import (.zip with `travel.json` + avatars) | All flows work. With the setting off, the app makes no requests except to GitHub |

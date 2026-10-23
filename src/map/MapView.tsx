@@ -258,7 +258,7 @@ function MapControls(props: { onZoomIn: () => void; onZoomOut: () => void; onRes
     'grid min-h-11 min-w-11 place-items-center px-2 text-sm font-bold text-fg hover:bg-raised active:bg-raised disabled:opacity-40'
   return (
     <>
-      <div className="absolute right-3 bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+2.25rem)] flex flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-md">
+      <div className="absolute right-3 bottom-[calc(0.75rem+2.25rem)] flex flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-md">
         <button className={btn} onClick={props.onZoomIn} aria-label="Zoom in">
           <span aria-hidden className="text-xl leading-none">+</span>
         </button>
@@ -273,7 +273,7 @@ function MapControls(props: { onZoomIn: () => void; onZoomOut: () => void; onRes
       </div>
       <nav
         aria-label="Jump to"
-        className="absolute bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+2.25rem)] left-3 flex overflow-hidden rounded-xl border border-line bg-surface shadow-md"
+        className="absolute bottom-[calc(0.75rem+2.25rem)] left-3 flex overflow-hidden rounded-xl border border-line bg-surface shadow-md"
       >
         {QUICK_JUMPS.map((id, i) => (
           <span key={id} className="flex">
