@@ -47,7 +47,9 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: test
     runs-on: ubuntu-latest
+    # Job-level permissions replace the workflow's, so reading the code must be listed again.
     permissions:
+      contents: read
       pages: write
       id-token: write
     environment:
