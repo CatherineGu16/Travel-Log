@@ -6,7 +6,7 @@ import { Avatar } from './Avatar.tsx'
 import { GroupIcon } from './PeoplePicker.tsx'
 import { PinGlyph } from './PlacePicker.tsx'
 import { Sheet } from './Sheet.tsx'
-import { TravelModeBadge, TripTypeBadge } from './TravelMode.tsx'
+import { TravelModeBadge } from './TravelMode.tsx'
 
 /**
  * Everything about one trip: dates, who went, the route stop by stop (each with its own dates,
@@ -44,7 +44,6 @@ export function TripDetail({
       description={
         <span className="flex flex-wrap items-center gap-2">
           {formatDateRange(trip.startDate, trip.endDate, trip.approximate)}
-          <TripTypeBadge type={trip.tripType} />
           <TravelModeBadge mode={trip.travelMode} />
           {trip.rating && (
             <span className="text-[#e0a526]" aria-label={`${trip.rating} out of 5 stars`}>

@@ -26,7 +26,6 @@ export function tripInput(
     destinations: destinations ?? [...(mainRef ? [toDestination({ place: mainRef }, true)] : []), ...stops.map((s) => toDestination(s, false))],
     companions: [],
     companionGroupIds: [],
-    tripType: null,
     travelMode: null,
     description: '',
     highlights: '',

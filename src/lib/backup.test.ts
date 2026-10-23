@@ -28,7 +28,7 @@ describe('backup', () => {
       groupIds: [],
       avatar: { kind: 'photo', color: '#000', emoji: null, photoUpdatedAt: 'p1' },
     })
-    data = saveTrip(data, ctx, tripInput({ title: 'Moab', main: { name: 'Moab', lat: 38.57, lng: -109.55 }, companions: ['mom'], tripType: 'family' }))
+    data = saveTrip(data, ctx, tripInput({ title: 'Moab', main: { name: 'Moab', lat: 38.57, lng: -109.55 }, companions: ['mom'], companionGroupIds: ['family'] }))
     const avatars = [
       { personId: 'mom', photoUpdatedAt: 'p1', blob: new Blob(['photo']), pending: false },
       { personId: 'gone', photoUpdatedAt: 'x', blob: new Blob(['stale']), pending: false },

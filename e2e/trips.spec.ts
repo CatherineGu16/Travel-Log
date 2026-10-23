@@ -21,11 +21,10 @@ test('log a multi-stop family trip, see it on the map, and it survives a reload'
   await choosePlace(page, DEST, 'Springdale, UT', /^Springdale\s*UT$/)
   await choosePlace(page, DEST, 'Las Vegas', /^Las Vegas\s*NV$/)
 
-  // A new person added to Family makes it a Family trip.
+  // A new person, added to the Family group on the spot.
   await dialog.getByRole('searchbox', { name: 'Add a person' }).fill('Mom')
   await dialog.getByRole('checkbox', { name: 'Family' }).check()
   await dialog.getByRole('button', { name: 'Add “Mom”' }).click()
-  await expect(dialog.getByRole('radiogroup', { name: 'Type of trip' }).getByRole('radio', { name: 'Family' })).toBeChecked()
 
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(dialog).toBeHidden()
@@ -34,7 +33,7 @@ test('log a multi-stop family trip, see it on the map, and it survives a reload'
   await expect(card).toBeVisible()
   // The route follows the destinations in the order they were added.
   await expect(card.getByRole('list', { name: 'Route' }).getByRole('listitem')).toHaveText([/Zion National Park/, /1\s*Springdale/, /2\s*Las Vegas/])
-  await expect(card.getByText('Family')).toBeVisible()
+  await expect(card.getByText('Mom')).toBeAttached()
   await expect(page.getByText('2 / 50 states')).toBeVisible()
   await expect(page.getByText(/^1\s*\/ 64 parks$/)).toBeVisible()
 
@@ -162,9 +161,36 @@ test('Friends can be added as one tag, without listing anyone', async ({ page })
   await choosePlace(page, DEST, 'chicago', /^Chicago/)
   await dialog.getByRole('group', { name: 'Add a group' }).getByRole('button', { name: '+ Friends' }).click()
   await expect(dialog.getByRole('list', { name: 'Who went' })).toContainText('Friends')
-  await expect(dialog.getByRole('radiogroup', { name: 'Type of trip' }).getByRole('radio', { name: 'Friends' })).toBeChecked()
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
 
   const card = page.getByRole('region', { name: 'Chicago trips' })
   await expect(card).toContainText('Friends')
+})
+
+test('+ Family tags Family and adds each family member; removing the tag removes them', async ({ page }) => {
+  await page.goto('./')
+  await page.getByRole('button', { name: 'People & groups' }).click()
+  const people = page.getByRole('dialog', { name: 'People & groups' })
+  for (const name of ['Mom', 'Dad']) {
+    await people.getByRole('button', { name: '+ Add person' }).click()
+    const editor = page.getByRole('dialog', { name: 'Add person' })
+    await editor.getByRole('textbox', { name: 'Name' }).fill(name)
+    await editor.getByRole('checkbox', { name: 'Family' }).check()
+    await editor.getByRole('button', { name: 'Save' }).click()
+  }
+  await page.getByRole('dialog', { name: 'People & groups' }).getByRole('button', { name: 'Close' }).click()
+
+  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
+  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await dialog.getByRole('group', { name: 'Add a group' }).getByRole('button', { name: '+ Family' }).click()
+  const who = dialog.getByRole('list', { name: 'Who went' })
+  await expect(who.getByRole('listitem')).toHaveText([/Family/, /Mom/, /Dad/])
+
+  // Someone didn't come: drop just them.
+  await who.getByRole('button', { name: 'Remove Dad' }).click()
+  await expect(who.getByRole('listitem')).toHaveText([/Family/, /Mom/])
+
+  // Removing the tag removes the family members it added.
+  await who.getByRole('button', { name: 'Remove Family' }).click()
+  await expect(who).toBeHidden()
 })

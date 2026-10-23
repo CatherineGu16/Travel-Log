@@ -45,7 +45,6 @@ export interface TripHike {
 }
 
 export type TravelMode = 'road-trip' | 'flight' | 'cruise'
-export type TripType = 'family' | 'friends' | 'work'
 
 export interface Trip extends Synced {
   title: string
@@ -59,8 +58,6 @@ export interface Trip extends Synced {
   /** Groups that went, as a tag ("Friends"), without listing each person. */
   companionGroupIds: string[]
   hikes: TripHike[]
-  /** Family, friends or work trip (optional). */
-  tripType: TripType | null
   /** How you traveled: road trip, flight or cruise. */
   travelMode: TravelMode | null
   description: string

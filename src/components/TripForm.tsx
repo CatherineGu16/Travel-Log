@@ -1,10 +1,8 @@
 import { useMemo, useState } from 'react'
 import { describeRef, type ChosenPlace } from '../lib/chosenPlace.ts'
-import { includesFamily } from '../lib/derive.ts'
 import { comparePartialDates, formatDateRange, todayIso, yearOf } from '../lib/partialDate.ts'
 import { addPerson, saveTrip, type PlaceInput, type TripInput } from '../lib/travelActions.ts'
-import { FAMILY_GROUP_ID, FRIENDS_GROUP_ID, type PartialDate, type TravelMode, type Trip, type TripHike, type TripType } from '../lib/types.ts'
-import { TRIP_TYPES } from '../lib/tripTypes.ts'
+import { FAMILY_GROUP_ID, type PartialDate, type TravelMode, type Trip, type TripHike } from '../lib/types.ts'
 import { newId, useStore, useTravelState } from '../store/useTravel.ts'
 import { DateRangeField } from './DateRangeField.tsx'
 import { HikesField } from './HikesField.tsx'
@@ -82,10 +80,6 @@ export function TripForm({
   const [travelMode, setTravelMode] = useState<TravelMode | null>(trip?.travelMode ?? null)
   const [companions, setCompanions] = useState<string[]>(trip?.companions ?? [])
   const [companionGroupIds, setCompanionGroupIds] = useState<string[]>(trip?.companionGroupIds ?? [])
-  const [tripType, setTripType] = useState<TripType | null>(trip?.tripType ?? null)
-  // Tagging Family (or adding someone from it) picks Family, tagging Friends picks Friends, until
-  // you choose a type yourself.
-  const [typeTouched, setTypeTouched] = useState(!!trip)
   const [description, setDescription] = useState(trip?.description ?? '')
   const [highlights, setHighlights] = useState(trip?.highlights ?? '')
   const [rating, setRating] = useState<number | null>(trip?.rating ?? null)
@@ -110,14 +104,6 @@ export function TripForm({
     () => (mains.length ? `${mains.map((m) => m.place.label.replace(/ National Park$/, '')).join(' & ')} ${yearOf(startDate)}` : ''),
     [mains, startDate],
   )
-
-  const setWho = (people: string[], groups: string[]) => {
-    setCompanions(people)
-    setCompanionGroupIds(groups)
-    if (typeTouched) return
-    const latest = store.getState().data
-    setTripType(includesFamily(latest, people, groups) ? 'family' : groups.includes(FRIENDS_GROUP_ID) ? 'friends' : null)
-  }
 
   /** Destination edits; on a new trip whose dates you haven't set, the trip spans the destinations' dates. */
   const updateDestinations = (fn: (d: DestinationDraft[]) => DestinationDraft[]) =>
@@ -175,7 +161,6 @@ export function TripForm({
       destinations: destinations.map((d) => ({ place: d.place.ref, isMain: d.isMain, startDate: d.startDate, endDate: d.endDate, note: d.note })),
       companions,
       companionGroupIds,
-      tripType,
       travelMode,
       description,
       highlights,
@@ -380,38 +365,15 @@ export function TripForm({
         <PeoplePicker
           data={data}
           value={companions}
-          onChange={(people) => setWho(people, companionGroupIds)}
+          onChange={setCompanions}
           groupIds={companionGroupIds}
-          onGroupsChange={(groups) => setWho(companions, groups)}
+          onGroupsChange={setCompanionGroupIds}
           onAddPerson={(name, inFamily) => {
             const id = newId()
             const ok = store.apply((d, c) => addPerson(d, c, id, { name, groupIds: inFamily ? [FAMILY_GROUP_ID] : [] }), `Added ${name}`)
             return ok === null ? null : id
           }}
         />
-
-        <fieldset>
-          <legend className="mb-1.5 text-sm font-bold">Type of trip</legend>
-          <div role="radiogroup" aria-label="Type of trip" className="flex w-fit rounded-lg bg-bg p-0.5">
-            {TRIP_TYPES.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                role="radio"
-                aria-checked={tripType === t.id}
-                onClick={() => {
-                  setTypeTouched(true)
-                  // Tap the chosen type again to clear it.
-                  setTripType(tripType === t.id ? null : t.id)
-                }}
-                className={`min-h-10 rounded-md px-4 text-sm ${tripType === t.id ? 'bg-primary font-bold text-on-primary' : 'text-muted hover:text-fg'}`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-          <p className="mt-1 text-xs text-muted">Picked for you when you add Family or Friends under Who went.</p>
-        </fieldset>
 
         <details className="group rounded-lg border border-line" open={!!(trip && (description || highlights || rating || tags))}>
           <summary className="flex min-h-11 cursor-pointer items-center px-3 text-sm font-bold">Notes, rating and tags</summary>

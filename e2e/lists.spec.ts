@@ -4,7 +4,7 @@ import { setTripYear } from './helpers.ts'
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
 
-async function addTrip(page: Page, opts: { main: [string, RegExp]; year: string; stops?: [string, RegExp][]; family?: string; type?: 'Family' | 'Friends' | 'Work' }) {
+async function addTrip(page: Page, opts: { main: [string, RegExp]; year: string; stops?: [string, RegExp][]; family?: string; group?: 'Friends' }) {
   await page.getByRole('button', { name: 'Add trip' }).click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
   await dialog.getByRole('combobox', { name: DEST }).fill(opts.main[0])
@@ -23,7 +23,7 @@ async function addTrip(page: Page, opts: { main: [string, RegExp]; year: string;
       await dialog.getByRole('button', { name: `Add “${opts.family}”` }).click()
     }
   }
-  if (opts.type) await dialog.getByRole('radiogroup', { name: 'Type of trip' }).getByRole('radio', { name: opts.type }).click()
+  if (opts.group) await dialog.getByRole('group', { name: 'Add a group' }).getByRole('button', { name: `+ ${opts.group}` }).click()
   await setTripYear(dialog, opts.year)
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(dialog).toBeHidden()
@@ -33,16 +33,16 @@ async function addTrip(page: Page, opts: { main: [string, RegExp]; year: string;
 
 const nav = (page: Page, name: string) => page.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name }).filter({ visible: true }).click()
 
-test('trips list: search, group, filter by trip type, and open a trip on the map', async ({ page }) => {
+test('trips list: search, group, filter by who went, and open a trip on the map', async ({ page }) => {
   await page.goto('./')
   await addTrip(page, { main: ['moab', /^Moab/], year: '2019', family: 'Mom' })
   await addTrip(page, { main: ['chicago', /^Chicago/], year: '2022' })
-  await addTrip(page, { main: ['moab', /^Moab/], year: '2024', stops: [['Green River, UT', /^Green River\s*UT$/]], type: 'Friends' })
+  await addTrip(page, { main: ['moab', /^Moab/], year: '2024', stops: [['Green River, UT', /^Green River\s*UT$/]], group: 'Friends' })
 
   await nav(page, 'Trips')
   await expect(page.getByRole('heading', { name: 'Trips', level: 1 })).toBeVisible()
   await expect(page.getByRole('region', { name: '2024' }).getByRole('button')).toHaveText([/Moab 2024/])
-  await expect(page.getByRole('region', { name: '2019' }).getByRole('button')).toHaveText([/Moab 2019.*Family/])
+  await expect(page.getByRole('region', { name: '2019' }).getByRole('button')).toHaveText([/Moab 2019/])
 
   await page.getByRole('searchbox', { name: 'Search trips' }).fill('mom')
   await expect(page.getByRole('main').getByRole('button', { name: /Moab|Chicago/ })).toHaveText([/Moab 2019/])
@@ -52,9 +52,9 @@ test('trips list: search, group, filter by trip type, and open a trip on the map
   await expect(page.getByRole('region', { name: 'Utah' }).getByRole('button')).toHaveCount(2)
   await expect(page.getByRole('region', { name: 'Illinois' }).getByRole('button')).toHaveCount(1)
 
-  // The trip-type filter applies to the list and the map, and is remembered.
+  // Filtering by a group applies to the list and the map, and is remembered.
   await page.getByRole('button', { name: 'Filter' }).first().click()
-  await page.getByRole('dialog', { name: 'Filter trips' }).getByRole('radio', { name: 'Friends' }).click()
+  await page.getByRole('dialog', { name: 'Filter trips' }).getByRole('button', { name: 'Friends' }).click()
   await page.getByRole('dialog', { name: 'Filter trips' }).getByRole('button', { name: 'Show 1 trip' }).click()
   await expect(page.getByRole('main').getByRole('button', { name: /Moab|Chicago/ })).toHaveText([/Moab 2024.*Friends/])
   await page.reload()

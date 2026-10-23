@@ -10,7 +10,6 @@ import {
   type Place,
   type Destination,
   type TravelMode,
-  type TripType,
   type Synced,
   type TravelData,
   type Trip,
@@ -117,7 +116,6 @@ export interface TripInput {
   companions: string[]
   /** Groups tagged on the trip as a whole ("Friends"). */
   companionGroupIds?: string[]
-  tripType: TripType | null
   travelMode?: TravelMode | null
   description: string
   highlights: string
@@ -154,7 +152,6 @@ export function saveTrip(data: TravelData, ctx: EditContext, input: TripInput, t
     destinations,
     companions: [...new Set(input.companions)],
     companionGroupIds: [...new Set(input.companionGroupIds ?? [])],
-    tripType: input.tripType,
     travelMode: input.travelMode ?? null,
     description: input.description.trim(),
     highlights: input.highlights.trim(),

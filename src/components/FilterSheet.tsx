@@ -1,13 +1,12 @@
 import { useMemo } from 'react'
-import { livePeople } from '../lib/derive.ts'
+import { liveGroups, livePeople } from '../lib/derive.ts'
 import { activeFilterCount, filterOptions, NO_FILTER, type TripFilter } from '../lib/filters.ts'
 import type { TravelData } from '../lib/types.ts'
 import { Avatar } from './Avatar.tsx'
+import { GroupIcon } from './PeoplePicker.tsx'
 import { Sheet } from './Sheet.tsx'
 import { TRAVEL_MODES } from '../lib/travelModes.ts'
-import { TRIP_TYPES } from '../lib/tripTypes.ts'
 
-const TYPES: { id: TripFilter['type']; label: string }[] = [{ id: null, label: 'All' }, ...TRIP_TYPES]
 
 /** The filters shared by the map and the lists. Changes apply as you tap. */
 export function FilterSheet({
@@ -26,6 +25,7 @@ export function FilterSheet({
   resultCount: number
 }) {
   const people = useMemo(() => livePeople(data), [data])
+  const groups = useMemo(() => liveGroups(data), [data])
   const { years, tags } = useMemo(() => filterOptions(data), [data])
   const set = (patch: Partial<TripFilter>) => onChange({ ...filter, ...patch })
   const chip = (on: boolean) => `min-h-9 rounded-full border px-3 text-sm ${on ? 'border-primary bg-primary text-on-primary font-bold' : 'border-line hover:bg-raised'}`
@@ -54,26 +54,29 @@ export function FilterSheet({
     >
       <div className="flex flex-col gap-6">
         <fieldset>
-          <legend className="mb-2 text-sm font-bold">Type of trip</legend>
-          <div role="radiogroup" aria-label="Type of trip" className="flex w-fit rounded-lg bg-bg p-0.5">
-            {TYPES.map((w) => (
-              <button
-                key={w.id ?? 'all'}
-                type="button"
-                role="radio"
-                aria-checked={filter.type === w.id}
-                onClick={() => set({ type: w.id })}
-                className={`min-h-10 rounded-md px-3 text-sm ${filter.type === w.id ? 'bg-raised font-bold text-fg' : 'text-muted hover:text-fg'}`}
-              >
-                {w.label}
-              </button>
-            ))}
+          <legend className="mb-2 text-sm font-bold">With</legend>
+          <div className="flex flex-wrap gap-1.5">
+            {groups.map((g) => {
+              const on = filter.groupIds.includes(g.id)
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => set({ groupIds: on ? filter.groupIds.filter((x) => x !== g.id) : [...filter.groupIds, g.id] })}
+                  className={`flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-sm ${on ? 'border-primary bg-primary font-bold text-on-primary' : 'border-line hover:bg-raised'}`}
+                >
+                  <GroupIcon />
+                  {g.name}
+                </button>
+              )
+            })}
           </div>
         </fieldset>
 
         {people.length > 0 && (
           <fieldset>
-            <legend className="mb-2 text-sm font-bold">With</legend>
+            <legend className="mb-2 text-sm font-bold">People</legend>
             <div className="flex flex-wrap gap-1.5">
               {people.map((p) => {
                 const on = filter.personIds.includes(p.id)

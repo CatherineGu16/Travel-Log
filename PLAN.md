@@ -79,8 +79,9 @@ Same rules as Watchlist-Tracker, plus map rules:
   destinations**; the rest are stops along the way. Each destination can have its **own dates**
   ("3 days in Zion, then 3 in Las Vegas"), and a note.
 - **How you traveled**: Road trip, Flight or Cruise (optional), shown as a badge and filterable.
-- **Type of trip**: Family, Friends or Work (optional). Family is picked automatically when someone
-  from your Family group is on the trip. Trips marked with the earlier Family switch keep Family.
+- **Who went**: group tags (Family, Friends, your own groups) and individual people. Filtering and
+  grouping by Family / Friends uses these tags. (An earlier Family switch and Family / Friends /
+  Work type were replaced by the tags; old Family and Friends trips keep them as tags.)
 - A **place** is a location you've been to: "Zion National Park", "Las Vegas". Places are shared
   between trips, so going back to the same place reuses it instead of creating a duplicate.
 - **One pin per major location**: a pin goes on each place that is a main destination of at least
@@ -181,7 +182,6 @@ units (monuments, seashores, historic sites — 400+ total) could be added later
                         hikeId | null,       // from park-hikes.json, or null for a custom hike
                         name,                // trail name (custom hikes type their own)
                         date | null } ],
-             tripType | null,                // "family" | "friends" | "work"
              description, highlights,        // short summary; favorite moments
              rating | null,                  // 1–5
              tags: [],
@@ -277,8 +277,7 @@ Same engine as Watchlist-Tracker (`src/sync/`).
   newest visit is selected and its **dotted route** is drawn. Tapping another date switches the
   card (title, who went, stops, hikes) and redraws the route for that trip.
 - **Filter button**:
-  - **Type of trip**: All · Family · Friends · Work, plus filter by person, year, tag and how you
-    traveled.
+  - **With**: groups (Family, Friends, …) and people, plus year, tag and how you traveled.
   - **National parks layer** (the Parks button on the map, remembered per device): Off · All ·
     Visited · Not visited. All 64 parks show as small tree badges (so they don't look like trip
     pins). Visited parks are filled green (with a shaded boundary when zoomed in); not-yet-visited
@@ -302,20 +301,20 @@ Same engine as Watchlist-Tracker (`src/sync/`).
     Park. Count it as a visit?").
   - Move up / down, remove.
 - **Trip dates**: a **date range picker**: tap the first day, then the last, on a calendar (Date),
-  a month grid (Month) or a year grid (Year). Typed fields underneath jump to any date. Plus "Dates
-  are approximate".
+  a month grid (Month) or a year grid (Year). Typed From / To fields underneath (stacked, so they
+  fit any phone) jump to any date. Plus "Dates are approximate".
 - **How you traveled**: Road trip / Flight / Cruise.
 - **Title** (suggested from the main destinations and year, e.g. "Zion & Las Vegas 2024").
 - **Hikes**: for every national park on the trip. Check off trails from that park's list (with
   difficulty, distance and time), or add a custom hike by name. An optional date per hike.
 - **Who went**:
   - **Group tags**: **+ Family**, **+ Friends** (both built in) or any group you create adds the
-    group as **one tag**, without listing each person. Everyone in a tagged group counts as on the
-    trip for filters.
+    group as a tag **plus each of its members** (so "+ Family" tags Family and adds your family,
+    and you remove anyone who didn't come). A group with no members, like Friends usually is, is
+    just the tag, so you don't have to add each friend. Removing the tag removes the members it
+    added. Everyone in a tagged group counts as on the trip for filters.
   - Individual people (optional): search by name, or **add a new person** (name, avatar, and which
     groups they belong to) without leaving the form.
-- **Type of trip**: Family / Friends / Work (tap again to clear); picked automatically from a
-  Family or Friends tag (or anyone from the Family group), until you choose yourself.
 - Optional: description, highlights, rating, tags.
 - Save, then the map flies to the new pin and shows its route.
 - **On phones**, while the on-screen keyboard is open the form fills exactly the visible part of the
@@ -325,9 +324,9 @@ Same engine as Watchlist-Tracker (`src/sync/`).
 ### Trips list (non-map)
 - Every trip in a plain, scrollable list: title, main destination, dates, stops count, who went,
   a Family badge on family trips.
-- **Group by**: Year (default, newest first) · State · Type of trip.
+- **Group by**: Year (default, newest first) · State · Who went (Family, Friends, …, Other).
 - **Sort**: Newest · Oldest · Title · Rating.
-- **Trip-type filter**: All · Family · Friends · Work, same as the map. Filters are shared with the map
+- **Who-went filter**: Family, Friends, other groups or people, same as the map. Filters are shared with the map
   and remembered per device, as in Watchlist.
 - **Search** across title, places, description, people, groups and tags.
 - Tapping a row opens the trip detail and highlights its route on the map.
@@ -469,4 +468,5 @@ None right now.
   Family group shortcut.
 - **State shading**: darker with more trips (1 · 2–3 · 4–6 · 7+).
 - **Parks scope**: the 64 national parks only for now.
-- **Trip type**: Family / Friends / Work (changed from an earlier single Family switch).
+- **Family / friends trips**: marked with Family / Friends tags under Who went (replaced an earlier
+  Family switch, then a Family / Friends / Work type).

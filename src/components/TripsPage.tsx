@@ -6,12 +6,12 @@ import type { TravelData, Trip } from '../lib/types.ts'
 import { usePersistentState } from '../ui/usePersistentState.ts'
 import { WhoWent } from './WhoWent.tsx'
 import { PinGlyph } from './PlacePicker.tsx'
-import { TravelModeBadge, TripTypeBadge } from './TravelMode.tsx'
+import { TravelModeBadge } from './TravelMode.tsx'
 
 const GROUPINGS: { id: TripGrouping; label: string }[] = [
   { id: 'year', label: 'Year' },
   { id: 'state', label: 'State' },
-  { id: 'type', label: 'Type of trip' },
+  { id: 'who', label: 'Who went' },
 ]
 const SORTS: { id: TripSort; label: string }[] = [
   { id: 'newest', label: 'Newest' },
@@ -79,8 +79,7 @@ function TripRow({ trip, data, onOpen }: { trip: Trip; data: TravelData; onOpen:
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline gap-2">
             <span className="truncate font-bold">{trip.title}</span>
-            <TripTypeBadge type={trip.tripType} />
-            <TravelModeBadge mode={trip.travelMode} />
+              <TravelModeBadge mode={trip.travelMode} />
           </span>
           <span className="block truncate text-sm text-muted">
             {formatDateRange(trip.startDate, trip.endDate, trip.approximate)}

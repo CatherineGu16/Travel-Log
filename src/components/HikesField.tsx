@@ -59,7 +59,7 @@ export function HikesField({ parkIds, value, onChange }: { parkIds: string[]; va
                           aria-label={`${l.name} date`}
                           value={hike.date ?? ''}
                           onChange={(e) => setDate(hike, e.target.value || null)}
-                          className="h-9 shrink-0 rounded-md border border-line bg-bg px-2 text-sm"
+                          className="h-9 shrink-0 rounded-md border border-line bg-bg px-2 text-sm leading-9"
                         />
                       )}
                     </li>

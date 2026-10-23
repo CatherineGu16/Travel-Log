@@ -120,6 +120,19 @@ body {
   overscroll-behavior: none;
 }
 
+/* iOS gives date and month fields a fixed minimum width; let them shrink to their container. */
+input[type='date'],
+input[type='month'] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+  display: block;
+}
+input[type='date']::-webkit-date-and-time-value,
+input[type='month']::-webkit-date-and-time-value {
+  text-align: left;
+}
+
 :focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;

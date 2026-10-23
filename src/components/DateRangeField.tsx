@@ -87,7 +87,7 @@ export function DateRangeField({
       <button type="button" aria-label={`Previous ${what}`} onClick={prev} className="grid size-10 place-items-center rounded-lg text-muted hover:bg-raised hover:text-fg">
         ‹
       </button>
-      <div className="flex flex-1 items-center justify-center gap-1 text-sm font-bold">{title}</div>
+      <div className="flex min-w-0 flex-1 flex-wrap items-center justify-center gap-1 text-sm font-bold">{title}</div>
       <button type="button" aria-label={`Next ${what}`} onClick={next} className="grid size-10 place-items-center rounded-lg text-muted hover:bg-raised hover:text-fg">
         ›
       </button>
@@ -108,7 +108,7 @@ export function DateRangeField({
       <>
         {nav(
           <>
-            <select aria-label={`${label} calendar month`} value={view.month} onChange={(e) => setView({ ...view, month: Number(e.target.value) })} className="rounded-md bg-transparent px-1 font-bold">
+            <select aria-label={`${label} calendar month`} value={view.month} onChange={(e) => setView({ ...view, month: Number(e.target.value) })} className="min-w-0 rounded-md bg-transparent px-1 font-bold">
               {MONTHS.map((m, i) => (
                 <option key={m} value={i + 1}>
                   {m}
@@ -165,7 +165,7 @@ export function DateRangeField({
     )
   }
 
-  const input = 'h-10 w-full min-w-0 rounded-lg border border-line bg-bg px-2 text-base'
+  const input = 'h-10 w-full min-w-0 flex-1 rounded-lg border border-line bg-bg px-2 text-base leading-10'
   const typed = (which: 'start' | 'end') => {
     const value = which === 'start' ? start : end
     const set = (v: PartialDate) => onChange(...(which === 'start' ? ordered(v, end) : ordered(start, v)))
@@ -232,9 +232,16 @@ export function DateRangeField({
           {picking === 'start' ? `Tap the first ${UNIT[precision]}.` : `Now tap the last ${UNIT[precision]} (or the same one again).`}
         </p>
       </div>
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        {typed('start')}
-        {typed('end')}
+      {/* Stacked, because phone date fields won't shrink to fit side by side. */}
+      <div className="mt-2 flex flex-col gap-2">
+        <label className="flex items-center gap-2 text-sm">
+          <span className="w-10 shrink-0 text-muted">From</span>
+          {typed('start')}
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <span className="w-10 shrink-0 text-muted">To</span>
+          {typed('end')}
+        </label>
       </div>
     </fieldset>
   )
@@ -245,7 +252,7 @@ function YearSelect({ label, year, onYear }: { label: string; year: number; onYe
   const years = Array.from({ length: now - 1950 + 3 }, (_, i) => now + 2 - i)
   if (!years.includes(year)) years.push(year)
   return (
-    <select aria-label={label} value={year} onChange={(e) => onYear(Number(e.target.value))} className="rounded-md bg-transparent px-1 font-bold">
+    <select aria-label={label} value={year} onChange={(e) => onYear(Number(e.target.value))} className="min-w-0 rounded-md bg-transparent px-1 font-bold">
       {years.map((y) => (
         <option key={y} value={y}>
           {y}

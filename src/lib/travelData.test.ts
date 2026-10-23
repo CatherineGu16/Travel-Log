@@ -80,22 +80,23 @@ describe('trips saved before destinations', () => {
       ['zion', true, null, ''],
     ])
     expect(parsed.trips[0].travelMode).toBeNull()
-    expect(parsed.trips[0].tripType).toBeNull()
+    expect(parsed.trips[0].companionGroupIds).toEqual([])
   })
 })
 
-describe('trip type', () => {
-  it('keeps trips marked with the earlier Family switch as Family', () => {
+describe('earlier trip types', () => {
+  it('turn into Family and Friends tags (Work has no group, so it goes away)', () => {
     const parsed = parseTravelData({
       schemaVersion: 1,
       places: [{ id: 'p', name: 'Moab', lat: 38.5, lng: -109.5, updatedAt: 't' }],
       trips: [
         { id: 'a', updatedAt: 't', startDate: '2020', destinations: [{ placeId: 'p', isMain: true }], isFamily: true },
-        { id: 'b', updatedAt: 't', startDate: '2021', destinations: [{ placeId: 'p', isMain: true }], tripType: 'work' },
+        { id: 'b', updatedAt: 't', startDate: '2021', destinations: [{ placeId: 'p', isMain: true }], tripType: 'friends' },
+        { id: 'c', updatedAt: 't', startDate: '2022', destinations: [{ placeId: 'p', isMain: true }], tripType: 'work' },
       ],
       people: [],
       groups: [],
     })
-    expect(parsed.trips.map((t) => t.tripType)).toEqual(['family', 'work'])
+    expect(parsed.trips.map((t) => t.companionGroupIds)).toEqual([['family'], ['friends'], []])
   })
 })

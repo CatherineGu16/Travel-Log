@@ -1,7 +1,7 @@
 import { isPartialDate } from './partialDate.ts'
 import { insertCheapest } from './route.ts'
 import { builtInGroups } from './travelActions.ts'
-import { FAMILY_GROUP_ID, type Avatar, type Destination, type Group, type Person, type Place, type Synced, type TravelData, type Trip } from './types.ts'
+import { FAMILY_GROUP_ID, FRIENDS_GROUP_ID, type Avatar, type Destination, type Group, type Person, type Place, type Synced, type TravelData, type Trip } from './types.ts'
 
 /**
  * Combines two copies of your data record by record: the newer updatedAt wins, and deletes travel
@@ -148,12 +148,17 @@ export function parseTravelData(input: unknown): TravelData {
       approximate: x.approximate === true,
       destinations,
       companions: strings(x.companions),
-      companionGroupIds: strings(x.companionGroupIds),
+      companionGroupIds: [
+        ...new Set([
+          ...strings(x.companionGroupIds),
+          // Trips marked with the earlier Family switch or Family / Friends type keep it as a tag.
+          ...(x.isFamily === true || x.tripType === 'family' ? [FAMILY_GROUP_ID] : []),
+          ...(x.tripType === 'friends' ? [FRIENDS_GROUP_ID] : []),
+        ]),
+      ],
       hikes: (Array.isArray(x.hikes) ? x.hikes : [])
         .filter((h): h is Record<string, unknown> => isObject(h) && typeof h.parkId === 'string' && typeof h.name === 'string')
         .map((h) => ({ parkId: h.parkId as string, hikeId: typeof h.hikeId === 'string' ? h.hikeId : null, name: h.name as string, date: dateOrNull(h.date) })),
-      // Trips saved with the earlier Family switch keep it as the Family type.
-      tripType: x.tripType === 'family' || x.tripType === 'friends' || x.tripType === 'work' ? x.tripType : x.isFamily === true ? 'family' : null,
       travelMode: x.travelMode === 'road-trip' || x.travelMode === 'flight' || x.travelMode === 'cruise' ? x.travelMode : null,
       description: str(x.description),
       highlights: str(x.highlights),

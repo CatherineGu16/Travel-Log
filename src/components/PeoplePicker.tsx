@@ -4,8 +4,9 @@ import { FAMILY_GROUP_ID, type TravelData } from '../lib/types.ts'
 import { Avatar } from './Avatar.tsx'
 
 /**
- * "Who went": groups as one tag each ("+ Friends", without listing anyone), and individual people
- * as avatar chips. Search adds people you've added before, or someone new.
+ * "Who went": a group adds as a tag plus its members ("+ Family" tags Family and adds each family
+ * member, so you can drop anyone who didn't come); a group with no members, like Friends, is just
+ * the tag. Search adds individual people you've added before, or someone new.
  */
 export function PeoplePicker({
   data,
@@ -36,6 +37,7 @@ export function PeoplePicker({
   const exact = people.some((p) => p.name.toLowerCase() === q)
 
   const add = (ids: string[]) => onChange([...new Set([...value, ...ids])])
+  // onChange and onGroupsChange are separate setters, so a group tap can update both at once.
   const addNew = () => {
     const created = onAddPerson(query.trim(), newInFamily)
     if (created) add([created])
@@ -54,7 +56,10 @@ export function PeoplePicker({
             <button
               key={g.id}
               type="button"
-              onClick={() => onGroupsChange([...groupIds, g.id])}
+              onClick={() => {
+                onGroupsChange([...groupIds, g.id])
+                add(g.memberIds.filter((m) => people.some((p) => p.id === m)))
+              }}
               className={`min-h-9 rounded-full border px-3 text-sm font-bold ${g.id === FAMILY_GROUP_ID ? 'border-park text-park' : 'border-line text-fg'} hover:bg-raised`}
             >
               + {g.name}
@@ -71,7 +76,12 @@ export function PeoplePicker({
               <button
                 type="button"
                 aria-label={`Remove ${g.name}`}
-                onClick={() => onGroupsChange(groupIds.filter((x) => x !== g.id))}
+                onClick={() => {
+                  onGroupsChange(groupIds.filter((x) => x !== g.id))
+                  // Members came with the tag, so they go with it (unless another tagged group has them).
+                  const keep = new Set(tagged.filter((t) => t.id !== g.id).flatMap((t) => t.memberIds))
+                  onChange(value.filter((v) => !g.memberIds.includes(v) || keep.has(v)))
+                }}
                 className="grid size-7 place-items-center rounded-full text-muted hover:bg-line hover:text-fg"
               >
                 <svg viewBox="0 0 20 20" className="size-3.5" aria-hidden>
