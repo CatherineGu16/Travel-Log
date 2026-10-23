@@ -1,7 +1,7 @@
 import type { Person } from '../lib/types.ts'
 import { useAvatarPhoto } from '../store/useTravel.ts'
 
-export const initialsOf = (name: string) =>
+const initialsOf = (name: string) =>
   name
     .trim()
     .split(/\s+/)

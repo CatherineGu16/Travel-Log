@@ -55,11 +55,12 @@ export function useSyncState() {
  */
 export function useAvatarPhoto(person: Pick<Person, 'id' | 'avatar'> | null): string | null {
   const services = useContext(ServicesContext)
-  const [url, setUrl] = useState<string | null>(null)
   const id = person?.id
   const stamp = person?.avatar.kind === 'photo' ? person.avatar.photoUpdatedAt : null
+  // Kept with the photo version it shows, so a replaced photo never shows the old image.
+  const [shown, setShown] = useState<{ key: string; url: string } | null>(null)
+  const key = `${id}|${stamp}`
   useEffect(() => {
-    setUrl(null)
     if (!services || !id || !stamp) return
     let cancelled = false
     let current: string | null = null
@@ -69,7 +70,7 @@ export function useAvatarPhoto(person: Pick<Person, 'id' | 'avatar'> | null): st
       if (record && record.photoUpdatedAt === stamp) {
         if (current) URL.revokeObjectURL(current)
         current = URL.createObjectURL(record.blob)
-        setUrl(current)
+        setShown({ key: `${id}|${stamp}`, url: current })
       } else if (allowDownload) await services.sync.downloadAvatar(id, stamp)
     }
     void show(true)
@@ -80,7 +81,7 @@ export function useAvatarPhoto(person: Pick<Person, 'id' | 'avatar'> | null): st
       if (current) URL.revokeObjectURL(current)
     }
   }, [services, id, stamp])
-  return url
+  return shown?.key === key ? shown.url : null
 }
 
 export const newId = () => crypto.randomUUID()

@@ -5,26 +5,11 @@ import type { ParkInfo } from '../lib/placeSearch.ts'
 import { searchOnline } from '../lib/onlineSearch.ts'
 import { useMapDetail } from '../ui/mapDetail.ts'
 import { searchPlaces, type SearchResult, type TownRow } from '../lib/placeSearch.ts'
-import { live, type PlaceRef } from '../lib/travelActions.ts'
+import { describeRef, type ChosenPlace } from '../lib/chosenPlace.ts'
+import { live } from '../lib/travelActions.ts'
 import type { TravelData } from '../lib/types.ts'
 
-/** What the form shows for a chosen place, before it's saved. */
-export interface ChosenPlace {
-  ref: PlaceRef
-  label: string
-  detail: string
-  isPark: boolean
-  parkId: string | null
-}
-
-/** Turns a saved place or a place input into what the form shows. */
-export function describeRef(ref: PlaceRef, data: TravelData): ChosenPlace {
-  if ('placeId' in ref) {
-    const p = data.places.find((x) => x.id === ref.placeId)
-    return { ref, label: p?.name ?? 'Unknown place', detail: p?.regionCode?.replace(/^US-/, '') ?? '', isPark: !!p?.parkId, parkId: p?.parkId ?? null }
-  }
-  return { ref, label: ref.place.name, detail: ref.place.regionCode?.replace(/^US-/, '') ?? '', isPark: !!ref.place.parkId, parkId: ref.place.parkId ?? null }
-}
+const NO_RESULTS: SearchResult[] = []
 
 /**
  * Pick a place: type to search (your places, national parks, US towns, all offline), or tap
@@ -63,22 +48,23 @@ export function PlacePicker({
 
   // With the detailed map on, landmarks and addresses from Photon follow the offline results.
   const detailed = useMapDetail() === 'detailed'
-  const [online, setOnline] = useState<SearchResult[]>([])
+  // Results are kept with the query they answer, so stale ones never show for newer typing.
+  const [onlineFor, setOnlineFor] = useState<{ query: string; results: SearchResult[] }>({ query: '', results: [] })
+  const q = query.trim()
+  const online = detailed && onlineFor.query === q ? onlineFor.results : NO_RESULTS
   useEffect(() => {
-    setOnline([])
-    const q = query.trim()
     if (!detailed || q.length < 3) return
     const controller = new AbortController()
     const timer = setTimeout(() => {
       searchOnline(q, controller.signal)
-        .then(setOnline)
+        .then((results) => setOnlineFor({ query: q, results }))
         .catch(() => {})
     }, 350)
     return () => {
       clearTimeout(timer)
       controller.abort()
     }
-  }, [query, detailed])
+  }, [q, detailed])
   const results = useMemo(() => {
     const seen = new Set(local.map((r) => `${r.label.toLowerCase()}|${r.detail}`))
     return [...local.slice(0, 6), ...online.filter((r) => !seen.has(`${r.label.toLowerCase()}|${r.detail}`)).slice(0, 5)]
@@ -191,17 +177,19 @@ export function PlacePicker({
 
 /** "This is inside Yosemite National Park — link it?" for a new place that falls inside a park. */
 function ParkSuggestion({ value, onLink }: { value: ChosenPlace; onLink: (park: ParkInfo) => void }) {
-  const [park, setPark] = useState<ParkInfo | null>(null)
+  const [found, setFound] = useState<{ at: string; park: ParkInfo | null }>({ at: '', park: null })
   const [dismissed, setDismissed] = useState(false)
   const place = 'place' in value.ref ? value.ref.place : null
   const lat = place?.lat
   const lng = place?.lng
   const linked = !!place?.parkId
+  const at = `${lat},${lng}`
+  // The park found for this exact spot; a lookup for an earlier spot is ignored.
+  const park = found.at === at ? found.park : null
   useEffect(() => {
-    setPark(null)
     if (lat === undefined || lng === undefined || linked) return
     let cancelled = false
-    void parkAt(lng, lat).then((p) => !cancelled && setPark(p))
+    void parkAt(lng, lat).then((p) => !cancelled && setFound({ at: `${lat},${lng}`, park: p }))
     return () => {
       cancelled = true
     }

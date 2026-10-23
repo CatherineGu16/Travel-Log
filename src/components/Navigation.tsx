@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { pageHref, type Page } from '../ui/route.ts'
 
-export const PAGES: { id: Page; label: string; icon: ReactNode }[] = [
+const PAGES: { id: Page; label: string; icon: ReactNode }[] = [
   {
     id: 'map',
     label: 'Map',

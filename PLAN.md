@@ -405,7 +405,7 @@ apps independent.
 | M5 ✅ | **National parks**: `park-hikes.json` (names from NPS Things To Do), map layer, All / Visited / Not visited, checklist with stacked dates, "Log a visit", auto-suggest a park link, **hikes checklist** (in the trip form and per park) | Parks show the correct visited state on the map and in the checklist, and hikes can be checked off per park |
 | M6 ✅ | GitHub sync: Settings form, `travel.json` fetch/merge/save, **photo avatar** upload + download cache, status chip, `docs/ACCESS_KEY.md` | A trip and a new photo avatar added on phone appear on PC after refresh. Two-device conflict test passes |
 | M7 ✅ | Offline place search, **Map detail setting** (OpenFreeMap tiles + Photon search), stats in header, Export/Import (.zip with `travel.json` + avatars) | All flows work. With the setting off, the app makes no requests except to GitHub |
-| M8 | GitHub Actions deploy to Pages, Playwright E2E (desktop + phone), README | Live at `https://catherinegu16.github.io/Travel-Log/` |
+| M8 ✅ | GitHub Actions deploy to Pages, Playwright E2E (desktop + phone), README | Live at `https://catherinegu16.github.io/Travel-Log/` once pushed and Pages is turned on (setup step 1) |
 | Later: W1 | World outline data: countries, per-country regions, world cities/lakes, GeoNames search files (scripts + lazy loading + offline caching) | Zooming into any country shows its regions, offline after the first visit |
 | Later: W2 | Globe view, great-circle routes across the date line, countries n/195 stat and country shading, region shading for any country | An LA → Tokyo trip draws correctly and counts Japan |
 | Later | Other checklists (NPS monuments / seashores, UNESCO sites) | — |
