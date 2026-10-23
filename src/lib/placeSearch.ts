@@ -1,3 +1,4 @@
+import { distanceMeters } from './geo.ts'
 import type { PlaceInput, PlaceRef } from './travelActions.ts'
 import type { Place } from './types.ts'
 
@@ -15,7 +16,8 @@ export interface ParkInfo {
 
 export interface SearchResult {
   key: string
-  kind: 'yours' | 'park' | 'town'
+  /** "online" results come from Photon, only with the detailed map on. */
+  kind: 'yours' | 'park' | 'town' | 'online'
   label: string
   detail: string
   isPark: boolean
@@ -54,12 +56,14 @@ export function parkInput(park: ParkInfo): PlaceInput {
 
 /**
  * Searches, in order: places you've been (so a repeat visit reuses the same pin), national parks,
- * then US cities and towns. "Springdale, UT" or "springdale ut" narrows towns to a state.
+ * then US cities and towns. "Springdale, UT" or "springdale ut" narrows towns to a state. With
+ * `near` (e.g. the trip's main destination), same-named towns closest to it come first.
  */
 export function searchPlaces(
   query: string,
   sources: { yours: Place[]; visits: Map<string, number>; parks: ParkInfo[]; towns: TownRow[] },
   limit = 8,
+  near: { lat: number; lng: number } | null = null,
 ): SearchResult[] {
   let q = normalize(query)
   if (q.length < 2) return []
@@ -70,7 +74,8 @@ export function searchPlaces(
     state = withState[2].toUpperCase()
   }
 
-  const results: (SearchResult & { rank: number })[] = []
+  type Ranked = SearchResult & { rank: number; distance: number }
+  const results: Ranked[] = []
   const yourParks = new Set<string>()
   const yourTowns = new Set<string>()
 
@@ -88,6 +93,7 @@ export function searchPlaces(
       isPark: p.parkId !== null,
       ref: { placeId: p.id },
       rank: s,
+      distance: 0,
     })
   }
 
@@ -103,18 +109,20 @@ export function searchPlaces(
       isPark: true,
       ref: { place: parkInput(park) },
       rank: 10 + s,
+      distance: 0,
     })
   }
 
-  const towns: (SearchResult & { rank: number })[] = []
+  const towns: Ranked[] = []
   for (const row of sources.towns) {
     if (state && row[1] !== state) continue
     const s = score(row[0], q)
     if (s === null || s > 2 || yourTowns.has(`${normalize(row[0])}|${row[1]}`)) continue
-    towns.push({ key: `town:${row[0]}|${row[1]}|${row[2]}`, kind: 'town', label: row[0], detail: row[1], isPark: false, ref: { place: townInput(row) }, rank: 20 + s })
+    const distance = near ? distanceMeters(near, { lat: row[2], lng: row[3] }) : 0
+    towns.push({ key: `town:${row[0]}|${row[1]}|${row[2]}`, kind: 'town', label: row[0], detail: row[1], isPark: false, ref: { place: townInput(row) }, rank: 20 + s, distance })
   }
-  // Shorter names first within a match tier, so "Moab" beats "Moabite Springs".
-  towns.sort((a, b) => a.rank - b.rank || a.label.length - b.label.length || a.label.localeCompare(b.label))
+  // Shorter names first within a match tier, so "Moab" beats "Moabite Springs"; then nearest.
+  towns.sort((a, b) => a.rank - b.rank || a.label.length - b.label.length || a.distance - b.distance || a.label.localeCompare(b.label))
 
-  return [...results.sort((a, b) => a.rank - b.rank), ...towns].slice(0, limit).map(({ rank: _rank, ...r }) => r)
+  return [...results.sort((a, b) => a.rank - b.rank), ...towns].slice(0, limit).map(({ rank: _rank, distance: _distance, ...r }) => r)
 }

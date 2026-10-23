@@ -2,6 +2,8 @@ import { useEffect, useId, useMemo, useState } from 'react'
 import { visitsPerPlace } from '../lib/derive.ts'
 import { loadTowns, parkAt, PARKS } from '../lib/gazetteer.ts'
 import type { ParkInfo } from '../lib/placeSearch.ts'
+import { searchOnline } from '../lib/onlineSearch.ts'
+import { useMapDetail } from '../ui/mapDetail.ts'
 import { searchPlaces, type SearchResult, type TownRow } from '../lib/placeSearch.ts'
 import { live, type PlaceRef } from '../lib/travelActions.ts'
 import type { TravelData } from '../lib/types.ts'
@@ -35,6 +37,7 @@ export function PlacePicker({
   onChange,
   onPickOnMap,
   autoFocus = false,
+  near = null,
 }: {
   label: string
   data: TravelData
@@ -42,6 +45,8 @@ export function PlacePicker({
   onChange: (place: ChosenPlace | null) => void
   onPickOnMap: () => void
   autoFocus?: boolean
+  /** Prefer towns near here (the trip's main destination) when names repeat. */
+  near?: { lat: number; lng: number } | null
 }) {
   const id = useId()
   const [query, setQuery] = useState('')
@@ -54,7 +59,30 @@ export function PlacePicker({
 
   const yours = useMemo(() => live(data.places), [data.places])
   const visits = useMemo(() => visitsPerPlace(data), [data])
-  const results = useMemo(() => searchPlaces(query, { yours, visits, parks: PARKS, towns }), [query, yours, visits, towns])
+  const local = useMemo(() => searchPlaces(query, { yours, visits, parks: PARKS, towns }, 8, near), [query, yours, visits, towns, near])
+
+  // With the detailed map on, landmarks and addresses from Photon follow the offline results.
+  const detailed = useMapDetail() === 'detailed'
+  const [online, setOnline] = useState<SearchResult[]>([])
+  useEffect(() => {
+    setOnline([])
+    const q = query.trim()
+    if (!detailed || q.length < 3) return
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      searchOnline(q, controller.signal)
+        .then(setOnline)
+        .catch(() => {})
+    }, 350)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [query, detailed])
+  const results = useMemo(() => {
+    const seen = new Set(local.map((r) => `${r.label.toLowerCase()}|${r.detail}`))
+    return [...local.slice(0, 6), ...online.filter((r) => !seen.has(`${r.label.toLowerCase()}|${r.detail}`)).slice(0, 5)]
+  }, [local, online])
 
   const choose = (r: SearchResult) => {
     onChange({ ...describeRef(r.ref, data), label: r.label })
@@ -144,7 +172,14 @@ export function PlacePicker({
               >
                 <PinGlyph park={r.isPark} />
                 <span className="min-w-0 flex-1 truncate">{r.label}</span>
-                <span className={`shrink-0 text-xs ${r.kind === 'yours' ? 'font-bold text-primary' : 'text-muted'}`}>{r.detail}</span>
+                <span className={`shrink-0 text-xs ${r.kind === 'yours' ? 'font-bold text-primary' : 'text-muted'}`}>
+                  {r.detail}
+                  {r.kind === 'online' && (
+                    <span title="From OpenStreetMap (online search)">
+                      {r.detail ? ' · ' : ''}OSM
+                    </span>
+                  )}
+                </span>
               </button>
             </li>
           ))}

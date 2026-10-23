@@ -269,7 +269,8 @@ Same engine as Watchlist-Tracker (`src/sync/`).
 
 ### Add / edit trip
 - **Title** (suggested from the destination and year, editable).
-- **Main destination**: search a place (cities, towns and parks from the bundled list, plus
+- **Main destination**: search a place (your places, parks, then cities and towns from the bundled
+  list; for stops, same-named towns nearest the main destination come first; plus
   landmarks and addresses when the detailed map is on), or tap/long-press the map. A dropped pin
   gets its state (`regionCode`) from the bundled outlines and its nearest town from the bundled
   places list. Picking a place you've been to before reuses it, so the new dates stack onto it.
@@ -317,7 +318,8 @@ Same engine as Watchlist-Tracker (`src/sync/`).
   and "Also here" chips for every other visit to that place, which open those trips), hikes, description, highlights, and Edit and Delete with Undo.
 
 ### Header, navigation, settings
-- **Header**: states n/50 and parks n/64 progress, trips this year, and the sync status chip.
+- **Header**: states n/50 and parks n/64 progress, trips this year (on wide screens), and the sync
+  status chip (a colored dot on phones).
 - **Navigation**: Map · Trips · Places · Parks, kept in the URL hash so Back works. A bottom tab bar
   on phone (with Add trip), page links in the header on wider screens.
 - **Settings**: Sync across devices (same as Watchlist), **Map detail** (Outline · Detailed, with a
@@ -402,7 +404,7 @@ apps independent.
 | M4 ✅ | **Trips list** + **Places tab**: grouping, sorting, search, Family / Not family filter shared with the map | Every trip can be found without the map, and family trips filter correctly |
 | M5 ✅ | **National parks**: `park-hikes.json` (names from NPS Things To Do), map layer, All / Visited / Not visited, checklist with stacked dates, "Log a visit", auto-suggest a park link, **hikes checklist** (in the trip form and per park) | Parks show the correct visited state on the map and in the checklist, and hikes can be checked off per park |
 | M6 ✅ | GitHub sync: Settings form, `travel.json` fetch/merge/save, **photo avatar** upload + download cache, status chip, `docs/ACCESS_KEY.md` | A trip and a new photo avatar added on phone appear on PC after refresh. Two-device conflict test passes |
-| M7 | Offline place search, **Map detail setting** (OpenFreeMap tiles + Photon search), stats in header, Export/Import (.zip with `travel.json` + avatars) | All flows work. With the setting off, the app makes no requests except to GitHub |
+| M7 ✅ | Offline place search, **Map detail setting** (OpenFreeMap tiles + Photon search), stats in header, Export/Import (.zip with `travel.json` + avatars) | All flows work. With the setting off, the app makes no requests except to GitHub |
 | M8 | GitHub Actions deploy to Pages, Playwright E2E (desktop + phone), README | Live at `https://catherinegu16.github.io/Travel-Log/` |
 | Later: W1 | World outline data: countries, per-country regions, world cities/lakes, GeoNames search files (scripts + lazy loading + offline caching) | Zooming into any country shows its regions, offline after the first visit |
 | Later: W2 | Globe view, great-circle routes across the date line, countries n/195 stat and country shading, region shading for any country | An LA → Tokyo trip draws correctly and counts Japan |

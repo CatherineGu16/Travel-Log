@@ -10,6 +10,7 @@ import { SyncChip } from './components/SyncChip.tsx'
 import { PinCard } from './components/PinCard.tsx'
 import { PlacesPage } from './components/PlacesPage.tsx'
 import { ToastProvider } from './components/Toast.tsx'
+import { useToast } from './components/toastContext.ts'
 import { TripDetail } from './components/TripDetail.tsx'
 import { TripForm } from './components/TripForm.tsx'
 import { TripsPage } from './components/TripsPage.tsx'
@@ -20,9 +21,11 @@ import { placeAt } from './lib/gazetteer.ts'
 import { parkInput, type ParkInfo } from './lib/placeSearch.ts'
 import { routeOf } from './lib/route.ts'
 import { live, type PlaceInput } from './lib/travelActions.ts'
+import { todayIso, yearOf } from './lib/partialDate.ts'
 import type { Trip } from './lib/types.ts'
 import { loadServices, ServicesContext, useStore, useTravelState, type AppServices } from './store/useTravel.ts'
 import type { ParksMode } from './map/MapView.tsx'
+import { useMapDetail } from './ui/mapDetail.ts'
 import { usePage } from './ui/route.ts'
 import { usePersistentState } from './ui/usePersistentState.ts'
 
@@ -51,6 +54,8 @@ function Shell() {
   const store = useStore()
   const { data, error } = useTravelState()
   const { page, goTo } = usePage()
+  const toast = useToast()
+  const detailed = useMapDetail() === 'detailed'
 
   // Filters are shared by the map and the lists, and remembered on this device.
   const [filter, setFilter] = usePersistentState<TripFilter>('travel.filter.v1', NO_FILTER, reviveFilter)
@@ -61,7 +66,15 @@ function Shell() {
   const perRegion = useMemo(() => tripsPerRegion(shown), [shown])
   // Header totals always count everything, whatever the filter.
   const visitedParks = useMemo(() => parksVisited(data), [data])
-  const totals = useMemo(() => ({ states: statesVisited(tripsPerRegion(data)), parks: visitedParks.size }), [data, visitedParks])
+  const thisYear = yearOf(todayIso())
+  const totals = useMemo(
+    () => ({
+      states: statesVisited(tripsPerRegion(data)),
+      parks: visitedParks.size,
+      thisYear: live(data.trips).filter((t) => yearOf(t.startDate) === thisYear).length,
+    }),
+    [data, visitedParks, thisYear],
+  )
   const [parksMode, setParksMode] = usePersistentState<ParksMode>('travel.parksLayer', 'off', (v) =>
     v === 'all' || v === 'visited' || v === 'not-visited' ? v : 'off',
   )
@@ -157,6 +170,8 @@ function Shell() {
             parksMode={parksMode}
             visitedParks={visitedParks}
             onSelectPark={setParkSheetId}
+            detailed={detailed}
+            onDetailedFailed={() => toast("The detailed map couldn't load (offline?). Showing the outline map.")}
             focus={focus}
           />
         </Suspense>
@@ -192,6 +207,12 @@ function Shell() {
                 <dt className="sr-only">National parks visited</dt>
                 <dd>
                   <span className="font-bold text-park">{totals.parks}</span> / {parks.length} parks
+                </dd>
+              </div>
+              <div className="hidden gap-1 xl:flex">
+                <dt className="sr-only">Trips this year</dt>
+                <dd>
+                  <span className="font-bold text-fg">{totals.thisYear}</span> {totals.thisYear === 1 ? 'trip' : 'trips'} in {thisYear}
                 </dd>
               </div>
             </dl>

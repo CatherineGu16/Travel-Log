@@ -70,6 +70,15 @@ export function TripForm({
   // National parks on this trip: their hikes can be checked off.
   const parkIds = [...new Set([main?.parkId, ...stops.map((s) => s.place.parkId)].filter((id): id is string => !!id))]
 
+  // Stops search near the main destination first.
+  const mainPoint = useMemo(() => {
+    if (!main) return null
+    if ('place' in main.ref) return { lat: main.ref.place.lat, lng: main.ref.place.lng }
+    const id = main.ref.placeId
+    const p = data.places.find((x) => x.id === id)
+    return p ? { lat: p.lat, lng: p.lng } : null
+  }, [main, data.places])
+
   const suggestedTitle = useMemo(() => (main ? `${main.label.replace(/ National Park$/, '')} ${yearOf(startDate)}` : ''), [main, startDate])
 
   const setWho = (ids: string[]) => {
@@ -214,6 +223,7 @@ export function TripForm({
           <PlacePicker
             label={stops.length ? 'Add another stop' : 'Add a stop'}
             data={data}
+            near={mainPoint}
             value={null}
             onChange={(p) => p && setStops((s) => [...s, { key: newId(), place: p, startDate: null, endDate: null, note: '', open: false }])}
             onPickOnMap={() =>

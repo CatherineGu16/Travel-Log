@@ -15,6 +15,7 @@ export interface AvatarStore {
   get(personId: string): Promise<AvatarRecord | null>
   put(record: AvatarRecord): Promise<void>
   pending(): Promise<AvatarRecord[]>
+  all(): Promise<AvatarRecord[]>
   /** Notifies when a photo is added or downloaded, so avatars on screen refresh. */
   subscribe(listener: (personId: string) => void): () => void
 }
@@ -76,6 +77,7 @@ export function indexedDbAvatars(factory: IDBFactory = indexedDB): AvatarStore {
       await run('readwrite', (s) => s.put(stored))
     },
     pending: async () => (await run<StoredAvatar[]>('readonly', (s) => s.getAll())).filter((r) => r.pending).map(fromStored),
+    all: async () => (await run<StoredAvatar[]>('readonly', (s) => s.getAll())).map(fromStored),
   })
 }
 
@@ -88,6 +90,7 @@ export function memoryAvatars(): AvatarStore {
       records.set(r.personId, r)
     },
     pending: async () => [...records.values()].filter((r) => r.pending),
+    all: async () => [...records.values()],
   })
 }
 

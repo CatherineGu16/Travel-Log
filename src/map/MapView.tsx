@@ -7,6 +7,7 @@ import type { RoutePoint } from '../lib/route.ts'
 import { resolvedTheme } from '../ui/theme.ts'
 import { loadOutlineData } from './mapData.ts'
 import { outlineStyle, PALETTES, themedPaint } from './outlineStyle.ts'
+import { hideDetailed, showDetailed } from './detailedTiles.ts'
 import { setParkImages, setPinImages } from './pinImages.ts'
 import { QUICK_JUMPS, VIEWS, type ViewId } from './views.ts'
 
@@ -45,6 +46,9 @@ export interface MapViewProps {
   parksMode: ParksMode
   visitedParks: Set<string>
   onSelectPark: (parkId: string) => void
+  /** Settings → Map detail: add OpenFreeMap tiles under your layers. */
+  detailed: boolean
+  onDetailedFailed: () => void
   /** Changes when the map should fly to a place (e.g. a trip you just saved). */
   focus: { lng: number; lat: number; token: number } | null
 }
@@ -205,10 +209,24 @@ export function MapView(props: MapViewProps) {
     if (map) map.getCanvas().style.cursor = props.picking ? 'crosshair' : ''
   }, [map, props.picking])
 
+  // The optional detailed map, restyled for the theme.
+  const [themeTick, setThemeTick] = useState(0)
+  const { detailed } = props
+  useEffect(() => {
+    if (!map) return
+    if (!detailed) return hideDetailed(map)
+    let cancelled = false
+    showDetailed(map, resolvedTheme()).catch(() => !cancelled && latest.current.onDetailedFailed())
+    return () => {
+      cancelled = true
+    }
+  }, [map, detailed, themeTick])
+
   // Repaint when the theme changes, from Settings or from the device.
   useEffect(() => {
     if (!map) return
     const repaint = () => {
+      setThemeTick((t) => t + 1)
       const palette = PALETTES[resolvedTheme()]
       for (const { layer, prop, value } of themedPaint(palette)) map.setPaintProperty(layer, prop, value)
       setPinImages(map, { accent: palette.pin, park: palette.pinPark, center: palette.pinCenter })

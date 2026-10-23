@@ -47,3 +47,12 @@ describe('searchPlaces', () => {
     expect(searchPlaces('z', sources())).toEqual([])
   })
 })
+
+describe('searchPlaces near a place', () => {
+  it('puts the same-named town nearest the main destination first', () => {
+    const zion = { lat: 37.3, lng: -113.05 }
+    const results = searchPlaces('st george', sources(), 8, zion)
+    expect(results[0]).toMatchObject({ label: expect.stringMatching(/^St\.? George$/), detail: 'UT' })
+    expect(results[0]).not.toHaveProperty('distance')
+  })
+})
