@@ -16,6 +16,12 @@ import {
 
 /** Edits are pure: (data, context) → new data. The store applies, saves, and can undo them. */
 
+/**
+ * The built-in Family group is stamped at the epoch, so a new device's empty copy never wins a sync
+ * merge over a Family group you've actually edited on another device.
+ */
+const EPOCH = new Date(0).toISOString()
+
 export function emptyData(now: string): TravelData {
   return {
     schemaVersion: 1,
@@ -23,7 +29,7 @@ export function emptyData(now: string): TravelData {
     trips: [],
     places: [],
     people: [],
-    groups: [{ id: FAMILY_GROUP_ID, name: 'Family', memberIds: [], isFamily: true, createdAt: now, updatedAt: now }],
+    groups: [{ id: FAMILY_GROUP_ID, name: 'Family', memberIds: [], isFamily: true, createdAt: EPOCH, updatedAt: EPOCH }],
   }
 }
 

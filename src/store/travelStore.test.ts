@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto'
 import { describe, expect, it } from 'vitest'
 import { saveTrip } from '../lib/travelActions.ts'
+import { indexedDbAvatars } from './avatarStore.ts'
 import { indexedDbBackend, memoryBackend } from './storage.ts'
 import { createTravelStore } from './travelStore.ts'
 
@@ -46,5 +47,22 @@ describe('travelStore', () => {
     await store.init()
     expect(store.apply(() => { throw new Error('nope') }, 'Broken')).toBeNull()
     expect(store.getState().error).toBe('nope')
+  })
+})
+
+describe('avatar store', () => {
+  it('keeps photos in IndexedDB as bytes and gives them back as images, with pending uploads listed', async () => {
+    const avatars = indexedDbAvatars()
+    const seen: string[] = []
+    avatars.subscribe((id) => seen.push(id))
+    await avatars.put({ personId: 'mom', photoUpdatedAt: 't1', blob: new Blob(['jpeg'], { type: 'image/jpeg' }), pending: true })
+    const back = await avatars.get('mom')
+    expect(back).toMatchObject({ personId: 'mom', photoUpdatedAt: 't1', pending: true })
+    expect(back!.blob.type).toBe('image/jpeg')
+    expect(await back!.blob.text()).toBe('jpeg')
+    expect((await avatars.pending()).map((r) => r.personId)).toEqual(['mom'])
+    await avatars.put({ ...back!, pending: false })
+    expect(await avatars.pending()).toEqual([])
+    expect(seen).toEqual(['mom', 'mom'])
   })
 })

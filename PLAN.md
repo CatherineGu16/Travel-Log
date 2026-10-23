@@ -176,7 +176,7 @@ units (monuments, seashores, historic sites — 400+ total) could be added later
               avatar: { kind: "initials" | "emoji" | "photo",
                         color,               // background color
                         emoji | null,        // when kind = "emoji"
-                        photoUpdatedAt | null },  // when kind = "photo": avatars/{id}.webp
+                        photoUpdatedAt | null },  // when kind = "photo": avatars/{id}.jpg
               createdAt, updatedAt, deleted? } ],
   groups: [ { id, name,                      // "Family", "College friends", "Work team"
               memberIds: [personId],
@@ -188,7 +188,8 @@ units (monuments, seashores, historic sites — 400+ total) could be added later
 **Avatar photos** (`travel-data/avatars/`, optional):
 
 ```
-avatars/{personId}.webp     square, 256 px, ~15–25 KB, re-encoded in the browser (no EXIF/GPS)
+avatars/{personId}.jpg      square, 256 px, ~15–25 KB, re-encoded in the browser (no EXIF/GPS).
+                            JPEG rather than WebP: iPhone Safari can't encode WebP from a canvas
 ```
 
 Most people can just use an initials or emoji avatar, which is stored in `travel.json` and needs
@@ -206,6 +207,8 @@ no file. A photo avatar is one small file per person. At ~20 KB each, even 200 p
 - **Hikes done in a park**: every hike across all non-deleted trips with that `parkId`. Doing the
   same trail on two trips stacks both dates on it.
 - **National park pin**: the pin's place has a `parkId`.
+- **The built-in Family group** is stamped at the epoch, so a new device's empty copy never wins a
+  sync merge over a Family group edited on another device.
 - **Family trip**: `isFamily === true`. When you pick who went, the form turns the Family switch on
   if anyone in the Family group is on the trip, and you can turn it off.
 - **State shading level**: number of trips that visited the state, bucketed into 1 · 2–3 · 4–6 ·
@@ -226,10 +229,12 @@ Same engine as Watchlist-Tracker (`src/sync/`).
    record by record (`id` + `updatedAt`) for trips, places, people and groups, with tombstones
    for deletes.
    Unsynced edits are tracked with a flag, as in Watchlist.
-4. **Avatar photos**: uploaded with a single `PUT .../contents/avatars/{id}.webp` **before** the
+4. **Avatar photos**: uploaded with a single `PUT .../contents/avatars/{id}.jpg` **before** the
    `travel.json` that points to them, so another device never sees a photo avatar without its
    file. Downloaded once per device and cached in IndexedDB. Replacing a photo overwrites the
    file and bumps `photoUpdatedAt`. Until a photo has downloaded, the initials avatar shows.
+   On the device, photos are kept in IndexedDB as bytes (Safari won't store Blobs there in private
+   browsing).
 5. **Offline**: edits and avatar uploads stay queued and push when the connection returns.
 6. **Status chip** in the header: Synced / Saving / Syncing / Offline / Sync problem.
 7. **First-time setup** (once per device): Settings → Sync across devices → username, repo, key,
@@ -396,7 +401,7 @@ apps independent.
 | M3 ✅ | **Dotted routes** + stacked pins (×N) with date picker + place reuse and stacked visit dates + trip detail | Selecting a pin shows its route; a second trip to the same place stacks onto its pin, and picking either date shows the right route |
 | M4 ✅ | **Trips list** + **Places tab**: grouping, sorting, search, Family / Not family filter shared with the map | Every trip can be found without the map, and family trips filter correctly |
 | M5 ✅ | **National parks**: `park-hikes.json` (names from NPS Things To Do), map layer, All / Visited / Not visited, checklist with stacked dates, "Log a visit", auto-suggest a park link, **hikes checklist** (in the trip form and per park) | Parks show the correct visited state on the map and in the checklist, and hikes can be checked off per park |
-| M6 | GitHub sync: Settings form, `travel.json` fetch/merge/save, **photo avatar** upload + download cache, status chip, `docs/ACCESS_KEY.md` | A trip and a new photo avatar added on phone appear on PC after refresh. Two-device conflict test passes |
+| M6 ✅ | GitHub sync: Settings form, `travel.json` fetch/merge/save, **photo avatar** upload + download cache, status chip, `docs/ACCESS_KEY.md` | A trip and a new photo avatar added on phone appear on PC after refresh. Two-device conflict test passes |
 | M7 | Offline place search, **Map detail setting** (OpenFreeMap tiles + Photon search), stats in header, Export/Import (.zip with `travel.json` + avatars) | All flows work. With the setting off, the app makes no requests except to GitHub |
 | M8 | GitHub Actions deploy to Pages, Playwright E2E (desktop + phone), README | Live at `https://catherinegu16.github.io/Travel-Log/` |
 | Later: W1 | World outline data: countries, per-country regions, world cities/lakes, GeoNames search files (scripts + lazy loading + offline caching) | Zooming into any country shows its regions, offline after the first visit |

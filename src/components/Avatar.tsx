@@ -1,4 +1,5 @@
 import type { Person } from '../lib/types.ts'
+import { useAvatarPhoto } from '../store/useTravel.ts'
 
 export const initialsOf = (name: string) =>
   name
@@ -8,9 +9,35 @@ export const initialsOf = (name: string) =>
     .map((w) => w[0]?.toUpperCase() ?? '')
     .join('')
 
-/** A person's initials or emoji on their color. Photo avatars arrive with sync (M6); until then initials show. */
-export function Avatar({ person, size = 32, ring = false }: { person: Pick<Person, 'name' | 'avatar'>; size?: number; ring?: boolean }) {
+/**
+ * A person's photo, emoji or initials on their color. A photo shows once it's on this device
+ * (picked here, or downloaded from your private repo); until then the initials show.
+ */
+export function Avatar({
+  person,
+  size = 32,
+  ring = false,
+  photoUrl,
+}: {
+  person: Pick<Person, 'name' | 'avatar'> & { id?: string }
+  size?: number
+  ring?: boolean
+  /** A photo not saved yet (the editor's preview). */
+  photoUrl?: string | null
+}) {
   const { avatar } = person
+  const cached = useAvatarPhoto(person.id && !photoUrl ? { id: person.id, avatar } : null)
+  const src = avatar.kind === 'photo' ? (photoUrl ?? cached) : null
+  if (src)
+    return (
+      <img
+        src={src}
+        alt=""
+        aria-hidden
+        className={`inline-block shrink-0 rounded-full object-cover ${ring ? 'ring-2 ring-surface' : ''}`}
+        style={{ width: size, height: size, background: avatar.color }}
+      />
+    )
   const emoji = avatar.kind === 'emoji' && avatar.emoji
   return (
     <span

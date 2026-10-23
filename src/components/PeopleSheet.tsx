@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { liveGroups, livePeople } from '../lib/derive.ts'
 import {
   addGroup,
@@ -12,7 +12,8 @@ import {
   updatePerson,
 } from '../lib/travelActions.ts'
 import type { Avatar as AvatarData, Group, Person } from '../lib/types.ts'
-import { newId, useStore, useTravelState } from '../store/useTravel.ts'
+import { photoToAvatar } from '../lib/avatarImage.ts'
+import { newId, useAvatars, useStore, useTravelState } from '../store/useTravel.ts'
 import { Avatar } from './Avatar.tsx'
 import { Sheet } from './Sheet.tsx'
 import { useToast } from './toastContext.ts'
@@ -107,20 +108,55 @@ function PeopleList({ onPerson, onGroup }: { onPerson: (id: string | null) => vo
 
 function PersonEditor({ id, onDone }: { id: string | null; onDone: () => void }) {
   const store = useStore()
+  const avatars = useAvatars()
   const toast = useToast()
   const { data } = useTravelState()
   const existing: Person | undefined = id ? data.people.find((p) => p.id === id) : undefined
+  const [personId] = useState(() => id ?? newId())
   const [name, setName] = useState(existing?.name ?? '')
   const [avatar, setAvatar] = useState<AvatarData>(existing?.avatar ?? defaultAvatar(''))
+  // A newly picked photo, kept here until Save.
+  const [photo, setPhoto] = useState<{ blob: Blob; url: string } | null>(null)
+  const fileInput = useRef<HTMLInputElement>(null)
+  useEffect(
+    () => () => {
+      if (photo) URL.revokeObjectURL(photo.url)
+    },
+    [photo],
+  )
+
+  const pickPhoto = async (file: File | undefined) => {
+    if (!file) return
+    try {
+      const blob = await photoToAvatar(file)
+      setPhoto({ blob, url: URL.createObjectURL(blob) })
+      setAvatar({ ...avatar, kind: 'photo' })
+      setError(null)
+    } catch {
+      setError("Couldn't read that photo. Try a JPEG or PNG.")
+    }
+  }
   const [groupIds, setGroupIds] = useState<string[]>(() => (id ? data.groups.filter((g) => g.memberIds.includes(id)).map((g) => g.id) : []))
   const [error, setError] = useState<string | null>(null)
 
-  const save = () => {
+  const save = async () => {
     if (!name.trim()) return setError('Add a name.')
-    const input = { name, avatar, groupIds }
+    if (avatar.kind === 'photo' && !photo && !avatar.photoUpdatedAt) return setError('Choose a photo, or pick initials or an emoji.')
+    let next = avatar
+    if (photo) {
+      // The photo is stored (and queued for upload) before the record that points to it.
+      const photoUpdatedAt = new Date().toISOString()
+      try {
+        await avatars.put({ personId, photoUpdatedAt, blob: photo.blob, pending: true })
+      } catch {
+        return setError("Couldn't save the photo on this device.")
+      }
+      next = { ...avatar, kind: 'photo', photoUpdatedAt }
+    }
+    const input = { name, avatar: next, groupIds }
     const ok = id
       ? store.apply((d, c) => updatePerson(d, c, id, input), `Edited ${name.trim()}`)
-      : store.apply((d, c) => addPerson(d, c, newId(), input), `Added ${name.trim()}`)
+      : store.apply((d, c) => addPerson(d, c, personId, input), `Added ${name.trim()}`)
     if (ok === null) return setError(store.getState().error)
     onDone()
   }
@@ -147,7 +183,7 @@ function PersonEditor({ id, onDone }: { id: string | null; onDone: () => void })
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-4">
-        <Avatar person={{ name: name || '?', avatar }} size={72} />
+        <Avatar person={{ id: id ?? undefined, name: name || '?', avatar }} size={72} photoUrl={photo?.url} />
         <label className="min-w-0 flex-1">
           <span className="mb-1 block text-sm font-bold">Name</span>
           <input autoFocus={!id} value={name} onChange={(e) => setName(e.target.value)} className="h-11 w-full rounded-lg border border-line bg-bg px-3 text-base" />
@@ -159,7 +195,27 @@ function PersonEditor({ id, onDone }: { id: string | null; onDone: () => void })
         <div role="radiogroup" aria-label="Avatar style" className="mb-3 flex w-fit rounded-lg bg-bg p-0.5">
           {kindBtn('initials', 'Initials')}
           {kindBtn('emoji', 'Emoji')}
+          {kindBtn('photo', 'Photo')}
         </div>
+        {avatar.kind === 'photo' && (
+          <div className="mb-3 flex items-center gap-3">
+            <button type="button" onClick={() => fileInput.current?.click()} className="min-h-10 rounded-lg border border-line px-3 text-sm font-bold hover:bg-raised">
+              {photo || avatar.photoUpdatedAt ? 'Choose another photo' : 'Choose a photo'}
+            </button>
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/*"
+              aria-label="Photo"
+              className="hidden"
+              onChange={(e) => {
+                void pickPhoto(e.target.files?.[0])
+                e.target.value = ''
+              }}
+            />
+            <span className="text-xs text-muted">Cropped to a square. Location data is removed.</span>
+          </div>
+        )}
         {avatar.kind === 'emoji' && (
           <div className="mb-3 grid grid-cols-8 gap-1" role="radiogroup" aria-label="Emoji">
             {EMOJIS.map((e) => (
@@ -190,7 +246,6 @@ function PersonEditor({ id, onDone }: { id: string | null; onDone: () => void })
             />
           ))}
         </div>
-        <p className="mt-2 text-xs text-muted">Photo avatars come with syncing across devices.</p>
       </fieldset>
 
       <fieldset>
@@ -222,7 +277,7 @@ function PersonEditor({ id, onDone }: { id: string | null; onDone: () => void })
         <button type="button" onClick={onDone} className="ml-auto min-h-11 rounded-lg px-4 font-bold text-muted hover:text-fg">
           Back
         </button>
-        <button type="button" onClick={save} className="min-h-11 rounded-lg bg-primary px-5 font-bold text-on-primary">
+        <button type="button" onClick={() => void save()} className="min-h-11 rounded-lg bg-primary px-5 font-bold text-on-primary">
           Save
         </button>
       </div>

@@ -1,5 +1,6 @@
 import type { TravelData } from '../lib/types.ts'
 import { emptyData, revertTo } from '../lib/travelActions.ts'
+import { mergeData } from '../lib/travelData.ts'
 import type { EditContext } from '../lib/types.ts'
 import type { StorageBackend } from './storage.ts'
 
@@ -34,6 +35,13 @@ export interface TravelStore {
    * since (so an old confirmation's Undo can't revert something else). False if refused.
    */
   undo(id?: number): boolean
+  /** Import: merge keeps edits from both; replace swaps in the file as-is. */
+  importData(incoming: TravelData, mode: 'merge' | 'replace'): void
+  /**
+   * Takes in data merged with another device. Clears undo: older snapshots don't know about the
+   * incoming records, so undoing past this point would delete them.
+   */
+  applySynced(data: TravelData): void
   /** Resolves once everything applied so far is on disk. */
   flush(): Promise<void>
 }
@@ -121,6 +129,13 @@ export function createTravelStore(
       undoStack.pop()
       commit(revertTo(state.data, last.data, ctx()), null)
       return true
+    },
+    importData(incoming, mode) {
+      commit(mode === 'merge' ? mergeData(state.data, incoming) : incoming, mode === 'merge' ? 'Imported backup' : 'Replaced data from backup')
+    },
+    applySynced(data) {
+      undoStack.length = 0
+      commit(data, null)
     },
     flush: () => writing,
   }

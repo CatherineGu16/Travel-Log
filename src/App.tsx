@@ -5,6 +5,8 @@ import { ParkSheet } from './components/ParkSheet.tsx'
 import { ParksLayerControl } from './components/ParksLayerControl.tsx'
 import { ParksPage } from './components/ParksPage.tsx'
 import { PeopleSheet } from './components/PeopleSheet.tsx'
+import { Settings } from './components/Settings.tsx'
+import { SyncChip } from './components/SyncChip.tsx'
 import { PinCard } from './components/PinCard.tsx'
 import { PlacesPage } from './components/PlacesPage.tsx'
 import { ToastProvider } from './components/Toast.tsx'
@@ -19,8 +21,7 @@ import { parkInput, type ParkInfo } from './lib/placeSearch.ts'
 import { routeOf } from './lib/route.ts'
 import { live, type PlaceInput } from './lib/travelActions.ts'
 import type { Trip } from './lib/types.ts'
-import { loadStore, StoreContext, useStore, useTravelState } from './store/useTravel.ts'
-import type { TravelStore } from './store/travelStore.ts'
+import { loadServices, ServicesContext, useStore, useTravelState, type AppServices } from './store/useTravel.ts'
 import type { ParksMode } from './map/MapView.tsx'
 import { usePage } from './ui/route.ts'
 import { usePersistentState } from './ui/usePersistentState.ts'
@@ -29,17 +30,17 @@ import { usePersistentState } from './ui/usePersistentState.ts'
 const MapView = lazy(() => import('./map/MapView.tsx').then((m) => ({ default: m.MapView })))
 
 export default function App() {
-  const [store, setStore] = useState<TravelStore | null>(null)
+  const [services, setServices] = useState<AppServices | null>(null)
   useEffect(() => {
-    void loadStore().then(setStore)
+    void loadServices().then(setServices)
   }, [])
-  if (!store) return <div className="h-full w-full bg-bg" />
+  if (!services) return <div className="h-full w-full bg-bg" />
   return (
-    <StoreContext.Provider value={store}>
+    <ServicesContext.Provider value={services}>
       <ToastProvider>
         <Shell />
       </ToastProvider>
-    </StoreContext.Provider>
+    </ServicesContext.Provider>
   )
 }
 
@@ -72,6 +73,7 @@ function Shell() {
   const [form, setForm] = useState<FormState | null>(null)
   const [pick, setPick] = useState<PickRequest | null>(null)
   const [peopleOpen, setPeopleOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [focus, setFocus] = useState<{ lng: number; lat: number; token: number } | null>(null)
   const focusToken = useRef(0)
 
@@ -176,10 +178,10 @@ function Shell() {
         )}
 
         <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-          <div className="pointer-events-auto flex items-center gap-3 rounded-xl border border-line bg-surface/95 py-1.5 pr-1.5 pl-4 shadow-md">
-            <h1 className="font-display text-2xl font-semibold tracking-wide">Travel Log</h1>
+          <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-line bg-surface/95 py-1.5 pr-1 pl-3 whitespace-nowrap shadow-md sm:gap-3 sm:pl-4">
+            <h1 className="font-display text-xl font-semibold tracking-wide sm:text-2xl">Travel Log</h1>
             <PageLinks page={page} />
-            <dl className="flex gap-3 text-sm text-muted sm:hidden lg:flex">
+            <dl className="flex gap-2 text-sm text-muted sm:hidden sm:gap-3 lg:flex">
               <div className="flex gap-1">
                 <dt className="sr-only">States visited</dt>
                 <dd>
@@ -204,6 +206,20 @@ function Shell() {
                 <path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 <circle cx="17" cy="9" r="2.5" fill="none" stroke="currentColor" strokeWidth="2" />
                 <path d="M17 14.5c2.4 0 4 1.5 4.5 4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </button>
+            <SyncChip onSettings={() => setSettingsOpen(true)} />
+            <button
+              onClick={() => setSettingsOpen(true)}
+              aria-label="Settings"
+              title="Settings"
+              className="-ml-2 grid size-10 place-items-center rounded-lg text-muted hover:bg-raised hover:text-fg"
+            >
+              <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
+                <path
+                  fill="currentColor"
+                  d="M12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Zm7.4-2.5a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3h-4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.4 7.4 0 0 0 1.7 1L11 21h4l.4-2.6a7.4 7.4 0 0 0 1.7-1l2.5 1 2-3.5Z"
+                />
               </svg>
             </button>
           </div>
@@ -318,6 +334,7 @@ function Shell() {
         resultCount={live(shown.trips).length}
       />
       <PeopleSheet open={peopleOpen} onClose={() => setPeopleOpen(false)} />
+      <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   )
 }
