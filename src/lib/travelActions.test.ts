@@ -1,0 +1,157 @@
+import { describe, expect, it } from 'vitest'
+import { pinsOf, tripsPerRegion, statesVisited, parksVisited, shadeLevel, includesFamily } from './derive.ts'
+import {
+  addGroup,
+  addPerson,
+  deleteGroup,
+  deletePerson,
+  deleteTrip,
+  emptyData,
+  findSamePlace,
+  revertTo,
+  saveTrip,
+  setPersonGroups,
+  type TripInput,
+} from './travelActions.ts'
+import { FAMILY_GROUP_ID, type EditContext, type TravelData } from './types.ts'
+
+let n = 0
+const ctx = (now = '2026-10-23T12:00:00.000Z'): EditContext => ({ now, newId: () => `id${++n}` })
+
+const zion = { name: 'Zion National Park', lat: 37.3, lng: -113.05, regionCode: 'US-UT', parkId: 'zion' }
+const springdale = { name: 'Springdale', lat: 37.18, lng: -113.0, regionCode: 'US-UT' }
+const vegas = { name: 'Las Vegas', lat: 36.17, lng: -115.14, regionCode: 'US-NV' }
+
+const trip = (over: Partial<TripInput> = {}): TripInput => ({
+  title: 'Utah 2023',
+  startDate: '2023-07-04',
+  endDate: '2023-07-09',
+  approximate: false,
+  main: { place: zion },
+  stops: [
+    { place: { place: vegas }, startDate: null, endDate: null, note: 'Flew in' },
+    { place: { place: springdale }, startDate: null, endDate: null, note: '' },
+  ],
+  companions: [],
+  isFamily: false,
+  description: '',
+  highlights: '',
+  rating: null,
+  tags: [],
+  ...over,
+})
+
+describe('emptyData', () => {
+  it('starts with a Family group that has a fixed id, so devices merge it into one', () => {
+    const data = emptyData('now')
+    expect(data.groups).toEqual([expect.objectContaining({ id: FAMILY_GROUP_ID, name: 'Family', isFamily: true })])
+  })
+})
+
+describe('saveTrip', () => {
+  it('creates a multi-stop trip with its places', () => {
+    const data = saveTrip(emptyData('t0'), ctx(), trip())
+    expect(data.trips).toHaveLength(1)
+    expect(data.places.map((p) => p.name)).toEqual(['Zion National Park', 'Las Vegas', 'Springdale'])
+    const t = data.trips[0]
+    expect(t.stops.map((s) => data.places.find((p) => p.id === s.placeId)?.name)).toEqual(['Las Vegas', 'Springdale'])
+    expect(t.stops[0].note).toBe('Flew in')
+  })
+
+  it('reuses a place you have been to, so a second visit stacks on the same pin', () => {
+    let data = saveTrip(emptyData('t0'), ctx(), trip())
+    data = saveTrip(data, ctx(), trip({ title: 'Zion again', startDate: '2025-04', endDate: null, stops: [] }))
+    expect(data.places.filter((p) => p.parkId === 'zion')).toHaveLength(1)
+    const pins = pinsOf(data)
+    expect(pins).toHaveLength(1)
+    expect(pins[0].trips.map((t) => t.title)).toEqual(['Zion again', 'Utah 2023'])
+    expect(pins[0].isPark).toBe(true)
+  })
+
+  it('updates a trip in place', () => {
+    let data = saveTrip(emptyData('t0'), ctx(), trip())
+    const id = data.trips[0].id
+    data = saveTrip(data, ctx('2026-10-24T00:00:00.000Z'), trip({ title: 'Renamed', stops: [] }), id)
+    expect(data.trips).toHaveLength(1)
+    expect(data.trips[0]).toMatchObject({ id, title: 'Renamed', stops: [], updatedAt: '2026-10-24T00:00:00.000Z' })
+  })
+
+  it('drops an end date that equals the start date', () => {
+    const data = saveTrip(emptyData('t0'), ctx(), trip({ startDate: '2023-07', endDate: '2023-07' }))
+    expect(data.trips[0].endDate).toBeNull()
+  })
+})
+
+describe('findSamePlace', () => {
+  it('matches the same name nearby, or practically the same spot, but not a namesake far away', () => {
+    const data = saveTrip(emptyData('t0'), ctx(), trip({ main: { place: springdale }, stops: [] }))
+    expect(findSamePlace(data.places, { ...springdale, lat: 37.181 })).toBeDefined()
+    expect(findSamePlace(data.places, { name: 'Dropped pin', lat: 37.1801, lng: -113.0001 })).toBeDefined()
+    expect(findSamePlace(data.places, { name: 'Springdale', lat: 36.19, lng: -94.15, regionCode: 'US-AR' })).toBeUndefined()
+  })
+})
+
+describe('derived values', () => {
+  it('counts trips per state once per trip, and the 50-state total', () => {
+    let data = saveTrip(emptyData('t0'), ctx(), trip())
+    data = saveTrip(data, ctx(), trip({ main: { place: vegas }, stops: [] }))
+    const perRegion = tripsPerRegion(data)
+    expect(perRegion.get('US-UT')).toBe(1)
+    expect(perRegion.get('US-NV')).toBe(2)
+    expect(statesVisited(perRegion)).toBe(2)
+    expect(parksVisited(data)).toEqual(new Set(['zion']))
+  })
+
+  it('shades states in steps of 1 · 2–3 · 4–6 · 7+', () => {
+    expect([0, 1, 2, 3, 4, 6, 7, 20].map(shadeLevel)).toEqual([0, 1, 2, 2, 3, 3, 4, 4])
+  })
+
+  it('ignores deleted trips', () => {
+    let data = saveTrip(emptyData('t0'), ctx(), trip())
+    data = deleteTrip(data, ctx(), data.trips[0].id)
+    expect(pinsOf(data)).toEqual([])
+    expect(tripsPerRegion(data).size).toBe(0)
+  })
+})
+
+describe('people and groups', () => {
+  const withPeople = (): TravelData => {
+    let data = addPerson(emptyData('t0'), ctx(), 'mom', { name: 'Mom', groupIds: [FAMILY_GROUP_ID] })
+    data = addPerson(data, ctx(), 'sam', { name: 'Sam', groupIds: [] })
+    return data
+  }
+
+  it('adds people with an initials avatar and puts them in groups', () => {
+    const data = withPeople()
+    expect(data.people.find((p) => p.id === 'mom')?.avatar.kind).toBe('initials')
+    expect(data.groups.find((g) => g.id === FAMILY_GROUP_ID)?.memberIds).toEqual(['mom'])
+    expect(includesFamily(data, ['sam'])).toBe(false)
+    expect(includesFamily(data, ['sam', 'mom'])).toBe(true)
+  })
+
+  it('moves a person between groups and removes them from groups when deleted', () => {
+    let data = addGroup(withPeople(), ctx(), 'College friends', ['sam'])
+    const college = data.groups.find((g) => g.name === 'College friends')!.id
+    data = setPersonGroups(data, ctx(), 'mom', [college])
+    expect(data.groups.find((g) => g.id === FAMILY_GROUP_ID)?.memberIds).toEqual([])
+    expect(data.groups.find((g) => g.id === college)?.memberIds).toEqual(['sam', 'mom'])
+    data = deletePerson(data, ctx(), 'sam')
+    expect(data.groups.find((g) => g.id === college)?.memberIds).toEqual(['mom'])
+    expect(data.people.find((p) => p.id === 'sam')?.deleted).toBe(true)
+  })
+
+  it("won't delete the Family group", () => {
+    expect(() => deleteGroup(withPeople(), ctx(), FAMILY_GROUP_ID)).toThrow()
+  })
+})
+
+describe('revertTo', () => {
+  it('tombstones records created since the snapshot and restores changed ones with a new updatedAt', () => {
+    const before = saveTrip(emptyData('t0'), ctx(), trip())
+    let after = saveTrip(before, ctx(), trip({ title: 'Second', main: { place: vegas }, stops: [] }))
+    after = saveTrip(after, ctx(), trip({ title: 'Edited', stops: [] }), before.trips[0].id)
+    const reverted = revertTo(after, before, ctx('2026-12-01T00:00:00.000Z'))
+    expect(reverted.trips.find((t) => t.title === 'Second')?.deleted).toBe(true)
+    expect(reverted.trips.find((t) => t.id === before.trips[0].id)).toMatchObject({ title: 'Utah 2023', updatedAt: '2026-12-01T00:00:00.000Z' })
+  })
+})

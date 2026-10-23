@@ -1,0 +1,251 @@
+import { distanceMeters } from './geo.ts'
+import {
+  FAMILY_GROUP_ID,
+  type Avatar,
+  type EditContext,
+  type Group,
+  type PartialDate,
+  type Person,
+  type Place,
+  type Stop,
+  type Synced,
+  type TravelData,
+  type Trip,
+} from './types.ts'
+
+/** Edits are pure: (data, context) → new data. The store applies, saves, and can undo them. */
+
+export function emptyData(now: string): TravelData {
+  return {
+    schemaVersion: 1,
+    updatedAt: now,
+    trips: [],
+    places: [],
+    people: [],
+    groups: [{ id: FAMILY_GROUP_ID, name: 'Family', memberIds: [], isFamily: true, createdAt: now, updatedAt: now }],
+  }
+}
+
+export const live = <T extends Synced>(records: T[]): T[] => records.filter((r) => !r.deleted)
+
+// ---------- Places ----------
+
+/** A place picked from search, from the map, or typed in, before it's saved. */
+export interface PlaceInput {
+  name: string
+  lat: number
+  lng: number
+  city?: string | null
+  countryCode?: string
+  regionCode?: string | null
+  parkId?: string | null
+}
+
+/** Either an existing place, or a new one to create (or reuse, if it's somewhere you've been). */
+export type PlaceRef = { placeId: string } | { place: PlaceInput }
+
+/**
+ * Finds a saved place that is the same as this one: the same national park, the same name close by,
+ * or practically the same spot. This is what makes repeat visits stack on one pin.
+ */
+export function findSamePlace(places: Place[], input: PlaceInput): Place | undefined {
+  const candidates = live(places)
+  if (input.parkId) {
+    const park = candidates.find((p) => p.parkId === input.parkId)
+    if (park) return park
+  }
+  const name = input.name.trim().toLowerCase()
+  return (
+    candidates.find((p) => p.name.trim().toLowerCase() === name && distanceMeters(p, input) < 5000) ??
+    candidates.find((p) => distanceMeters(p, input) < 100)
+  )
+}
+
+function resolvePlace(data: TravelData, ctx: EditContext, ref: PlaceRef): [TravelData, string] {
+  if ('placeId' in ref) return [data, ref.placeId]
+  const same = findSamePlace(data.places, ref.place)
+  if (same) return [data, same.id]
+  const place: Place = {
+    id: ctx.newId(),
+    name: ref.place.name.trim(),
+    lat: ref.place.lat,
+    lng: ref.place.lng,
+    city: ref.place.city ?? null,
+    countryCode: ref.place.countryCode ?? 'US',
+    regionCode: ref.place.regionCode ?? null,
+    parkId: ref.place.parkId ?? null,
+    createdAt: ctx.now,
+    updatedAt: ctx.now,
+  }
+  return [{ ...data, places: [...data.places, place] }, place.id]
+}
+
+// ---------- Trips ----------
+
+export interface TripInput {
+  title: string
+  startDate: PartialDate
+  endDate: PartialDate | null
+  approximate: boolean
+  main: PlaceRef
+  stops: { place: PlaceRef; startDate: PartialDate | null; endDate: PartialDate | null; note: string }[]
+  companions: string[]
+  isFamily: boolean
+  description: string
+  highlights: string
+  rating: number | null
+  tags: string[]
+}
+
+/** Creates a trip, or updates one when `tripId` is given. Places are created or reused as needed. */
+export function saveTrip(data: TravelData, ctx: EditContext, input: TripInput, tripId?: string): TravelData {
+  let next = data
+  let mainPlaceId: string
+  ;[next, mainPlaceId] = resolvePlace(next, ctx, input.main)
+  const stops: Stop[] = []
+  for (const s of input.stops) {
+    let placeId: string
+    ;[next, placeId] = resolvePlace(next, ctx, s.place)
+    stops.push({ placeId, startDate: s.startDate, endDate: s.endDate, note: s.note.trim() })
+  }
+  const fields = {
+    title: input.title.trim(),
+    startDate: input.startDate,
+    endDate: input.endDate && input.endDate !== input.startDate ? input.endDate : null,
+    approximate: input.approximate,
+    mainPlaceId,
+    stops,
+    companions: [...new Set(input.companions)],
+    isFamily: input.isFamily,
+    description: input.description.trim(),
+    highlights: input.highlights.trim(),
+    rating: input.rating,
+    tags: [...new Set(input.tags.map((t) => t.trim()).filter(Boolean))],
+  }
+  if (tripId) {
+    const existing = next.trips.find((t) => t.id === tripId && !t.deleted)
+    if (!existing) throw new Error('That trip no longer exists.')
+    return {
+      ...next,
+      updatedAt: ctx.now,
+      trips: next.trips.map((t) => (t.id === tripId ? { ...t, ...fields, updatedAt: ctx.now } : t)),
+    }
+  }
+  const trip: Trip = { id: ctx.newId(), ...fields, hikes: [], createdAt: ctx.now, updatedAt: ctx.now }
+  return { ...next, updatedAt: ctx.now, trips: [...next.trips, trip] }
+}
+
+export function deleteTrip(data: TravelData, ctx: EditContext, tripId: string): TravelData {
+  return { ...data, updatedAt: ctx.now, trips: tombstone(data.trips, tripId, ctx.now) }
+}
+
+// ---------- People ----------
+
+export const AVATAR_COLORS = ['#d1543a', '#2b6f8f', '#2f7d4f', '#8a5cc2', '#c98a1a', '#c2477a', '#3f7f86', '#6b6f2a']
+
+export function defaultAvatar(name: string): Avatar {
+  let hash = 0
+  for (const ch of name) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0
+  return { kind: 'initials', color: AVATAR_COLORS[hash % AVATAR_COLORS.length], emoji: null, photoUpdatedAt: null }
+}
+
+export interface PersonInput {
+  name: string
+  avatar?: Avatar
+  groupIds: string[]
+}
+
+/** Adds a person with a chosen id (so a form can refer to them right away) and puts them in groups. */
+export function addPerson(data: TravelData, ctx: EditContext, id: string, input: PersonInput): TravelData {
+  const name = input.name.trim()
+  if (!name) throw new Error('A person needs a name.')
+  const person: Person = { id, name, avatar: input.avatar ?? defaultAvatar(name), createdAt: ctx.now, updatedAt: ctx.now }
+  return setPersonGroups({ ...data, updatedAt: ctx.now, people: [...data.people, person] }, ctx, id, input.groupIds)
+}
+
+export function updatePerson(data: TravelData, ctx: EditContext, id: string, input: PersonInput): TravelData {
+  const name = input.name.trim()
+  if (!name) throw new Error('A person needs a name.')
+  const people = data.people.map((p) =>
+    p.id === id ? { ...p, name, avatar: input.avatar ?? p.avatar, updatedAt: ctx.now } : p,
+  )
+  return setPersonGroups({ ...data, updatedAt: ctx.now, people }, ctx, id, input.groupIds)
+}
+
+/** Removes a person from people and groups. Past trips keep them as "Someone removed". */
+export function deletePerson(data: TravelData, ctx: EditContext, id: string): TravelData {
+  const next = setPersonGroups(data, ctx, id, [])
+  return { ...next, updatedAt: ctx.now, people: tombstone(next.people, id, ctx.now) }
+}
+
+/** Makes the person a member of exactly these groups. */
+export function setPersonGroups(data: TravelData, ctx: EditContext, personId: string, groupIds: string[]): TravelData {
+  const wanted = new Set(groupIds)
+  const groups = data.groups.map((g) => {
+    const has = g.memberIds.includes(personId)
+    const want = wanted.has(g.id) && !g.deleted
+    if (has === want) return g
+    const memberIds = want ? [...g.memberIds, personId] : g.memberIds.filter((m) => m !== personId)
+    return { ...g, memberIds, updatedAt: ctx.now }
+  })
+  return { ...data, updatedAt: ctx.now, groups }
+}
+
+// ---------- Groups ----------
+
+export function addGroup(data: TravelData, ctx: EditContext, name: string, memberIds: string[] = []): TravelData {
+  const clean = name.trim()
+  if (!clean) throw new Error('A group needs a name.')
+  const group: Group = { id: ctx.newId(), name: clean, memberIds: [...new Set(memberIds)], isFamily: false, createdAt: ctx.now, updatedAt: ctx.now }
+  return { ...data, updatedAt: ctx.now, groups: [...data.groups, group] }
+}
+
+export function updateGroup(data: TravelData, ctx: EditContext, id: string, patch: { name?: string; memberIds?: string[] }): TravelData {
+  if (patch.name !== undefined && !patch.name.trim()) throw new Error('A group needs a name.')
+  const groups = data.groups.map((g) =>
+    g.id === id
+      ? {
+          ...g,
+          ...(patch.name !== undefined ? { name: patch.name.trim() } : {}),
+          ...(patch.memberIds ? { memberIds: [...new Set(patch.memberIds)] } : {}),
+          updatedAt: ctx.now,
+        }
+      : g,
+  )
+  return { ...data, updatedAt: ctx.now, groups }
+}
+
+export function deleteGroup(data: TravelData, ctx: EditContext, id: string): TravelData {
+  if (data.groups.find((g) => g.id === id)?.isFamily) throw new Error("The Family group can't be deleted.")
+  return { ...data, updatedAt: ctx.now, groups: tombstone(data.groups, id, ctx.now) }
+}
+
+// ---------- Undo ----------
+
+/**
+ * Undo as a new edit: records that differ from the snapshot go back to it with a fresh updatedAt
+ * (so the revert wins when devices merge), and records created since are tombstoned.
+ */
+export function revertTo(current: TravelData, snapshot: TravelData, ctx: EditContext): TravelData {
+  return {
+    ...snapshot,
+    updatedAt: ctx.now,
+    trips: revertRecords(current.trips, snapshot.trips, ctx.now),
+    places: revertRecords(current.places, snapshot.places, ctx.now),
+    people: revertRecords(current.people, snapshot.people, ctx.now),
+    groups: revertRecords(current.groups, snapshot.groups, ctx.now),
+  }
+}
+
+function revertRecords<T extends Synced>(current: T[], snapshot: T[], now: string): T[] {
+  const before = new Map(snapshot.map((x) => [x.id, x]))
+  return current.map((x) => {
+    const old = before.get(x.id)
+    if (!old) return x.deleted ? x : { ...x, deleted: true, updatedAt: now }
+    return JSON.stringify(old) === JSON.stringify(x) ? x : { ...old, updatedAt: now }
+  })
+}
+
+function tombstone<T extends Synced>(records: T[], id: string, now: string): T[] {
+  return records.map((r) => (r.id === id ? { ...r, deleted: true, updatedAt: now } : r))
+}

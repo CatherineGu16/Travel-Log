@@ -13,11 +13,18 @@ describe('outlineStyle', () => {
     expect(style.glyphs).toContain('{fontstack}/{range}.pbf')
   })
 
-  it('draws land above water and labels on top', () => {
+  it('draws land above water, shading under borders, and pins above everything else', () => {
     const ids = style.layers.map((l) => l.id)
     expect(ids[0]).toBe('water')
-    expect(ids.indexOf('states')).toBeLessThan(ids.indexOf('state-borders'))
-    expect(ids.at(-1)).toMatch(/^cities-/)
+    expect(ids.indexOf('states')).toBeLessThan(ids.indexOf('states-visited'))
+    expect(ids.indexOf('states-visited')).toBeLessThan(ids.indexOf('state-borders'))
+    expect(ids.indexOf('cities-minor')).toBeLessThan(ids.indexOf('pins'))
+    expect(ids.indexOf('pins')).toBeLessThan(ids.indexOf('pin-badges'))
+  })
+
+  it('clusters pins and lets states carry their trip count as feature-state', () => {
+    expect(style.sources.pins).toMatchObject({ type: 'geojson', cluster: true })
+    expect(style.sources.states).toMatchObject({ promoteId: 'code' })
   })
 
   it('only repaints layers that exist', () => {

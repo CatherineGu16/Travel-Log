@@ -1,9 +1,11 @@
-import { Map as MapLibreMap, setWorkerUrl } from 'maplibre-gl'
+import { Map as MapLibreMap, setWorkerUrl, type GeoJSONSource, type MapMouseEvent } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { useEffect, useRef, useState } from 'react'
+import { shadeLevel, type Pin } from '../lib/derive.ts'
 import { resolvedTheme } from '../ui/theme.ts'
 import { loadOutlineData } from './mapData.ts'
 import { outlineStyle, PALETTES, themedPaint } from './outlineStyle.ts'
+import { setPinImages } from './pinImages.ts'
 import { QUICK_JUMPS, VIEWS, type ViewId } from './views.ts'
 
 // MapLibre 6 runs its tile/geometry work in a separate worker file, served from the app's own assets.
@@ -13,11 +15,31 @@ setWorkerUrl(workerUrl)
 const glyphsUrl = () => `${location.origin}${import.meta.env.BASE_URL}fonts/{fontstack}/{range}.pbf`
 
 const fitPadding = () => (window.innerWidth < 640 ? 24 : 56)
+const LONG_PRESS_MS = 550
 
-export function MapView() {
+export interface MapViewProps {
+  pins: Pin[]
+  tripsPerRegion: Map<string, number>
+  selectedPlaceId: string | null
+  onSelectPin: (placeId: string | null) => void
+  /** Long-press (touch) or right-click (desktop): add a trip at that spot. */
+  onAddAt: (lng: number, lat: number) => void
+  /** While set, the next tap on the map picks a place instead of selecting pins. */
+  picking: boolean
+  onPick: (lng: number, lat: number) => void
+  /** Changes when the map should fly to a place (e.g. a trip you just saved). */
+  focus: { lng: number; lat: number; token: number } | null
+}
+
+export function MapView(props: MapViewProps) {
   const container = useRef<HTMLDivElement>(null)
   const [map, setMap] = useState<MapLibreMap | null>(null)
   const [failed, setFailed] = useState(false)
+  // Handlers read the latest props without re-binding map events.
+  const latest = useRef(props)
+  useEffect(() => {
+    latest.current = props
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -25,9 +47,10 @@ export function MapView() {
     void loadOutlineData()
       .then((data) => {
         if (cancelled || !container.current) return
+        const palette = PALETTES[resolvedTheme()]
         const created = new MapLibreMap({
           container: container.current,
-          style: outlineStyle(data, PALETTES[resolvedTheme()], glyphsUrl()),
+          style: outlineStyle(data, palette, glyphsUrl()),
           bounds: VIEWS.us.bounds,
           fitBoundsOptions: { padding: fitPadding() },
           minZoom: 1.5,
@@ -40,7 +63,12 @@ export function MapView() {
         created.touchZoomRotate.disableRotation()
         created.keyboard.disableRotation()
         instance = created
-        created.on('load', () => !cancelled && setMap(created))
+        created.on('load', () => {
+          if (cancelled) return
+          setPinImages(created, { accent: palette.pin, park: palette.pinPark, center: palette.pinCenter })
+          bindInteractions(created, latest)
+          setMap(created)
+        })
       })
       .catch(() => !cancelled && setFailed(true))
     return () => {
@@ -49,11 +77,53 @@ export function MapView() {
     }
   }, [])
 
+  // Pins: one per major location.
+  const { pins, selectedPlaceId } = props
+  useEffect(() => {
+    const source = map?.getSource<GeoJSONSource>('pins')
+    source?.setData({
+      type: 'FeatureCollection',
+      features: pins.map((pin) => ({
+        type: 'Feature',
+        properties: {
+          placeId: pin.place.id,
+          name: pin.place.name,
+          isPark: pin.isPark,
+          count: pin.trips.length,
+          selected: pin.place.id === selectedPlaceId,
+        },
+        geometry: { type: 'Point', coordinates: [pin.place.lng, pin.place.lat] },
+      })),
+    })
+  }, [map, pins, selectedPlaceId])
+
+  // States shaded by how many trips visited them.
+  const { tripsPerRegion } = props
+  const shaded = useRef(new Set<string>())
+  useEffect(() => {
+    if (!map) return
+    for (const code of shaded.current) if (!tripsPerRegion.has(code)) map.setFeatureState({ source: 'states', id: code }, { level: 0 })
+    for (const [code, n] of tripsPerRegion) map.setFeatureState({ source: 'states', id: code }, { level: shadeLevel(n) })
+    shaded.current = new Set(tripsPerRegion.keys())
+  }, [map, tripsPerRegion])
+
+  // Fly to a place on request.
+  const { focus } = props
+  useEffect(() => {
+    if (map && focus) map.easeTo({ center: [focus.lng, focus.lat], zoom: Math.max(map.getZoom(), 5), duration: 800 })
+  }, [map, focus])
+
+  useEffect(() => {
+    if (map) map.getCanvas().style.cursor = props.picking ? 'crosshair' : ''
+  }, [map, props.picking])
+
   // Repaint when the theme changes, from Settings or from the device.
   useEffect(() => {
     if (!map) return
     const repaint = () => {
-      for (const { layer, prop, value } of themedPaint(PALETTES[resolvedTheme()])) map.setPaintProperty(layer, prop, value)
+      const palette = PALETTES[resolvedTheme()]
+      for (const { layer, prop, value } of themedPaint(palette)) map.setPaintProperty(layer, prop, value)
+      setPinImages(map, { accent: palette.pin, park: palette.pinPark, center: palette.pinCenter })
     }
     const media = window.matchMedia('(prefers-color-scheme: dark)')
     media.addEventListener('change', repaint)
@@ -88,6 +158,52 @@ export function MapView() {
       )}
     </div>
   )
+}
+
+/** Taps select pins (or zoom into clusters); long-press / right-click adds a trip; pick mode picks. */
+function bindInteractions(map: MapLibreMap, latest: { current: MapViewProps }) {
+  const pinLayers = ['pins', 'pin-badges', 'pin-badge-count']
+
+  map.on('click', (e: MapMouseEvent) => {
+    const props = latest.current
+    if (props.picking) return props.onPick(e.lngLat.lng, e.lngLat.lat)
+    const cluster = map.queryRenderedFeatures(e.point, { layers: ['pin-clusters'] })[0]
+    if (cluster) {
+      void map
+        .getSource<GeoJSONSource>('pins')!
+        .getClusterExpansionZoom(cluster.properties.cluster_id as number)
+        .then((zoom) => map.easeTo({ center: (cluster.geometry as GeoJSON.Point).coordinates as [number, number], zoom: zoom + 0.5 }))
+      return
+    }
+    // A little slack around the point makes pins easy to tap with a finger.
+    const box: [[number, number], [number, number]] = [
+      [e.point.x - 10, e.point.y - 10],
+      [e.point.x + 10, e.point.y + 10],
+    ]
+    const pin = map.queryRenderedFeatures(box, { layers: pinLayers })[0]
+    props.onSelectPin(pin ? (pin.properties.placeId as string) : null)
+  })
+
+  for (const layer of [...pinLayers, 'pin-clusters']) {
+    map.on('mouseenter', layer, () => !latest.current.picking && (map.getCanvas().style.cursor = 'pointer'))
+    map.on('mouseleave', layer, () => !latest.current.picking && (map.getCanvas().style.cursor = ''))
+  }
+
+  map.on('contextmenu', (e) => {
+    e.preventDefault()
+    if (!latest.current.picking) latest.current.onAddAt(e.lngLat.lng, e.lngLat.lat)
+  })
+
+  // Long-press on touch screens. Any movement (pan, pinch) cancels it.
+  let timer: number | undefined
+  const cancel = () => window.clearTimeout(timer)
+  map.on('touchstart', (e) => {
+    cancel()
+    if (e.originalEvent.touches.length !== 1 || latest.current.picking) return
+    const { lng, lat } = e.lngLat
+    timer = window.setTimeout(() => latest.current.onAddAt(lng, lat), LONG_PRESS_MS)
+  })
+  for (const ev of ['touchend', 'touchcancel', 'touchmove', 'movestart'] as const) map.on(ev, cancel)
 }
 
 function MapControls(props: { onZoomIn: () => void; onZoomOut: () => void; onReset: () => void; onJump: (id: ViewId) => void }) {
