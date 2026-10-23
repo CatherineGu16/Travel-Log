@@ -1,5 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import type { CSSProperties, ReactNode } from 'react'
+import { useKeyboardInset } from '../ui/useKeyboardInset.ts'
 
 /** Bottom sheet on phones, side panel from 640px up. Radix handles focus trap, Escape, and scroll lock. */
 export function Sheet({
@@ -20,12 +21,20 @@ export function Sheet({
   footer?: ReactNode
   children: ReactNode
 }) {
+  // Phones only: keep the sheet above the on-screen keyboard and sized to what's still visible.
+  const phone = typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches
+  const keyboard = useKeyboardInset(open && phone)
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/50 [animation:fade-in_150ms_ease-out]" />
         <Dialog.Content
-          style={{ '--accent': accent ?? 'var(--line)' } as CSSProperties}
+          style={
+            {
+              '--accent': accent ?? 'var(--line)',
+              ...(keyboard.height ? { bottom: keyboard.bottom, maxHeight: keyboard.height - 8 } : {}),
+            } as CSSProperties
+          }
           className="fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] flex-col rounded-t-2xl border-t-4 border-[var(--accent)] bg-surface [animation:sheet-up_220ms_cubic-bezier(.2,.8,.2,1)] sm:inset-y-0 sm:right-0 sm:left-auto sm:max-h-none sm:w-[28rem] sm:rounded-none sm:border-t-0 sm:border-l-4 sm:[animation:sheet-left_220ms_cubic-bezier(.2,.8,.2,1)]"
         >
           <div className="flex items-start gap-2 px-4 pt-4 pb-3 sm:pt-[max(1rem,env(safe-area-inset-top))]">

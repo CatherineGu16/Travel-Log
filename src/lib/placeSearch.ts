@@ -2,8 +2,8 @@ import { distanceMeters } from './geo.ts'
 import type { PlaceInput, PlaceRef } from './travelActions.ts'
 import type { Place } from './types.ts'
 
-/** A row of us-places.json: [name, USPS state, lat, lng]. */
-export type TownRow = [string, string, number, number]
+/** A row of us-places.json: [name, USPS state, lat, lng, population (0 when unknown)]. */
+export type TownRow = [string, string, number, number, number]
 
 export interface ParkInfo {
   id: string
@@ -56,8 +56,8 @@ export function parkInput(park: ParkInfo): PlaceInput {
 
 /**
  * Searches, in order: places you've been (so a repeat visit reuses the same pin), national parks,
- * then US cities and towns. "Springdale, UT" or "springdale ut" narrows towns to a state. With
- * `near` (e.g. the trip's main destination), same-named towns closest to it come first.
+ * then US cities and towns, bigger ones first. "Springdale, UT" or "springdale ut" narrows towns
+ * to a state. With `near` (e.g. the trip's main destination), towns close to it come first.
  */
 export function searchPlaces(
   query: string,
@@ -74,7 +74,7 @@ export function searchPlaces(
     state = withState[2].toUpperCase()
   }
 
-  type Ranked = SearchResult & { rank: number; distance: number }
+  type Ranked = SearchResult & { rank: number; distance: number; population: number }
   const results: Ranked[] = []
   const yourParks = new Set<string>()
   const yourTowns = new Set<string>()
@@ -94,6 +94,7 @@ export function searchPlaces(
       ref: { placeId: p.id },
       rank: s,
       distance: 0,
+      population: 0,
     })
   }
 
@@ -110,6 +111,7 @@ export function searchPlaces(
       ref: { place: parkInput(park) },
       rank: 10 + s,
       distance: 0,
+      population: 0,
     })
   }
 
@@ -118,11 +120,32 @@ export function searchPlaces(
     if (state && row[1] !== state) continue
     const s = score(row[0], q)
     if (s === null || s > 2 || yourTowns.has(`${normalize(row[0])}|${row[1]}`)) continue
-    const distance = near ? distanceMeters(near, { lat: row[2], lng: row[3] }) : 0
-    towns.push({ key: `town:${row[0]}|${row[1]}|${row[2]}`, kind: 'town', label: row[0], detail: row[1], isPark: false, ref: { place: townInput(row) }, rank: 20 + s, distance })
+    const distance = near ? distanceMeters(near, { lat: row[2], lng: row[3] }) : Infinity
+    towns.push({
+      key: `town:${row[0]}|${row[1]}|${row[2]}`,
+      kind: 'town',
+      label: row[0],
+      detail: row[1],
+      isPark: false,
+      ref: { place: townInput(row) },
+      rank: 20 + s,
+      distance,
+      population: row[4] ?? 0,
+    })
   }
-  // Shorter names first within a match tier, so "Moab" beats "Moabite Springs"; then nearest.
-  towns.sort((a, b) => a.rank - b.rank || a.label.length - b.label.length || a.distance - b.distance || a.label.localeCompare(b.label))
+  // Within a match tier (exact, starts with, a word starts with): towns near `near` first,
+  // nearest first; then the biggest. So "Portland" lists Oregon before Maine, and a stop on a
+  // Zion trip finds St. George, Utah.
+  const NEARBY_M = 150_000
+  towns.sort(
+    (a, b) =>
+      a.rank - b.rank ||
+      Number(b.distance < NEARBY_M) - Number(a.distance < NEARBY_M) ||
+      (a.distance < NEARBY_M && b.distance < NEARBY_M ? a.distance - b.distance : 0) ||
+      b.population - a.population ||
+      a.label.length - b.label.length ||
+      a.label.localeCompare(b.label),
+  )
 
-  return [...results.sort((a, b) => a.rank - b.rank), ...towns].slice(0, limit).map(({ rank: _rank, distance: _distance, ...r }) => r)
+  return [...results.sort((a, b) => a.rank - b.rank), ...towns].slice(0, limit).map(({ rank: _rank, distance: _distance, population: _population, ...r }) => r)
 }

@@ -5,6 +5,7 @@ import type { TravelData, Trip } from '../lib/types.ts'
 import { Avatar } from './Avatar.tsx'
 import { PinGlyph } from './PlacePicker.tsx'
 import { Sheet } from './Sheet.tsx'
+import { TravelModeBadge } from './TravelMode.tsx'
 
 /**
  * Everything about one trip: dates, who went, the route stop by stop (each with its own dates,
@@ -24,9 +25,13 @@ export function TripDetail({
   onClose: () => void
 }) {
   const place = (id: string) => data.places.find((p) => p.id === id)
-  const main = place(trip.mainPlaceId)
   const route = routeOf(trip, data.places)
-  const stops = route.length ? route.map((r) => r.place) : main ? [main] : []
+  // Every destination in order, with its stop number when it isn't a main destination.
+  let n = 0
+  const stops = trip.destinations.flatMap((d) => {
+    const p = place(d.placeId)
+    return p ? [{ place: p, destination: d, number: d.isMain ? null : ++n }] : []
+  })
   const people = trip.companions.map((id) => data.people.find((p) => p.id === id)).filter((p) => p !== undefined)
 
   return (
@@ -39,6 +44,7 @@ export function TripDetail({
         <span className="flex flex-wrap items-center gap-2">
           {formatDateRange(trip.startDate, trip.endDate, trip.approximate)}
           {trip.isFamily && <span className="rounded-full bg-park/15 px-2 py-0.5 text-xs font-bold text-park">Family</span>}
+          <TravelModeBadge mode={trip.travelMode} />
           {trip.rating && (
             <span className="text-[#e0a526]" aria-label={`${trip.rating} out of 5 stars`}>
               {'★'.repeat(trip.rating)}
@@ -72,18 +78,16 @@ export function TripDetail({
         <section>
           <h3 className="mb-2 text-sm font-bold text-muted">{route.length ? 'Route' : 'Where'}</h3>
           <ol className="relative flex flex-col">
-            {stops.map((p, i) => {
-              const r = route[i]
-              const stop = trip.stops.find((s) => s.placeId === p.id)
+            {stops.map(({ place: p, destination: stop, number }, i) => {
               const others = visitsTo(data, p.id).filter((v) => v.trip.id !== trip.id)
-              const isMain = p.id === trip.mainPlaceId
+              const isMain = stop.isMain
               return (
                 <li key={p.id + i} className="relative flex gap-3 pb-4 last:pb-0">
                   {i < stops.length - 1 && <span aria-hidden className="absolute top-7 bottom-0 left-[0.69rem] border-l-2 border-dotted border-[var(--route)]" />}
                   {isMain ? (
                     <PinGlyph park={!!p.parkId} className="size-6" />
                   ) : (
-                    <span className="grid size-6 shrink-0 place-items-center rounded-full bg-[var(--route)] text-xs font-bold text-[var(--route-text)]">{r?.number}</span>
+                    <span className="grid size-6 shrink-0 place-items-center rounded-full bg-[var(--route)] text-xs font-bold text-[var(--route-text)]">{number}</span>
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="font-bold">

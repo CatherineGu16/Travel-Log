@@ -24,8 +24,13 @@ export interface Place extends Synced {
   parkId: string | null
 }
 
-export interface Stop {
+/**
+ * One place on a trip, in visit order. Any number can be main destinations (each gets a pin);
+ * the rest are stops along the way. Dates are this destination's own, when you know them.
+ */
+export interface Destination {
   placeId: string
+  isMain: boolean
   startDate: PartialDate | null
   endDate: PartialDate | null
   note: string
@@ -39,18 +44,20 @@ export interface TripHike {
   date: PartialDate | null
 }
 
+export type TravelMode = 'road-trip' | 'flight' | 'cruise'
+
 export interface Trip extends Synced {
   title: string
   startDate: PartialDate
   endDate: PartialDate | null
   approximate: boolean
-  /** Where the trip's pin goes. */
-  mainPlaceId: string
-  /** Key destinations, in visit order. */
-  stops: Stop[]
+  /** Where the trip went, in visit order; at least one is a main destination. */
+  destinations: Destination[]
   companions: string[]
   hikes: TripHike[]
   isFamily: boolean
+  /** How you traveled: road trip, flight or cruise. */
+  travelMode: TravelMode | null
   description: string
   highlights: string
   rating: number | null

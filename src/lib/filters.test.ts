@@ -2,31 +2,18 @@ import { describe, expect, it } from 'vitest'
 import { activeFilterCount, filterData, groupTrips, matchesSearch, NO_FILTER, reviveFilter } from './filters.ts'
 import { addPerson, emptyData, saveTrip, type TripInput } from './travelActions.ts'
 import { FAMILY_GROUP_ID, type EditContext } from './types.ts'
+import { tripInput } from '../test/tripInput.ts'
 
 let n = 0
 const ctx: EditContext = { now: '2026-10-23T00:00:00.000Z', newId: () => `id${++n}` }
 const place = (name: string, lat: number, lng: number, regionCode: string) => ({ place: { name, lat, lng, regionCode } })
-const input = (over: Partial<TripInput>): TripInput => ({
-  title: 'Trip',
-  startDate: '2023',
-  endDate: null,
-  approximate: false,
-  main: place('Moab', 38.57, -109.55, 'US-UT'),
-  stops: [],
-  companions: [],
-  isFamily: false,
-  description: '',
-  highlights: '',
-  rating: null,
-  tags: [],
-  ...over,
-})
+const input = (over: Parameters<typeof tripInput>[0]): TripInput => tripInput({ startDate: '2023', main: place('Moab', 38.57, -109.55, 'US-UT'), ...over })
 
 const data = (() => {
   let d = addPerson(emptyData('t'), ctx, 'mom', { name: 'Mom', groupIds: [FAMILY_GROUP_ID] })
   d = saveTrip(d, ctx, input({ title: 'Moab with Mom', companions: ['mom'], isFamily: true, tags: ['camping'], rating: 4 }))
   d = saveTrip(d, ctx, input({ title: 'Chicago work trip', startDate: '2019-05', main: place('Chicago', 41.88, -87.63, 'US-IL'), highlights: 'Deep dish' }))
-  d = saveTrip(d, ctx, input({ title: 'Denver', startDate: '2023-02', main: place('Denver', 39.74, -104.99, 'US-CO'), rating: 5 }))
+  d = saveTrip(d, ctx, input({ title: 'Denver', startDate: '2023-02', main: place('Denver', 39.74, -104.99, 'US-CO'), rating: 5, travelMode: 'road-trip' }))
   return d
 })()
 
@@ -39,12 +26,13 @@ describe('filters', () => {
     expect(titles(filterData(data, { ...NO_FILTER, personIds: ['mom'] }))).toEqual(['Moab with Mom'])
     expect(titles(filterData(data, { ...NO_FILTER, year: '2019' }))).toEqual(['Chicago work trip'])
     expect(titles(filterData(data, { ...NO_FILTER, tag: 'camping' }))).toEqual(['Moab with Mom'])
+    expect(titles(filterData(data, { ...NO_FILTER, mode: 'road-trip' }))).toEqual(['Denver'])
     expect(filterData(data, NO_FILTER)).toBe(data)
   })
 
   it('revives stored filters safely and counts active ones', () => {
-    expect(reviveFilter({ who: 'nonsense', personIds: [1, 'a'], year: 2019 })).toEqual({ ...NO_FILTER, personIds: ['a'] })
-    expect(activeFilterCount({ who: 'family', personIds: ['a'], year: '2020', tag: null })).toBe(3)
+    expect(reviveFilter({ who: 'nonsense', personIds: [1, 'a'], year: 2019, mode: 'boat' })).toEqual({ ...NO_FILTER, personIds: ['a'] })
+    expect(activeFilterCount({ who: 'family', personIds: ['a'], year: '2020', tag: null, mode: 'cruise' })).toBe(4)
   })
 })
 

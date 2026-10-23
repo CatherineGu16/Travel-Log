@@ -1,20 +1,23 @@
 import { useMemo, useState } from 'react'
+import { describeRef, type ChosenPlace } from '../lib/chosenPlace.ts'
 import { includesFamily } from '../lib/derive.ts'
-import { todayIso, yearOf } from '../lib/partialDate.ts'
+import { comparePartialDates, formatDateRange, todayIso, yearOf } from '../lib/partialDate.ts'
 import { addPerson, saveTrip, type PlaceInput, type TripInput } from '../lib/travelActions.ts'
-import { FAMILY_GROUP_ID, type PartialDate, type Trip, type TripHike } from '../lib/types.ts'
+import { FAMILY_GROUP_ID, type PartialDate, type TravelMode, type Trip, type TripHike } from '../lib/types.ts'
 import { newId, useStore, useTravelState } from '../store/useTravel.ts'
 import { DateField } from './DateField.tsx'
 import { HikesField } from './HikesField.tsx'
 import { PeoplePicker } from './PeoplePicker.tsx'
-import { describeRef, type ChosenPlace } from '../lib/chosenPlace.ts'
-import { PlacePicker, PinGlyph } from './PlacePicker.tsx'
+import { ParkSuggestion, PinGlyph, PlacePicker } from './PlacePicker.tsx'
 import { Sheet } from './Sheet.tsx'
 import { useToast } from './toastContext.ts'
+import { TRAVEL_MODES } from '../lib/travelModes.ts'
 
-interface StopDraft {
+interface DestinationDraft {
   key: string
   place: ChosenPlace
+  isMain: boolean
+  /** Null when you haven't said when you were here; the trip's dates are used. */
   startDate: PartialDate | null
   endDate: PartialDate | null
   note: string
@@ -24,9 +27,16 @@ interface StopDraft {
 /** Asks the app to let you tap the map; resolves with the place you tapped, or null if cancelled. */
 export type RequestPick = (label: string) => Promise<PlaceInput | null>
 
+/** Compares partial dates at the coarser of the two precisions ("2024-05" contains "2024-05-03"). */
+const compareLoose = (a: PartialDate, b: PartialDate) => {
+  const n = Math.min(a.length, b.length)
+  return comparePartialDates(a.slice(0, n), b.slice(0, n))
+}
+
 /**
- * Add or edit a trip: main destination, dates, key stops in order, who went, and the Family switch.
- * The sheet hides (keeping everything you've entered) while you pick a place on the map.
+ * Add or edit a trip: where it went (destinations in order, any of them main, each with its own
+ * dates), the trip's dates, how you traveled, who went, and the Family switch. The sheet hides
+ * (keeping everything you've entered) while you pick a place on the map.
  */
 export function TripForm({
   trip,
@@ -49,14 +59,28 @@ export function TripForm({
 
   const [title, setTitle] = useState(trip?.title ?? '')
   const [startDate, setStartDate] = useState<PartialDate>(trip?.startDate ?? todayIso())
-  const [endDate, setEndDate] = useState<PartialDate | null>(trip?.endDate ?? null)
+  const [endDate, setEndDate] = useState<PartialDate>(trip?.endDate ?? trip?.startDate ?? todayIso())
+  // On a new trip, destination dates fill in the trip's dates until you set them yourself, and the
+  // end date follows the start date until you change it.
+  const [datesTouched, setDatesTouched] = useState(!!trip)
+  const [endTouched, setEndTouched] = useState(!!trip)
   const [approximate, setApproximate] = useState(trip?.approximate ?? false)
-  const [main, setMain] = useState<ChosenPlace | null>(() =>
-    trip ? describeRef({ placeId: trip.mainPlaceId }, data) : initialMain ? describeRef({ place: initialMain }, data) : null,
-  )
-  const [stops, setStops] = useState<StopDraft[]>(() =>
-    (trip?.stops ?? []).map((s) => ({ key: newId(), place: describeRef({ placeId: s.placeId }, data), startDate: s.startDate, endDate: s.endDate, note: s.note, open: false })),
-  )
+  const [destinations, setDestinations] = useState<DestinationDraft[]>(() => {
+    if (trip)
+      return trip.destinations.map((d) => ({
+        key: newId(),
+        place: describeRef({ placeId: d.placeId }, data),
+        isMain: d.isMain,
+        startDate: d.startDate,
+        endDate: d.endDate,
+        note: d.note,
+        open: false,
+      }))
+    if (initialMain)
+      return [{ key: newId(), place: describeRef({ place: initialMain }, data), isMain: true, startDate: null, endDate: null, note: '', open: false }]
+    return []
+  })
+  const [travelMode, setTravelMode] = useState<TravelMode | null>(trip?.travelMode ?? null)
   const [companions, setCompanions] = useState<string[]>(trip?.companions ?? [])
   const [isFamily, setIsFamily] = useState(trip?.isFamily ?? false)
   // Once you flip the switch yourself, adding people no longer changes it.
@@ -68,50 +92,92 @@ export function TripForm({
   const [hikes, setHikes] = useState<TripHike[]>(trip?.hikes ?? [])
   const [error, setError] = useState<string | null>(null)
 
+  const mains = destinations.filter((d) => d.isMain)
   // National parks on this trip: their hikes can be checked off.
-  const parkIds = [...new Set([main?.parkId, ...stops.map((s) => s.place.parkId)].filter((id): id is string => !!id))]
+  const parkIds = [...new Set(destinations.map((d) => d.place.parkId).filter((id): id is string => !!id))]
 
-  // Stops search near the main destination first.
-  const mainPoint = useMemo(() => {
-    if (!main) return null
-    if ('place' in main.ref) return { lat: main.ref.place.lat, lng: main.ref.place.lng }
-    const id = main.ref.placeId
-    const p = data.places.find((x) => x.id === id)
+  // New destinations search near the first main destination first.
+  const near = useMemo(() => {
+    const ref = (mains[0] ?? destinations[0])?.place.ref
+    if (!ref) return null
+    if ('place' in ref) return { lat: ref.place.lat, lng: ref.place.lng }
+    const p = data.places.find((x) => x.id === ref.placeId)
     return p ? { lat: p.lat, lng: p.lng } : null
-  }, [main, data.places])
+  }, [mains, destinations, data.places])
 
-  const suggestedTitle = useMemo(() => (main ? `${main.label.replace(/ National Park$/, '')} ${yearOf(startDate)}` : ''), [main, startDate])
+  const suggestedTitle = useMemo(
+    () => (mains.length ? `${mains.map((m) => m.place.label.replace(/ National Park$/, '')).join(' & ')} ${yearOf(startDate)}` : ''),
+    [mains, startDate],
+  )
 
   const setWho = (ids: string[]) => {
     setCompanions(ids)
     if (!familyTouched) setIsFamily(includesFamily(store.getState().data, ids))
   }
 
+  /** Destination edits; on a new trip whose dates you haven't set, the trip spans the destinations' dates. */
+  const updateDestinations = (fn: (d: DestinationDraft[]) => DestinationDraft[]) =>
+    setDestinations((current) => {
+      const next = fn(current)
+      if (!datesTouched) {
+        const starts = next.map((d) => d.startDate).filter((d): d is string => !!d)
+        const ends = next.map((d) => d.endDate ?? d.startDate).filter((d): d is string => !!d)
+        if (starts.length) {
+          setStartDate(starts.sort(comparePartialDates)[0])
+          setEndDate(ends.sort(comparePartialDates).at(-1)!)
+        }
+      }
+      return next
+    })
+
+  const addDestination = (place: ChosenPlace) =>
+    updateDestinations((d) => [...d, { key: newId(), place, isMain: d.length === 0, startDate: null, endDate: null, note: '', open: false }])
+
   const pick = async (label: string, then: (p: ChosenPlace) => void) => {
     const place = await requestPick(label)
     if (place) then(describeRef({ place }, store.getState().data))
   }
 
-  const moveStop = (i: number, by: -1 | 1) =>
-    setStops((s) => {
-      const next = [...s]
+  const move = (i: number, by: -1 | 1) =>
+    updateDestinations((d) => {
+      const next = [...d]
       ;[next[i], next[i + by]] = [next[i + by], next[i]]
       return next
     })
-  const patchStop = (key: string, patch: Partial<StopDraft>) => setStops((s) => s.map((x) => (x.key === key ? { ...x, ...patch } : x)))
+  const patch = (key: string, change: Partial<DestinationDraft>) => updateDestinations((d) => d.map((x) => (x.key === key ? { ...x, ...change } : x)))
+  const remove = (key: string) =>
+    updateDestinations((d) => {
+      const next = d.filter((x) => x.key !== key)
+      // There's always a main destination while there are destinations.
+      if (next.length && !next.some((x) => x.isMain)) next[0] = { ...next[0], isMain: true }
+      return next
+    })
+
+  const changeStart = (v: PartialDate) => {
+    setDatesTouched(true)
+    setStartDate(v)
+    if (!endTouched || compareLoose(endDate, v) < 0) setEndDate(v)
+  }
 
   const save = () => {
-    if (!main) return setError('Choose where the trip went.')
-    if (endDate && endDate < startDate) return setError('The end date is before the start date.')
+    if (destinations.length === 0) return setError('Add where the trip went.')
+    if (compareLoose(endDate, startDate) < 0) return setError('The end date is before the start date.')
+    for (const d of destinations) {
+      if (!d.startDate) continue
+      const end = d.endDate ?? d.startDate
+      if (compareLoose(end, d.startDate) < 0) return setError(`${d.place.label}: you left before you arrived.`)
+      if (compareLoose(d.startDate, startDate) < 0 || compareLoose(end, endDate) > 0)
+        return setError(`${d.place.label}'s dates are outside the trip's dates.`)
+    }
     const input: TripInput = {
       title: title.trim() || suggestedTitle,
       startDate,
       endDate,
       approximate,
-      main: main.ref,
-      stops: stops.map((s) => ({ place: s.place.ref, startDate: s.startDate, endDate: s.endDate, note: s.note })),
+      destinations: destinations.map((d) => ({ place: d.place.ref, isMain: d.isMain, startDate: d.startDate, endDate: d.endDate, note: d.note })),
       companions,
       isFamily,
+      travelMode,
       description,
       highlights,
       rating,
@@ -123,10 +189,11 @@ export function TripForm({
     if (undoId === null) return setError(store.getState().error ?? "Couldn't save the trip.")
     const saved = trip ? store.getState().data.trips.find((t) => t.id === trip.id)! : store.getState().data.trips.at(-1)!
     toast(trip ? 'Trip updated' : `Added ${saved.title}`, [{ label: 'Undo', onClick: () => store.undo(undoId) }])
-    onSaved(saved.mainPlaceId, saved.id)
+    onSaved(saved.destinations.find((d) => d.isMain)!.placeId, saved.id)
   }
 
   const input = 'w-full rounded-lg border border-line bg-bg px-3 text-base'
+  let stopNumber = 0
 
   return (
     <Sheet
@@ -157,81 +224,159 @@ export function TripForm({
           save()
         }}
       >
-        <PlacePicker
-          label="Main destination"
-          data={data}
-          value={main}
-          onChange={(p) => {
-            setMain(p)
-            setError(null)
-          }}
-          onPickOnMap={() => void pick('Tap the map to place the main destination', setMain)}
-          autoFocus={!trip && !initialMain}
-        />
-
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-bold">Title</span>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={suggestedTitle || 'e.g. Utah Parks 2023'} className={`${input} h-11`} />
-        </label>
+        <section aria-label="Where you went">
+          <h3 className="text-sm font-bold">Where you went</h3>
+          <p className="mb-2 text-xs text-muted">In order. Tap a pin to make that place a main destination; each main destination gets a pin on the map.</p>
+          {destinations.length > 0 && (
+            <ol className="mb-2 flex flex-col gap-1.5">
+              {destinations.map((d, i) => {
+                const number = d.isMain ? null : ++stopNumber
+                const onlyMain = d.isMain && mains.length === 1
+                return (
+                  <li key={d.key} className="rounded-lg border border-line bg-bg" aria-label={d.place.label}>
+                    <div className="flex items-center gap-1 py-1 pr-1 pl-1">
+                      <button
+                        type="button"
+                        aria-label={d.isMain ? `${d.place.label} is a main destination` : `Make ${d.place.label} a main destination`}
+                        aria-pressed={d.isMain}
+                        disabled={onlyMain}
+                        title={onlyMain ? 'A trip needs at least one main destination' : d.isMain ? 'Main destination: tap to make it a stop' : 'Stop: tap to make it a main destination'}
+                        onClick={() => patch(d.key, { isMain: !d.isMain })}
+                        className="grid size-10 shrink-0 place-items-center rounded-md hover:bg-raised disabled:cursor-default disabled:hover:bg-transparent"
+                      >
+                        {d.isMain ? (
+                          <PinGlyph park={d.place.isPark} className="size-6" />
+                        ) : (
+                          <span className="grid size-6 place-items-center rounded-full bg-[var(--route)] text-xs font-bold text-[var(--route-text)]">{number}</span>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => patch(d.key, { open: !d.open })}
+                        aria-expanded={d.open}
+                        className="min-h-10 min-w-0 flex-1 px-1 text-left"
+                      >
+                        <span className="block truncate">
+                          <span className={d.isMain ? 'font-bold' : ''}>{d.place.label}</span>
+                          {d.place.detail && <span className="ml-1.5 text-xs text-muted">{d.place.detail}</span>}
+                        </span>
+                        <span className="block text-xs text-muted">
+                          {d.startDate ? formatDateRange(d.startDate, d.endDate) : 'Add dates'}
+                          {d.note && ` · ${d.note}`}
+                        </span>
+                      </button>
+                      <IconButton label={`Move ${d.place.label} up`} disabled={i === 0} onClick={() => move(i, -1)} d="M6 12l4-4 4 4" />
+                      <IconButton label={`Move ${d.place.label} down`} disabled={i === destinations.length - 1} onClick={() => move(i, 1)} d="M6 8l4 4 4-4" />
+                      <IconButton label={`Remove ${d.place.label}`} onClick={() => remove(d.key)} d="M6 6l8 8M14 6l-8 8" />
+                    </div>
+                    <div className="px-2 empty:hidden">
+                      <ParkSuggestion
+                        value={d.place}
+                        onLink={(park) =>
+                          'place' in d.place.ref &&
+                          patch(d.key, { place: describeRef({ place: { ...d.place.ref.place, parkId: park.id, name: park.fullName } }, data) })
+                        }
+                      />
+                    </div>
+                    {d.open && (
+                      <div className="flex flex-col gap-3 border-t border-line p-3">
+                        {'place' in d.place.ref && !d.place.ref.place.parkId && (
+                          <label className="block">
+                            <span className="mb-1 block text-sm font-bold">Name</span>
+                            <input
+                              aria-label={`${d.place.label} name`}
+                              value={d.place.label}
+                              onChange={(e) =>
+                                'place' in d.place.ref &&
+                                patch(d.key, { place: { ...d.place, label: e.target.value, ref: { place: { ...d.place.ref.place, name: e.target.value } } } })
+                              }
+                              className={`${input} h-10`}
+                            />
+                          </label>
+                        )}
+                        <label className="flex min-h-9 items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={!!d.startDate}
+                            onChange={(e) =>
+                              patch(d.key, e.target.checked ? { startDate: startDate, endDate: endDate === startDate ? null : endDate } : { startDate: null, endDate: null })
+                            }
+                            className="size-4"
+                          />
+                          I know when I was here
+                        </label>
+                        {d.startDate && (
+                          <>
+                            <DateField label="Arrived" value={d.startDate} onChange={(v) => v && patch(d.key, { startDate: v })} allowUnknown={false} />
+                            <DateField label="Left" value={d.endDate ?? d.startDate} onChange={(v) => v && patch(d.key, { endDate: v })} allowUnknown={false} />
+                          </>
+                        )}
+                        <label className="block">
+                          <span className="mb-1 block text-sm font-bold">Note</span>
+                          <input value={d.note} onChange={(e) => patch(d.key, { note: e.target.value })} className={`${input} h-10`} />
+                        </label>
+                      </div>
+                    )}
+                  </li>
+                )
+              })}
+            </ol>
+          )}
+          <PlacePicker
+            label={destinations.length ? 'Add another destination' : 'Add a destination'}
+            data={data}
+            near={near}
+            value={null}
+            onChange={(p) => {
+              if (p) addDestination(p)
+              setError(null)
+            }}
+            onPickOnMap={() => void pick('Tap the map to add a destination', addDestination)}
+            autoFocus={!trip && !initialMain && !matchMedia('(pointer: coarse)').matches}
+          />
+        </section>
 
         <div className="flex flex-col gap-4">
-          <DateField label="Start" value={startDate} onChange={(v) => v && setStartDate(v)} allowUnknown={false} />
-          <DateField label="End" value={endDate} onChange={setEndDate} unknownHint="Same as the start, or not sure." />
+          <DateField label="Start" value={startDate} onChange={(v) => v && changeStart(v)} allowUnknown={false} />
+          <DateField
+            label="End"
+            value={endDate}
+            onChange={(v) => {
+              if (!v) return
+              setDatesTouched(true)
+              setEndTouched(true)
+              setEndDate(v)
+            }}
+            allowUnknown={false}
+          />
         </div>
         <label className="-mt-2 flex min-h-9 items-center gap-2 text-sm">
           <input type="checkbox" checked={approximate} onChange={(e) => setApproximate(e.target.checked)} className="size-4" />
           Dates are approximate
         </label>
 
-        <section aria-label="Key destinations">
-          <h3 className="mb-1.5 text-sm font-bold">Key destinations</h3>
-          {stops.length > 0 && (
-            <ol className="mb-2 flex flex-col gap-1.5">
-              {stops.map((s, i) => (
-                <li key={s.key} className="rounded-lg border border-line bg-bg">
-                  <div className="flex items-center gap-1 py-1 pr-1 pl-2">
-                    <span className="grid size-6 shrink-0 place-items-center rounded-full bg-raised text-xs font-bold">{i + 1}</span>
-                    <PinGlyph park={s.place.isPark} className="size-4" />
-                    <button
-                      type="button"
-                      onClick={() => patchStop(s.key, { open: !s.open })}
-                      aria-expanded={s.open}
-                      className="min-h-10 min-w-0 flex-1 truncate px-1 text-left"
-                    >
-                      {s.place.label}
-                      {s.place.detail && <span className="ml-1.5 text-xs text-muted">{s.place.detail}</span>}
-                    </button>
-                    <IconButton label={`Move ${s.place.label} up`} disabled={i === 0} onClick={() => moveStop(i, -1)} d="M6 12l4-4 4 4" />
-                    <IconButton label={`Move ${s.place.label} down`} disabled={i === stops.length - 1} onClick={() => moveStop(i, 1)} d="M6 8l4 4 4-4" />
-                    <IconButton label={`Remove ${s.place.label}`} onClick={() => setStops((x) => x.filter((y) => y.key !== s.key))} d="M6 6l8 8M14 6l-8 8" />
-                  </div>
-                  {s.open && (
-                    <div className="flex flex-col gap-3 border-t border-line p-3">
-                      <div className="flex flex-col gap-3">
-                        <DateField label="Arrived" value={s.startDate} onChange={(v) => patchStop(s.key, { startDate: v })} unknownHint="Not set." />
-                        <DateField label="Left" value={s.endDate} onChange={(v) => patchStop(s.key, { endDate: v })} unknownHint="Not set." />
-                      </div>
-                      <label className="block">
-                        <span className="mb-1 block text-sm font-bold">Note</span>
-                        <input value={s.note} onChange={(e) => patchStop(s.key, { note: e.target.value })} className={`${input} h-10`} />
-                      </label>
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ol>
-          )}
-          <PlacePicker
-            label={stops.length ? 'Add another stop' : 'Add a stop'}
-            data={data}
-            near={mainPoint}
-            value={null}
-            onChange={(p) => p && setStops((s) => [...s, { key: newId(), place: p, startDate: null, endDate: null, note: '', open: false }])}
-            onPickOnMap={() =>
-              void pick('Tap the map to add a stop', (p) => setStops((s) => [...s, { key: newId(), place: p, startDate: null, endDate: null, note: '', open: false }]))
-            }
-          />
-        </section>
+        <fieldset>
+          <legend className="mb-1.5 text-sm font-bold">How you traveled</legend>
+          <div className="flex flex-wrap gap-2">
+            {TRAVEL_MODES.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                aria-pressed={travelMode === m.id}
+                onClick={() => setTravelMode(travelMode === m.id ? null : m.id)}
+                className={`flex min-h-10 items-center gap-1.5 rounded-full border px-3 text-sm ${travelMode === m.id ? 'border-primary bg-primary font-bold text-on-primary' : 'border-line hover:bg-raised'}`}
+              >
+                <span aria-hidden>{m.icon}</span>
+                {m.label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-bold">Title</span>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={suggestedTitle || 'e.g. Utah Parks 2023'} className={`${input} h-11`} />
+        </label>
 
         <HikesField parkIds={parkIds} value={hikes} onChange={setHikes} />
 
@@ -293,7 +438,7 @@ export function TripForm({
             </fieldset>
             <label className="block">
               <span className="mb-1 block text-sm font-bold">Tags</span>
-              <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="road trip, camping" className={`${input} h-10`} />
+              <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="camping, beach" className={`${input} h-10`} />
             </label>
           </div>
         </details>

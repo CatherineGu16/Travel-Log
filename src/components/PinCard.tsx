@@ -7,6 +7,7 @@ import { useStore } from '../store/useTravel.ts'
 import { AvatarStack } from './Avatar.tsx'
 import { PinGlyph } from './PlacePicker.tsx'
 import { useToast } from './toastContext.ts'
+import { TravelModeBadge } from './TravelMode.tsx'
 
 /**
  * The preview card for a selected pin. A place visited more than once shows its dates stacked;
@@ -67,6 +68,9 @@ export function PinCard({
           <div role="radiogroup" aria-label="Visits" className="flex flex-col gap-1 border-b border-line px-2 py-2">
             {pin.trips.map((t) => {
               const on = t.id === trip.id
+              // This place's own dates on that trip, when you gave them.
+              const here = t.destinations.find((d) => d.placeId === pin.place.id)
+              const dates = here?.startDate ? formatDateRange(here.startDate, here.endDate) : formatDateRange(t.startDate, t.endDate, t.approximate)
               return (
                 <button
                   key={t.id}
@@ -76,7 +80,7 @@ export function PinCard({
                   className={`flex min-h-10 items-center gap-2 rounded-lg px-2 text-left text-sm ${on ? 'bg-raised' : 'hover:bg-raised/60'}`}
                 >
                   <span className={`size-2.5 shrink-0 rounded-full ${on ? 'bg-primary' : 'border border-muted'}`} aria-hidden />
-                  <span className={`shrink-0 tabular-nums ${on ? 'font-bold' : ''}`}>{formatDateRange(t.startDate, t.endDate, t.approximate)}</span>
+                  <span className={`shrink-0 tabular-nums ${on ? 'font-bold' : ''}`}>{dates}</span>
                   <span className="min-w-0 truncate text-muted">{t.title}</span>
                 </button>
               )
@@ -88,6 +92,7 @@ export function PinCard({
           <div className="flex items-baseline gap-2">
             <h3 className="min-w-0 flex-1 truncate font-bold">{trip.title}</h3>
             {trip.isFamily && <span className="shrink-0 rounded-full bg-park/15 px-2 py-0.5 text-xs font-bold text-park">Family</span>}
+            <TravelModeBadge mode={trip.travelMode} />
           </div>
           <p className="text-sm text-muted">{formatDateRange(trip.startDate, trip.endDate, trip.approximate)}</p>
           {route.length > 1 && (
@@ -100,7 +105,7 @@ export function PinCard({
                     </span>
                   )}
                   {r.number === null ? (
-                    <PinGlyph park={pin.isPark} className="size-4" />
+                    <PinGlyph park={!!r.place.parkId} className="size-4" />
                   ) : (
                     <span className="grid size-5 place-items-center rounded-full bg-[var(--route)] text-[0.7rem] font-bold text-[var(--route-text)]">{r.number}</span>
                   )}

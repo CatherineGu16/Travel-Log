@@ -3,6 +3,7 @@ import { backupZip, readBackup } from './backup.ts'
 import { addPerson, emptyData, saveTrip } from './travelActions.ts'
 import { sameContent } from './travelData.ts'
 import { createZip, crc32, readZip } from './zip.ts'
+import { tripInput } from '../test/tripInput.ts'
 
 describe('zip', () => {
   it('round-trips files, with standard CRCs', () => {
@@ -27,20 +28,7 @@ describe('backup', () => {
       groupIds: [],
       avatar: { kind: 'photo', color: '#000', emoji: null, photoUpdatedAt: 'p1' },
     })
-    data = saveTrip(data, ctx, {
-      title: 'Moab',
-      startDate: '2024',
-      endDate: null,
-      approximate: false,
-      main: { place: { name: 'Moab', lat: 38.57, lng: -109.55 } },
-      stops: [],
-      companions: ['mom'],
-      isFamily: true,
-      description: '',
-      highlights: '',
-      rating: null,
-      tags: [],
-    })
+    data = saveTrip(data, ctx, tripInput({ title: 'Moab', main: { name: 'Moab', lat: 38.57, lng: -109.55 }, companions: ['mom'], isFamily: true }))
     const avatars = [
       { personId: 'mom', photoUpdatedAt: 'p1', blob: new Blob(['photo']), pending: false },
       { personId: 'gone', photoUpdatedAt: 'x', blob: new Blob(['stale']), pending: false },

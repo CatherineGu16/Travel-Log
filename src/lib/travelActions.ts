@@ -7,7 +7,8 @@ import {
   type PartialDate,
   type Person,
   type Place,
-  type Stop,
+  type Destination,
+  type TravelMode,
   type Synced,
   type TravelData,
   type Trip,
@@ -89,15 +90,24 @@ function resolvePlace(data: TravelData, ctx: EditContext, ref: PlaceRef): [Trave
 
 // ---------- Trips ----------
 
+export interface DestinationInput {
+  place: PlaceRef
+  isMain: boolean
+  startDate: PartialDate | null
+  endDate: PartialDate | null
+  note: string
+}
+
 export interface TripInput {
   title: string
   startDate: PartialDate
   endDate: PartialDate | null
   approximate: boolean
-  main: PlaceRef
-  stops: { place: PlaceRef; startDate: PartialDate | null; endDate: PartialDate | null; note: string }[]
+  /** In visit order. If none is marked main, the first one is. */
+  destinations: DestinationInput[]
   companions: string[]
   isFamily: boolean
+  travelMode?: TravelMode | null
   description: string
   highlights: string
   rating: number | null
@@ -108,24 +118,32 @@ export interface TripInput {
 
 /** Creates a trip, or updates one when `tripId` is given. Places are created or reused as needed. */
 export function saveTrip(data: TravelData, ctx: EditContext, input: TripInput, tripId?: string): TravelData {
+  if (input.destinations.length === 0) throw new Error('Add where the trip went.')
   let next = data
-  let mainPlaceId: string
-  ;[next, mainPlaceId] = resolvePlace(next, ctx, input.main)
-  const stops: Stop[] = []
-  for (const s of input.stops) {
+  const destinations: Destination[] = []
+  for (const d of input.destinations) {
     let placeId: string
-    ;[next, placeId] = resolvePlace(next, ctx, s.place)
-    stops.push({ placeId, startDate: s.startDate, endDate: s.endDate, note: s.note.trim() })
+    ;[next, placeId] = resolvePlace(next, ctx, d.place)
+    // The same place twice in a row (e.g. picked again) is one destination.
+    if (destinations.at(-1)?.placeId === placeId) continue
+    destinations.push({
+      placeId,
+      isMain: d.isMain,
+      startDate: d.startDate,
+      endDate: d.endDate && d.endDate !== d.startDate ? d.endDate : null,
+      note: d.note.trim(),
+    })
   }
+  if (!destinations.some((d) => d.isMain)) destinations[0].isMain = true
   const fields = {
     title: input.title.trim(),
     startDate: input.startDate,
     endDate: input.endDate && input.endDate !== input.startDate ? input.endDate : null,
     approximate: input.approximate,
-    mainPlaceId,
-    stops,
+    destinations,
     companions: [...new Set(input.companions)],
     isFamily: input.isFamily,
+    travelMode: input.travelMode ?? null,
     description: input.description.trim(),
     highlights: input.highlights.trim(),
     rating: input.rating,

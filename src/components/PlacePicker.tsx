@@ -176,7 +176,7 @@ export function PlacePicker({
 }
 
 /** "This is inside Yosemite National Park — link it?" for a new place that falls inside a park. */
-function ParkSuggestion({ value, onLink }: { value: ChosenPlace; onLink: (park: ParkInfo) => void }) {
+export function ParkSuggestion({ value, onLink }: { value: ChosenPlace; onLink: (park: ParkInfo) => void }) {
   const [found, setFound] = useState<{ at: string; park: ParkInfo | null }>({ at: '', park: null })
   const [dismissed, setDismissed] = useState(false)
   const place = 'place' in value.ref ? value.ref.place : null

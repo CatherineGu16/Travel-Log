@@ -6,6 +6,7 @@ import type { TravelData, Trip } from '../lib/types.ts'
 import { usePersistentState } from '../ui/usePersistentState.ts'
 import { AvatarStack } from './Avatar.tsx'
 import { PinGlyph } from './PlacePicker.tsx'
+import { TravelModeBadge } from './TravelMode.tsx'
 
 const GROUPINGS: { id: TripGrouping; label: string }[] = [
   { id: 'year', label: 'Year' },
@@ -69,21 +70,23 @@ export function TripsPage({ data, toolbar, onOpenTrip }: { data: TravelData; too
 }
 
 function TripRow({ trip, data, onOpen }: { trip: Trip; data: TravelData; onOpen: () => void }) {
-  const main = data.places.find((p) => p.id === trip.mainPlaceId)
+  const mains = trip.destinations.filter((d) => d.isMain).map((d) => data.places.find((p) => p.id === d.placeId)).filter((p) => p !== undefined)
+  const stops = trip.destinations.length - mains.length
   const people = trip.companions.map((id) => data.people.find((p) => p.id === id)).filter((p) => p !== undefined)
   return (
     <li>
       <button onClick={onOpen} className="flex min-h-16 w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-raised">
-        <PinGlyph park={!!main?.parkId} className="size-6" />
+        <PinGlyph park={!!mains[0]?.parkId} className="size-6" />
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline gap-2">
             <span className="truncate font-bold">{trip.title}</span>
             {trip.isFamily && <span className="shrink-0 rounded-full bg-park/15 px-2 py-0.5 text-xs font-bold text-park">Family</span>}
+            <TravelModeBadge mode={trip.travelMode} />
           </span>
           <span className="block truncate text-sm text-muted">
             {formatDateRange(trip.startDate, trip.endDate, trip.approximate)}
-            {main && ` · ${main.name}`}
-            {trip.stops.length > 0 && ` · ${trip.stops.length} ${trip.stops.length === 1 ? 'stop' : 'stops'}`}
+            {mains.length > 0 && ` · ${mains.map((m) => m.name).join(' & ')}`}
+            {stops > 0 && ` · ${stops} ${stops === 1 ? 'stop' : 'stops'}`}
             {trip.rating && ` · ${'★'.repeat(trip.rating)}`}
           </span>
         </span>

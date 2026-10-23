@@ -1,6 +1,6 @@
 import type { TravelData } from '../lib/types.ts'
 import { emptyData, revertTo } from '../lib/travelActions.ts'
-import { mergeData } from '../lib/travelData.ts'
+import { mergeData, parseTravelData } from '../lib/travelData.ts'
 import type { EditContext } from '../lib/types.ts'
 import type { StorageBackend } from './storage.ts'
 
@@ -109,7 +109,8 @@ export function createTravelStore(
     async init() {
       try {
         const saved = await backend.load()
-        set({ status: 'ready', data: saved ?? state.data })
+        // Checked and brought up to date (e.g. trips saved before destinations) on every load.
+        set({ status: 'ready', data: saved ? parseTravelData(saved) : state.data })
       } catch (e) {
         set({ status: 'error', error: `Couldn't read saved data: ${(e as Error).message}` })
       }

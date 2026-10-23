@@ -15,7 +15,7 @@ import { TripDetail } from './components/TripDetail.tsx'
 import { TripForm } from './components/TripForm.tsx'
 import { TripsPage } from './components/TripsPage.tsx'
 import parks from './data/national-parks.json'
-import { parksVisited, pinsOf, statesVisited, tripsPerRegion } from './lib/derive.ts'
+import { mainPlaceIds, parksVisited, pinsOf, statesVisited, tripsPerRegion } from './lib/derive.ts'
 import { filterData, NO_FILTER, reviveFilter, type TripFilter } from './lib/filters.ts'
 import { placeAt } from './lib/gazetteer.ts'
 import { parkInput, type ParkInfo } from './lib/placeSearch.ts'
@@ -101,21 +101,21 @@ function Shell() {
     setSelectedPlaceId(placeId)
     setSelectedTripId(tripId ?? pins.find((p) => p.place.id === placeId)?.trips[0]?.id ?? null)
   }
-  /** Moves the map to a trip: a trip with stops is fitted to its route, otherwise centered on its pin. */
+  /** Moves the map to a trip: a trip with several places is fitted to its route, otherwise centered on its pin. */
   const focusTrip = (tripId: string) => {
     const latest = store.getState().data
     const trip = latest.trips.find((t) => t.id === tripId)
-    const place = latest.places.find((p) => p.id === trip?.mainPlaceId)
-    if (place && trip && trip.stops.length === 0) setFocus({ lng: place.lng, lat: place.lat, token: ++focusToken.current })
+    const place = latest.places.find((p) => p.id === trip?.destinations[0]?.placeId)
+    if (place && trip && trip.destinations.length === 1) setFocus({ lng: place.lng, lat: place.lat, token: ++focusToken.current })
   }
-  /** Shows a trip on the map: its pin selected, and the map moved to it. */
-  const showOnMap = (trip: Trip) => {
+  /** Shows a trip on the map: the pin of its (first) main destination selected, and the map moved to it. */
+  const showOnMap = (trip: Trip, placeId = mainPlaceIds(trip)[0]) => {
     goTo('map')
-    selectPin(trip.mainPlaceId, trip.id)
+    selectPin(placeId, trip.id)
     focusTrip(trip.id)
   }
   const openTrip = (trip: Trip) => {
-    selectPin(trip.mainPlaceId, trip.id)
+    selectPin(mainPlaceIds(trip)[0], trip.id)
     setDetailTripId(trip.id)
   }
   const addTrip = () => {
@@ -195,7 +195,7 @@ function Shell() {
         <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
           <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-line bg-surface/95 py-1.5 pr-1 pl-3 whitespace-nowrap shadow-md sm:gap-3 sm:pl-4">
             <h1 className="font-display text-xl font-semibold tracking-wide sm:text-2xl">Travel Log</h1>
-            <PageLinks page={page} />
+            <PageLinks page={page} onAdd={addTrip} />
             <dl className="flex gap-2 text-sm text-muted sm:hidden sm:gap-3 lg:flex">
               <div className="flex gap-1">
                 <dt className="sr-only">States visited</dt>
@@ -286,15 +286,6 @@ function Shell() {
           </div>
         )}
 
-        {/* Phones add trips from the tab bar; wider screens have this button. */}
-        {!pick && (
-          <button
-            onClick={addTrip}
-            className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3 z-20 hidden min-h-12 items-center gap-2 rounded-full bg-primary px-5 font-bold text-on-primary shadow-lg sm:flex"
-          >
-            <span aria-hidden className="text-xl leading-none">+</span> Add trip
-          </button>
-        )}
       </main>
 
       <TabBar page={page} onAdd={addTrip} />

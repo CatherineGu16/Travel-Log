@@ -2,30 +2,18 @@ import { describe, expect, it } from 'vitest'
 import { addPerson, deleteTrip, emptyData, saveTrip, type TripInput } from './travelActions.ts'
 import { mergeData, parseTravelData, sameContent } from './travelData.ts'
 import { FAMILY_GROUP_ID, type EditContext } from './types.ts'
+import { tripInput } from '../test/tripInput.ts'
 
 let n = 0
 const at = (now: string): EditContext => ({ now, newId: () => `id${++n}` })
-const input: TripInput = {
-  title: 'Moab',
-  startDate: '2024',
-  endDate: null,
-  approximate: false,
-  main: { place: { name: 'Moab', lat: 38.57, lng: -109.55, regionCode: 'US-UT' } },
-  stops: [],
-  companions: [],
-  isFamily: false,
-  description: '',
-  highlights: '',
-  rating: null,
-  tags: [],
-}
+const input: TripInput = tripInput({ title: 'Moab', main: { name: 'Moab', lat: 38.57, lng: -109.55, regionCode: 'US-UT' } })
 
 describe('mergeData', () => {
   it('keeps edits from both devices, newest per record, deletes win ties', () => {
     const base = saveTrip(emptyData('t0'), at('2026-01-01T00:00:00Z'), input)
     const id = base.trips[0].id
     const phone = saveTrip(base, at('2026-01-02T00:00:00Z'), { ...input, title: 'Moab (phone)' }, id)
-    const pc = saveTrip(base, at('2026-01-03T00:00:00Z'), { ...input, title: 'Chicago', main: { place: { name: 'Chicago', lat: 41.88, lng: -87.63 } } })
+    const pc = saveTrip(base, at('2026-01-03T00:00:00Z'), tripInput({ title: 'Chicago', main: { name: 'Chicago', lat: 41.88, lng: -87.63 } }))
     const merged = mergeData(phone, pc)
     expect(merged.trips.map((t) => t.title).sort()).toEqual(['Chicago', 'Moab (phone)'])
 
@@ -61,5 +49,36 @@ describe('parseTravelData', () => {
     expect(parsed.trips).toEqual([])
     expect(parsed.places).toHaveLength(1)
     expect(parsed.groups.map((g) => g.id)).toEqual([FAMILY_GROUP_ID])
+  })
+})
+
+describe('trips saved before destinations', () => {
+  it('converts a main place plus stops, slotting the main place in where the map drew it', () => {
+    const t = (id: string, lat: number, lng: number) => ({ id, name: id, lat, lng, updatedAt: 't' })
+    const parsed = parseTravelData({
+      schemaVersion: 1,
+      places: [t('zion', 37.3, -113.05), t('vegas', 36.17, -115.14), t('springdale', 37.18, -113.0)],
+      trips: [
+        {
+          id: 'old',
+          updatedAt: 't',
+          title: 'Utah',
+          startDate: '2023',
+          mainPlaceId: 'zion',
+          stops: [
+            { placeId: 'vegas', startDate: '2023-07-01', endDate: null, note: 'Flew in' },
+            { placeId: 'springdale', startDate: null, endDate: null, note: '' },
+          ],
+        },
+      ],
+      people: [],
+      groups: [],
+    })
+    expect(parsed.trips[0].destinations.map((d) => [d.placeId, d.isMain, d.startDate, d.note])).toEqual([
+      ['vegas', false, '2023-07-01', 'Flew in'],
+      ['springdale', false, null, ''],
+      ['zion', true, null, ''],
+    ])
+    expect(parsed.trips[0].travelMode).toBeNull()
   })
 })

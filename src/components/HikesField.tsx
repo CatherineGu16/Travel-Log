@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { loadParkHikes, PARKS, type NpsHike } from '../lib/gazetteer.ts'
 import { hikeKey } from '../lib/travelActions.ts'
+import { HikeFacts } from './HikeFacts.tsx'
 import type { TripHike } from '../lib/types.ts'
 
 /**
@@ -36,7 +37,7 @@ export function HikesField({ parkIds, value, onChange }: { parkIds: string[]; va
             <div className="border-t border-line p-2">
               {listed.length === 0 && <p className="px-1 pb-2 text-sm text-muted">NPS doesn't list hikes for this park yet. Add yours below.</p>}
               <ul className="max-h-72 overflow-y-auto">
-                {[...listed.map((l) => ({ hikeId: l.id as string | null, name: l.name })), ...custom.map((c) => ({ hikeId: c.hikeId, name: c.name }))].map((l) => {
+                {[...listed.map((l) => ({ hikeId: l.id as string | null, name: l.name, nps: l as NpsHike | null })), ...custom.map((c) => ({ hikeId: c.hikeId, name: c.name, nps: null }))].map((l) => {
                   const hike = value.find((h) => keyOf(h) === hikeKey(parkId, l.hikeId, l.name))
                   return (
                     <li key={hikeKey(parkId, l.hikeId, l.name)} className="flex min-h-10 items-center gap-2 px-1">
@@ -47,7 +48,10 @@ export function HikesField({ parkIds, value, onChange }: { parkIds: string[]; va
                           onChange={() => toggle({ parkId, hikeId: l.hikeId, name: l.name, date: null })}
                           className="size-4 shrink-0 accent-[var(--park)]"
                         />
-                        <span className={`truncate text-sm ${hike ? 'font-bold' : ''}`}>{l.name}</span>
+                        <span className="min-w-0">
+                          <span className={`block truncate text-sm ${hike ? 'font-bold' : ''}`}>{l.name}</span>
+                          {l.nps && <HikeFacts hike={l.nps} />}
+                        </span>
                       </label>
                       {hike && (
                         <input

@@ -1,5 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
 
+/** The trip form's place search: "Add a destination", then "Add another destination". */
+const DEST = /^Add (a|another) destination$/
+
 async function choosePlace(page: Page, field: string | RegExp, query: string, option: RegExp) {
   const dialog = page.getByRole('dialog')
   await dialog.getByRole('combobox', { name: field }).fill(query)
@@ -13,9 +16,9 @@ test('log a multi-stop family trip, see it on the map, and it survives a reload'
 
   await page.getByRole('button', { name: 'Add trip' }).click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
-  await choosePlace(page, 'Main destination', 'zion', /Zion National Park/)
-  await choosePlace(page, 'Add a stop', 'Springdale, UT', /^Springdale\s*UT$/)
-  await choosePlace(page, 'Add another stop', 'Las Vegas', /^Las Vegas\s*NV$/)
+  await choosePlace(page, DEST, 'zion', /Zion National Park/)
+  await choosePlace(page, DEST, 'Springdale, UT', /^Springdale\s*UT$/)
+  await choosePlace(page, DEST, 'Las Vegas', /^Las Vegas\s*NV$/)
 
   // A new person added to Family turns on the Family switch.
   await dialog.getByRole('searchbox', { name: 'Add a person' }).fill('Mom')
@@ -28,7 +31,7 @@ test('log a multi-stop family trip, see it on the map, and it survives a reload'
 
   const card = page.getByRole('region', { name: 'Zion National Park trips' })
   await expect(card).toBeVisible()
-  // The main destination is slotted into the route where it adds the least distance.
+  // The route follows the destinations in the order they were added.
   await expect(card.getByRole('list', { name: 'Route' }).getByRole('listitem')).toHaveText([/Zion National Park/, /1\s*Springdale/, /2\s*Las Vegas/])
   await expect(card.getByText('Family')).toBeVisible()
   await expect(page.getByText('2 / 50 states')).toBeVisible()
@@ -47,7 +50,7 @@ test('a second trip to the same place stacks on its pin', async ({ page }) => {
   for (const year of ['2019', '2024']) {
     await page.getByRole('button', { name: 'Add trip' }).click()
     const dialog = page.getByRole('dialog', { name: 'Add trip' })
-    await choosePlace(page, 'Main destination', 'moab', /^Moab/)
+    await choosePlace(page, DEST, 'moab', /^Moab/)
     await dialog.getByRole('radio', { name: 'Year' }).first().click()
     const yearInput = dialog.getByRole('textbox', { name: 'Start year' })
     await yearInput.fill(year)
@@ -70,8 +73,8 @@ test('picking a stacked date shows that trip’s route, and details show other v
   for (const [year, stops] of trips) {
     await page.getByRole('button', { name: 'Add trip' }).click()
     const dialog = page.getByRole('dialog', { name: 'Add trip' })
-    await choosePlace(page, 'Main destination', 'moab', /^Moab/)
-    for (const [q, o] of stops) await choosePlace(page, /^Add (a|another) stop$/, q, o)
+    await choosePlace(page, DEST, 'moab', /^Moab/)
+    for (const [q, o] of stops) await choosePlace(page, DEST, q, o)
     await dialog.getByRole('radio', { name: 'Year' }).first().click()
     const yearInput = dialog.getByRole('textbox', { name: 'Start year' })
     await yearInput.fill(year)
@@ -96,4 +99,51 @@ test('picking a stacked date shows that trip’s route, and details show other v
   await expect(detail.getByText('Main destination')).toBeVisible()
   await detail.getByRole('button', { name: '2024' }).click()
   await expect(page.getByRole('dialog', { name: 'Moab 2024' })).toBeVisible()
+})
+
+test('a trip with two main destinations, each with its own dates', async ({ page }) => {
+  await page.goto('./')
+  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
+  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await choosePlace(page, DEST, 'zion', /Zion National Park/)
+  await choosePlace(page, DEST, 'Las Vegas', /^Las Vegas\s*NV$/)
+
+  // Las Vegas becomes a second main destination (its own pin).
+  await dialog.getByRole('button', { name: 'Make Las Vegas a main destination' }).click()
+  await expect(dialog.getByRole('button', { name: 'Las Vegas is a main destination' })).toHaveAttribute('aria-pressed', 'true')
+
+  // Three days in each place; the trip's own dates fill in from them.
+  for (const [name, from, to] of [
+    ['Zion National Park', '2024-05-01', '2024-05-03'],
+    ['Las Vegas', '2024-05-04', '2024-05-06'],
+  ]) {
+    const row = dialog.getByRole('listitem', { name })
+    await row.getByRole('button', { name: /Add dates/ }).click()
+    await row.getByRole('checkbox', { name: 'I know when I was here' }).check()
+    await row.getByLabel('Arrived', { exact: true }).fill(from)
+    await row.getByLabel('Left', { exact: true }).fill(to)
+  }
+  await expect(dialog.getByLabel('Start', { exact: true })).toHaveValue('2024-05-01')
+  await expect(dialog.getByLabel('End', { exact: true })).toHaveValue('2024-05-06')
+
+  await dialog.getByRole('button', { name: /Road trip/ }).click()
+  await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+  await expect(dialog).toBeHidden()
+
+  // The parks checklist shows the days at Zion, not the whole trip.
+  await page.goto('./#/parks')
+  await expect(page.getByRole('listitem', { name: 'Zion' })).toContainText('May 1 – 3, 2024')
+
+  await page.goto('./#/trips')
+  const row = page.getByRole('button', { name: /Zion & Las Vegas 2024/ })
+  await expect(row).toContainText('Zion National Park & Las Vegas')
+  await expect(row).toContainText('Road trip')
+})
+
+test('start and end dates offer only date, month or year', async ({ page }) => {
+  await page.goto('./')
+  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
+  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  for (const label of ['Start', 'End'])
+    await expect(dialog.getByRole('radiogroup', { name: `${label} precision` }).getByRole('radio')).toHaveText(['Date', 'Month', 'Year'])
 })

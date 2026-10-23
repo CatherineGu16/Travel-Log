@@ -7,6 +7,7 @@ import { addHike, hikeKey, removeHike } from '../lib/travelActions.ts'
 import type { TravelData, Trip, TripHike } from '../lib/types.ts'
 import { useStore } from '../store/useTravel.ts'
 import parksJson from '../data/national-parks.json'
+import { HikeFacts } from './HikeFacts.tsx'
 import { Sheet } from './Sheet.tsx'
 import { useToast } from './toastContext.ts'
 
@@ -48,8 +49,8 @@ export function ParkSheet({
   const doneCount = npsHikes.filter((h) => done.has(hikeKey(parkId, h.id, h.name))).length
   // NPS hikes first, then hikes you typed in yourself.
   const rows = [
-    ...npsHikes.map((h) => ({ name: h.name, hikeId: h.id as string | null, url: h.npsUrl as string | null })),
-    ...customDone.map((h) => ({ name: h.name, hikeId: h.hikeId, url: null })),
+    ...npsHikes.map((h) => ({ name: h.name, hikeId: h.id as string | null, url: h.npsUrl as string | null, nps: h as NpsHike | null })),
+    ...customDone.map((h) => ({ name: h.name, hikeId: h.hikeId, url: null, nps: null })),
   ].map((h) => ({ ...h, key: hikeKey(parkId, h.hikeId, h.name) }))
   const choosingKey = choosing && hikeKey(parkId, choosing.hikeId, choosing.name)
 
@@ -157,6 +158,7 @@ export function ParkSheet({
                       />
                       <span className="min-w-0 flex-1">
                         <span className={entry ? 'font-bold' : ''}>{h.name}</span>
+                        {h.nps && <HikeFacts hike={h.nps} />}
                         {entry && (
                           <span className="block text-xs text-muted">
                             {entry.times.map((t) => `${formatPartialDate(t.date)} · ${t.trip.title}`).join('  ·  ')}

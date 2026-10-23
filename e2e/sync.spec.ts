@@ -1,5 +1,8 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test'
 
+/** The trip form's place search: "Add a destination", then "Add another destination". */
+const DEST = /^Add (a|another) destination$/
+
 /**
  * A fake GitHub for the browser: the repo check, travel.json (with sha conflicts) and binary photo
  * files, shared by every device in the test. No request leaves the machine.
@@ -54,7 +57,7 @@ async function connect(page: Page, device: string) {
 async function addTrip(page: Page, main: [string, RegExp], who?: string) {
   await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
-  await dialog.getByRole('combobox', { name: 'Main destination' }).fill(main[0])
+  await dialog.getByRole('combobox', { name: DEST }).fill(main[0])
   await dialog.getByRole('option', { name: main[1] }).first().click()
   if (who) {
     await dialog.getByRole('searchbox', { name: 'Add a person' }).fill(who)

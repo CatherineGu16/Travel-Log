@@ -17,6 +17,7 @@ import {
   type TripInput,
 } from './travelActions.ts'
 import { FAMILY_GROUP_ID, type EditContext, type TravelData } from './types.ts'
+import { tripInput } from '../test/tripInput.ts'
 
 let n = 0
 const ctx = (now = '2026-10-23T12:00:00.000Z'): EditContext => ({ now, newId: () => `id${++n}` })
@@ -25,24 +26,15 @@ const zion = { name: 'Zion National Park', lat: 37.3, lng: -113.05, regionCode: 
 const springdale = { name: 'Springdale', lat: 37.18, lng: -113.0, regionCode: 'US-UT' }
 const vegas = { name: 'Las Vegas', lat: 36.17, lng: -115.14, regionCode: 'US-NV' }
 
-const trip = (over: Partial<TripInput> = {}): TripInput => ({
-  title: 'Utah 2023',
-  startDate: '2023-07-04',
-  endDate: '2023-07-09',
-  approximate: false,
-  main: { place: zion },
-  stops: [
-    { place: { place: vegas }, startDate: null, endDate: null, note: 'Flew in' },
-    { place: { place: springdale }, startDate: null, endDate: null, note: '' },
-  ],
-  companions: [],
-  isFamily: false,
-  description: '',
-  highlights: '',
-  rating: null,
-  tags: [],
-  ...over,
-})
+const trip = (over: Parameters<typeof tripInput>[0] = {}): TripInput =>
+  tripInput({
+    title: 'Utah 2023',
+    startDate: '2023-07-04',
+    endDate: '2023-07-09',
+    main: { place: zion },
+    stops: [{ place: { place: vegas }, note: 'Flew in' }, { place: { place: springdale } }],
+    ...over,
+  })
 
 describe('emptyData', () => {
   it('starts with a Family group that has a fixed id, so devices merge it into one', () => {
@@ -57,8 +49,12 @@ describe('saveTrip', () => {
     expect(data.trips).toHaveLength(1)
     expect(data.places.map((p) => p.name)).toEqual(['Zion National Park', 'Las Vegas', 'Springdale'])
     const t = data.trips[0]
-    expect(t.stops.map((s) => data.places.find((p) => p.id === s.placeId)?.name)).toEqual(['Las Vegas', 'Springdale'])
-    expect(t.stops[0].note).toBe('Flew in')
+    expect(t.destinations.map((d) => [data.places.find((p) => p.id === d.placeId)?.name, d.isMain])).toEqual([
+      ['Zion National Park', true],
+      ['Las Vegas', false],
+      ['Springdale', false],
+    ])
+    expect(t.destinations[1].note).toBe('Flew in')
   })
 
   it('reuses a place you have been to, so a second visit stacks on the same pin', () => {
@@ -76,7 +72,8 @@ describe('saveTrip', () => {
     const id = data.trips[0].id
     data = saveTrip(data, ctx('2026-10-24T00:00:00.000Z'), trip({ title: 'Renamed', stops: [] }), id)
     expect(data.trips).toHaveLength(1)
-    expect(data.trips[0]).toMatchObject({ id, title: 'Renamed', stops: [], updatedAt: '2026-10-24T00:00:00.000Z' })
+    expect(data.trips[0]).toMatchObject({ id, title: 'Renamed', updatedAt: '2026-10-24T00:00:00.000Z' })
+    expect(data.trips[0].destinations).toHaveLength(1)
   })
 
   it('drops an end date that equals the start date', () => {
@@ -165,7 +162,7 @@ describe('visitsTo', () => {
     data = saveTrip(
       data,
       ctx(),
-      trip({ stops: [{ place: { place: vegas }, startDate: '2023-07-03', endDate: null, note: '' }] }),
+      trip({ stops: [{ place: { place: vegas }, startDate: '2023-07-03' }] }),
     )
     const vegasId = data.places.find((p) => p.name === 'Las Vegas')!.id
     expect(visitsTo(data, vegasId).map((v) => [v.trip.title, v.startDate])).toEqual([
@@ -203,5 +200,32 @@ describe('hikes', () => {
     expect(data.trips[0].hikes.map((h) => h.name)).toEqual(['The Narrows'])
     data = saveTrip(data, ctx(), trip({ title: 'Renamed' }), data.trips[0].id)
     expect(data.trips[0].hikes.map((h) => h.name)).toEqual(['The Narrows'])
+  })
+})
+
+describe('trips with more than one main destination', () => {
+  it('pins each main destination, and each place keeps its own dates', () => {
+    const data = saveTrip(
+      emptyData('t0'),
+      ctx(),
+      tripInput({
+        title: 'Utah + Vegas',
+        startDate: '2024-05-01',
+        endDate: '2024-05-06',
+        destinations: [
+          { place: { place: zion }, isMain: true, startDate: '2024-05-01', endDate: '2024-05-03', note: '' },
+          { place: { place: vegas }, isMain: true, startDate: '2024-05-04', endDate: '2024-05-06', note: '' },
+        ],
+      }),
+    )
+    expect(pinsOf(data).map((p) => p.place.name).sort()).toEqual(['Las Vegas', 'Zion National Park'])
+    const zionId = data.places.find((p) => p.parkId === 'zion')!.id
+    expect(visitsTo(data, zionId).map((v) => [v.startDate, v.endDate])).toEqual([['2024-05-01', '2024-05-03']])
+    expect(parkVisits(data, 'zion').map((v) => v.startDate)).toEqual(['2024-05-01'])
+  })
+
+  it('makes the first destination the main one when none is marked', () => {
+    const data = saveTrip(emptyData('t0'), ctx(), tripInput({ stops: [{ place: { place: vegas } }, { place: { place: zion } }] }))
+    expect(data.trips[0].destinations.map((d) => d.isMain)).toEqual([true, false])
   })
 })

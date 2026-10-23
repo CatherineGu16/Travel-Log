@@ -74,22 +74,30 @@ Same rules as Watchlist-Tracker, plus map rules:
 
 ## How trips, pins and places fit together
 
-- A **trip** is the main thing you log: "Utah Parks 2023". It has one **main destination** and an
-  ordered list of **stops** (key destinations).
+- A **trip** is the main thing you log: "Utah Parks 2023". It has an ordered list of
+  **destinations**, the places it went in visit order. Any number of them can be **main
+  destinations**; the rest are stops along the way. Each destination can have its **own dates**
+  ("3 days in Zion, then 3 in Las Vegas"), and a note.
+- **How you traveled**: Road trip, Flight or Cruise (optional), shown as a badge and filterable.
 - A **place** is a location you've been to: "Zion National Park", "Las Vegas". Places are shared
   between trips, so going back to the same place reuses it instead of creating a duplicate.
-- **One pin per major location**: a pin goes on each place that is the main destination of at
-  least one trip. Stops don't get their own pins; they only appear as part of a route.
-- **Pin colors**: **national park pins are green** (the main destination is linked to a park).
-  All other pins use the standard accent color.
-- **Dotted route**: selecting a pin shows the trip's stops as small numbered dots joined by a
-  dashed line, in visit order. The main destination (the pin) is slotted into the route where it
-  adds the least distance, since the form doesn't ask where it falls in the order. Other pins fade
-  back while one is selected, and the map fits the route around the pin card.
+- **One pin per major location**: a pin goes on each place that is a main destination of at least
+  one trip. A trip with two main destinations has two pins. Stops don't get their own pins; they
+  only appear as part of a route.
+- **Pin colors**: **national park pins are green** (the place is linked to a park). All other
+  pins use the standard accent color.
+- **Dotted route**: selecting a pin shows the trip's route through all its destinations in the
+  order you entered them: main destinations as pins, stops as numbered dots, joined by a dashed
+  line. Other pins fade back while one is selected, and the map fits the route around the pin card.
 - **Stacked dates**: if you've been to a major location more than once (Chicago 2018, Chicago
-  2022), it stays **one pin with a ×2 badge**. Its preview card stacks each visit's dates, newest
-  first, with the newest selected. **Picking a different date redraws the route for that trip.**
-  Any place, including a stop, shows every visit date stacked on its own detail view.
+  2022), it stays **one pin with a ×2 badge**. Its preview card stacks each visit's dates (that
+  place's own dates when you gave them), newest first, with the newest selected. **Picking a
+  different date redraws the route for that trip.** Any place, including a stop, shows every visit
+  date stacked on its own detail view, and the parks checklist uses the dates you were at the park,
+  not the whole trip's.
+- **Older data**: trips saved before destinations (a main place plus stops) are converted when
+  they're loaded or synced: the main place is slotted into the stops where it adds the least
+  distance, which is how the map drew those routes.
 
 ## Data split
 
@@ -103,13 +111,15 @@ world-countries.json  TopoJSON country outlines (Natural Earth 50m, public domai
 national-parks.json   id, name, fullName, npsCode, states[], lat, lng, established, areaAcres
 park-boundaries.json  TopoJSON park boundaries (NPS Land Resources Division, public domain),
                       simplified, ~300 KB; used for the parks layer and park auto-suggest
-us-places.json        [name, state, lat, lng] for ~32,000 US cities, towns and CDPs (Census
-                      Gazetteer, public domain); used for offline place search
+us-places.json        [name, state, lat, lng, population] for ~32,000 US cities, towns and CDPs
+                      (Census Gazetteer + 2024 population estimates; Natural Earth fills in big
+                      unincorporated places like Honolulu); offline place search, biggest first
 us-cities.json        ~700 US cities with population and rank (Natural Earth), for map labels
 us-lakes.json         large lakes in and around the US (Natural Earth 50m)
-park-hikes.json       parkId → [ { id, name, npsUrl } ]
-                      the names of the hikes each park lists in its nps.gov "Things To Do",
-                      each with a link to its nps.gov page (names only; hikes aren't on the map)
+park-hikes.json       parkId → [ { id, name, npsUrl, difficulty, distanceMi, distanceSource,
+                                   duration } ]
+                      the hikes each park lists in its nps.gov "Things To Do": difficulty
+                      (Easy / Moderate / Strenuous), distance and time where known
 public/fonts/         Noto Sans label glyphs (SIL OFL), so labels render with no outside request
 ```
 
@@ -127,11 +137,17 @@ app):
 2. Drop general overview pages ("Hiking in Yosemite", "Day Hikes") and tidy names ("Hike Beehive
    Loop" → "Beehive Loop").
 3. Sequoia and Kings Canyon share one NPS code; their hikes are split by park boundary.
-4. Write the list, plus `scripts/park-hikes-report.md` with every park's hikes and counts, and
+4. **Difficulty** comes from the NPS tags, then the description; **time** from NPS's duration
+   field ("1–2 hours"); **distance** from the description when it states one, skipping distances
+   that describe only part of the hike ("After 1 mile on the Riverside Walk…") or a drive. When NPS
+   gives no usable distance, the matching named trail near the hike's NPS location in
+   **OpenStreetMap** (Overpass, free, no key) gives its length, shown with "≈" because it's the
+   mapped trail rather than a stated hike distance.
+5. Write the list, plus `scripts/park-hikes-report.md` with every park's hikes and counts, and
    commit both to the public repo. Re-run it whenever you want a fresh list.
 
-Hikes are **names only** for now: no trail lines or locations on the map. Matching them to
-OpenStreetMap trails (for a map line and length) is a possible later addition.
+Hikes aren't drawn on the map; drawing the OpenStreetMap trail lines is a possible later
+addition.
 
 **Coverage is uneven.** The current list has **628 hikes**. How many a park has depends on how
 much that park has put into NPS Things To Do: Yellowstone has 55 and Acadia 51, while 13 parks
@@ -152,10 +168,11 @@ units (monuments, seashores, historic sites — 400+ total) could be added later
              title,                          // "Utah Parks 2023"
              startDate, endDate | null,      // partial ISO, same as Watchlist: "2019" | "2019-07" | "2019-07-04"
              approximate,
-             mainPlaceId,                    // where the trip's pin goes
-             stops: [ { placeId,             // key destinations, in visit order
-                        startDate | null, endDate | null,   // optional per-stop dates
-                        note } ],
+             destinations: [ { placeId,      // in visit order
+                               isMain,       // main destinations get pins; at least one per trip
+                               startDate | null, endDate | null,   // this place's own dates
+                               note } ],
+             travelMode | null,              // "road-trip" | "flight" | "cruise"
              companions: [personId],         // who went
              hikes: [ { parkId,              // hikes done on this trip
                         hikeId | null,       // from park-hikes.json, or null for a custom hike
@@ -265,20 +282,27 @@ Same engine as Watchlist-Tracker (`src/sync/`).
     control switches between **All · Visited · Not visited**, with a **"14 / 64 parks"** progress
     line.
   - Year and tag.
-- **Add trip** button ("+"), always visible.
+- **Add trip**: the colored **+** circle in the center of the navigation, always visible.
 
 ### Add / edit trip
-- **Title** (suggested from the destination and year, editable).
-- **Main destination**: search a place (your places, parks, then cities and towns from the bundled
-  list; for stops, same-named towns nearest the main destination come first; plus
-  landmarks and addresses when the detailed map is on), or tap/long-press the map. A dropped pin
-  gets its state (`regionCode`) from the bundled outlines and its nearest town from the bundled
-  places list. Picking a place you've been to before reuses it, so the new dates stack onto it.
-- **Dates**: start and end (exact / month / year / approximate, as in Watchlist).
-- **Key destinations**: add stops in order, each with optional dates and a note. Drag to reorder.
-  The route is drawn on the main map once the trip is saved.
-- **Hikes**: shown when the main destination or any stop is a national park. Check off trails
-  from that park's list, or add a custom hike by name. An optional date per hike.
+- **Where you went**: add destinations in order: search a place (your places and parks first, then
+  cities and towns, **biggest first**; towns near the trip's main destination come first; plus
+  landmarks and addresses when the detailed map is on), or tap/long-press the map. Picking a place
+  you've been to before reuses it, so the new dates stack onto it. A dropped pin gets its state from
+  the bundled outlines and its nearest town from the bundled places list, and can be renamed.
+  - The first destination is the **main** one; tap any destination's pin/number to make it a main
+    destination too (each gets a pin), or back to a stop.
+  - Each destination can have **its own dates** ("I know when I was here": Arrived / Left) and a
+    note. On a new trip, these fill in the trip's start and end until you set those yourself.
+  - A place inside a national park offers to be linked to the park ("This is inside Zion National
+    Park. Count it as a visit?").
+  - Move up / down, remove.
+- **Dates**: start and end, each **Date / Month / Year** (both required; the end follows the start
+  until you change it), plus "Dates are approximate".
+- **How you traveled**: Road trip / Flight / Cruise.
+- **Title** (suggested from the main destinations and year, e.g. "Zion & Las Vegas 2024").
+- **Hikes**: for every national park on the trip. Check off trails from that park's list (with
+  difficulty, distance and time), or add a custom hike by name. An optional date per hike.
 - **Who went**: shown as avatar chips.
   - **Group shortcuts** at the top: tapping **Family** (or any group) adds everyone in it at once.
     Tap a chip's × to drop anyone who didn't come.
@@ -287,6 +311,8 @@ Same engine as Watchlist-Tracker (`src/sync/`).
 - **Family trip** switch, turned on automatically when anyone from the Family group is added.
 - Optional: description, highlights, rating, tags.
 - Save, then the map flies to the new pin and shows its route.
+- **On phones**, the form's sheet stays above the on-screen keyboard and fits the visible area, so
+  the page doesn't jump around while you type.
 
 ### Trips list (non-map)
 - Every trip in a plain, scrollable list: title, main destination, dates, stops count, who went,
@@ -320,8 +346,9 @@ Same engine as Watchlist-Tracker (`src/sync/`).
 ### Header, navigation, settings
 - **Header**: states n/50 and parks n/64 progress, trips this year (on wide screens), and the sync
   status chip (a colored dot on phones).
-- **Navigation**: Map · Trips · Places · Parks, kept in the URL hash so Back works. A bottom tab bar
-  on phone (with Add trip), page links in the header on wider screens.
+- **Navigation**: Map · Trips · **+** · Places · Parks, kept in the URL hash so Back works. **Add
+  trip** is a large colored circle in the center: raised above the bottom tab bar on phones, in the
+  middle of the header's page links on wider screens.
 - **Settings**: Sync across devices (same as Watchlist), **Map detail** (Outline · Detailed, with a
   note that Detailed contacts OpenFreeMap and Photon), People & groups (see below),
   Export/Import, theme.

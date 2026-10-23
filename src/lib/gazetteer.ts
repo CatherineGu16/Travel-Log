@@ -64,6 +64,12 @@ export interface NpsHike {
   id: string
   name: string
   npsUrl: string
+  difficulty: 'Easy' | 'Moderate' | 'Strenuous' | null
+  distanceMi: number | null
+  /** "nps" = stated by the park; "osm" = length of the mapped trail, so approximate. */
+  distanceSource: 'nps' | 'osm' | null
+  /** NPS's time estimate, e.g. "1–2 hours". */
+  duration: string | null
 }
 
 let hikes: Promise<Record<string, NpsHike[]>> | null = null

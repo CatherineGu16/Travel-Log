@@ -1,6 +1,7 @@
 import { isPartialDate } from './partialDate.ts'
+import { insertCheapest } from './route.ts'
 import { emptyData } from './travelActions.ts'
-import { FAMILY_GROUP_ID, type Avatar, type Group, type Person, type Place, type Synced, type TravelData, type Trip } from './types.ts'
+import { FAMILY_GROUP_ID, type Avatar, type Destination, type Group, type Person, type Place, type Synced, type TravelData, type Trip } from './types.ts'
 
 /**
  * Combines two copies of your data record by record: the newer updatedAt wins, and deletes travel
@@ -100,24 +101,58 @@ export function parseTravelData(input: unknown): TravelData {
       : null,
   )
 
+  const placeById = new Map(places.map((p) => [p.id, p]))
+  const destinationOf = (d: Record<string, unknown>, isMain: boolean): Destination => ({
+    placeId: d.placeId as string,
+    isMain,
+    startDate: dateOrNull(d.startDate),
+    endDate: dateOrNull(d.endDate),
+    note: str(d.note),
+  })
+
+  /**
+   * Trips saved before destinations: a main place plus stops. The main place is slotted into the
+   * stops where it adds the least distance, which is how the map drew those routes.
+   */
+  const fromMainAndStops = (x: Record<string, unknown>): Destination[] | null => {
+    if (typeof x.mainPlaceId !== 'string') return null
+    const stops = (Array.isArray(x.stops) ? x.stops : [])
+      .filter((s): s is Record<string, unknown> => isObject(s) && typeof s.placeId === 'string')
+      .map((s) => destinationOf(s, false))
+    const listed = stops.find((d) => d.placeId === x.mainPlaceId)
+    if (listed) {
+      listed.isMain = true
+      return stops
+    }
+    const main: Destination = { placeId: x.mainPlaceId, isMain: true, startDate: null, endDate: null, note: '' }
+    const at = (d: Destination) => placeById.get(d.placeId) ?? { lat: 0, lng: 0 }
+    const located = stops.map((d) => ({ ...at(d), d }))
+    return insertCheapest(located, { ...at(main), d: main }).map((l) => l.d)
+  }
+
   const trips = records<Trip>('trips', (x, base) => {
     const startDate = dateOrNull(x.startDate)
-    if (!startDate || typeof x.mainPlaceId !== 'string') return null
+    if (!startDate) return null
+    const destinations = Array.isArray(x.destinations)
+      ? x.destinations
+          .filter((d): d is Record<string, unknown> => isObject(d) && typeof d.placeId === 'string')
+          .map((d) => destinationOf(d, d.isMain === true))
+      : fromMainAndStops(x)
+    if (!destinations?.length) return null
+    if (!destinations.some((d) => d.isMain)) destinations[0].isMain = true
     return {
       ...base,
       title: str(x.title, 'Trip'),
       startDate,
       endDate: dateOrNull(x.endDate),
       approximate: x.approximate === true,
-      mainPlaceId: x.mainPlaceId,
-      stops: (Array.isArray(x.stops) ? x.stops : [])
-        .filter((s): s is Record<string, unknown> => isObject(s) && typeof s.placeId === 'string')
-        .map((s) => ({ placeId: s.placeId as string, startDate: dateOrNull(s.startDate), endDate: dateOrNull(s.endDate), note: str(s.note) })),
+      destinations,
       companions: strings(x.companions),
       hikes: (Array.isArray(x.hikes) ? x.hikes : [])
         .filter((h): h is Record<string, unknown> => isObject(h) && typeof h.parkId === 'string' && typeof h.name === 'string')
         .map((h) => ({ parkId: h.parkId as string, hikeId: typeof h.hikeId === 'string' ? h.hikeId : null, name: h.name as string, date: dateOrNull(h.date) })),
       isFamily: x.isFamily === true,
+      travelMode: x.travelMode === 'road-trip' || x.travelMode === 'flight' || x.travelMode === 'cruise' ? x.travelMode : null,
       description: str(x.description),
       highlights: str(x.highlights),
       rating: typeof x.rating === 'number' && x.rating >= 1 && x.rating <= 5 ? Math.round(x.rating) : null,

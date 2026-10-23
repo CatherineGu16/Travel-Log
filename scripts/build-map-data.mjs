@@ -9,7 +9,8 @@
 //   national-parks.json   NPS boundary service for the official list, Wikipedia's list of national
 //                         parks for location, established date and acreage (facts only)
 //   park-boundaries.json  NPS Land Resources Division boundaries, simplified (TopoJSON)
-//   us-places.json        Census Gazetteer places (cities, towns, CDPs) for offline place search
+//   us-places.json        Census Gazetteer places (cities, towns, CDPs) with 2024 population
+//                         estimates (Census), for offline place search ranked by size
 //   us-cities.json        Natural Earth populated places in the US, for map labels
 //   us-lakes.json         Natural Earth 50m lakes in and around the US
 //   world-countries.json  Natural Earth 50m countries (TopoJSON), so neighbors show as land
@@ -33,6 +34,7 @@ const NPS_BOUNDARIES =
 const WIKI =
   'https://en.wikipedia.org/w/api.php?action=parse&page=List_of_national_parks_of_the_United_States&prop=wikitext&format=json&formatversion=2'
 const GAZETTEER = 'https://www2.census.gov/geo/docs/maps-data/data/gazetteer/2024_Gazetteer/2024_Gaz_place_national.zip'
+const POPULATION = 'https://www2.census.gov/programs-surveys/popest/datasets/2020-2024/cities/totals/sub-est2024.csv'
 const NE = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson'
 const GLYPHS = 'https://tiles.openfreemap.org/fonts'
 const FONT_STACKS = ['Noto Sans Regular', 'Noto Sans Bold', 'Noto Sans Italic']
@@ -188,16 +190,44 @@ async function buildPlaces() {
   const [header, ...lines] = tsv.trim().split(/\r?\n/)
   const cols = header.split('\t').map((c) => c.trim())
   const col = (name) => cols.indexOf(name)
-  const [iState, iName, iLat, iLng] = [col('USPS'), col('NAME'), col('INTPTLAT'), col('INTPTLONG')]
+  const [iState, iGeoid, iName, iLat, iLng] = [col('USPS'), col('GEOID'), col('NAME'), col('INTPTLAT'), col('INTPTLONG')]
+
+  // 2024 population for incorporated places, keyed like the Gazetteer's GEOID (state + place code).
+  const popCsv = await download(POPULATION, 'census-population.csv', { binary: true })
+  const popLines = popCsv.toString('latin1').trim().split(/\r?\n/)
+  const popCols = popLines[0].split(',')
+  const [pSum, pState, pPlace, pPop] = ['SUMLEV', 'STATE', 'PLACE', 'POPESTIMATE2024'].map((c) => popCols.indexOf(c))
+  const population = new Map()
+  for (const line of popLines.slice(1)) {
+    const f = line.split(',')
+    if (f[pSum] === '162') population.set(f[pState] + f[pPlace], Number(f[pPop]))
+  }
+  // Unincorporated places (CDPs, e.g. "Urban Honolulu") aren't in it: use Natural Earth's big cities.
+  const ne = JSON.parse(await download(`${NE}/ne_10m_populated_places_simple.geojson`, 'ne-populated-places.geojson')).features.filter(
+    (f) => f.properties.adm0_a3 === 'USA',
+  )
+  const fromNaturalEarth = (name, lat, lng) => {
+    const n = name.toLowerCase().replace(/^urban /, '')
+    const city = ne.find((f) => {
+      const [x, y] = f.geometry.coordinates
+      return f.properties.name.toLowerCase() === n && Math.abs(y - lat) < 0.4 && Math.abs(x - lng) < 0.5
+    })
+    return city ? city.properties.pop_max : 0
+  }
+
   const places = lines.map((line) => {
     const f = line.split('\t')
     const name = f[iName]
       .replace(/ (city and borough|consolidated government|metropolitan government|unified government|urban county)( \(balance\))?$/i, '')
       .replace(/ \(balance\)$/i, '')
       .replace(/ (city|town|village|borough|CDP|municipality|comunidad|zona urbana)$/i, '')
-    return [name, f[iState], round(Number(f[iLat])), round(Number(f[iLng].trim()))]
+      // The Census calls Honolulu's CDP "Urban Honolulu".
+      .replace(/^Urban (?=Honolulu$)/, '')
+    const lat = round(Number(f[iLat]))
+    const lng = round(Number(f[iLng].trim()))
+    return [name, f[iState], lat, lng, population.get(f[iGeoid]) ?? fromNaturalEarth(name, lat, lng)]
   })
-  // Compact rows: [name, USPS state, lat, lng]. Region code is "US-" + state.
+  // Compact rows: [name, USPS state, lat, lng, population]. Region code is "US-" + state.
   await writeJson('us-places.json', places)
 }
 

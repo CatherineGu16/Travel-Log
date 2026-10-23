@@ -1,5 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
 
+/** The trip form's place search: "Add a destination", then "Add another destination". */
+const DEST = /^Add (a|another) destination$/
+
 const nav = (page: Page, name: string) => page.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name }).filter({ visible: true }).click()
 
 async function saveYear(page: Page, year: string) {
@@ -56,7 +59,7 @@ test('a town inside a park offers to link the trip to the park', async ({ page }
   await page.goto('./')
   await page.getByRole('button', { name: 'Add trip' }).click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
-  await dialog.getByRole('combobox', { name: 'Main destination' }).fill('Yosemite Valley')
+  await dialog.getByRole('combobox', { name: DEST }).fill('Yosemite Valley')
   await dialog.getByRole('option', { name: /^Yosemite Valley\s*CA$/ }).click()
   await expect(dialog.getByRole('status')).toContainText('inside Yosemite National Park')
   await dialog.getByRole('button', { name: 'Link to park' }).click()

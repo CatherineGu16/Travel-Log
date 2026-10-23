@@ -4,6 +4,7 @@ import { activeFilterCount, filterOptions, NO_FILTER, type TripFilter } from '..
 import type { TravelData } from '../lib/types.ts'
 import { Avatar } from './Avatar.tsx'
 import { Sheet } from './Sheet.tsx'
+import { TRAVEL_MODES } from '../lib/travelModes.ts'
 
 const WHO: { id: TripFilter['who']; label: string }[] = [
   { id: 'all', label: 'All' },
@@ -95,6 +96,17 @@ export function FilterSheet({
             </div>
           </fieldset>
         )}
+
+        <fieldset>
+          <legend className="mb-2 text-sm font-bold">How you traveled</legend>
+          <div className="flex flex-wrap gap-1.5">
+            {TRAVEL_MODES.map((m) => (
+              <button key={m.id} type="button" aria-pressed={filter.mode === m.id} onClick={() => set({ mode: filter.mode === m.id ? null : m.id })} className={chip(filter.mode === m.id)}>
+                <span aria-hidden>{m.icon}</span> {m.label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
 
         {years.length > 0 && (
           <fieldset>

@@ -6,6 +6,7 @@ import { memoryBackend } from '../store/storage.ts'
 import { createTravelStore } from '../store/travelStore.ts'
 import { SyncError, type RemoteApi, type SyncTarget } from './github.ts'
 import { createSyncEngine, type MetaStore, type SyncConfig, type SyncMeta } from './syncEngine.ts'
+import { tripInput } from '../test/tripInput.ts'
 
 /** In-memory GitHub: travel.json with a version sha that changes on every write, plus binary files. */
 function fakeGitHub(opts: { isPrivate?: boolean } = {}) {
@@ -84,20 +85,7 @@ async function device(gh: ReturnType<typeof fakeGitHub>, name: string, nowIso = 
   return { store, engine, avatars }
 }
 
-const trip = (title: string): TripInput => ({
-  title,
-  startDate: '2024',
-  endDate: null,
-  approximate: false,
-  main: { place: { name: title, lat: 38 + title.length / 10, lng: -100 - title.length, regionCode: 'US-UT' } },
-  stops: [],
-  companions: [],
-  isFamily: false,
-  description: '',
-  highlights: '',
-  rating: null,
-  tags: [],
-})
+const trip = (title: string): TripInput => tripInput({ title, main: { name: title, lat: 38 + title.length / 10, lng: -100 - title.length, regionCode: 'US-UT' } })
 const addTrip = (title: string) => (d: TravelData, c: EditContext) => saveTrip(d, c, trip(title))
 const titles = (d: TravelData) =>
   d.trips

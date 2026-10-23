@@ -56,3 +56,17 @@ describe('searchPlaces near a place', () => {
     expect(results[0]).not.toHaveProperty('distance')
   })
 })
+
+describe('searchPlaces by size', () => {
+  it('lists bigger towns first among equal matches', () => {
+    expect(searchPlaces('portland', sources())[0]).toMatchObject({ label: 'Portland', detail: 'OR' })
+    expect(searchPlaces('springfield', sources()).slice(0, 3).map((r) => r.detail)).toEqual(['MO', 'MA', 'IL'])
+    expect(searchPlaces('chica', sources())[0]).toMatchObject({ label: 'Chicago', detail: 'IL' })
+    expect(searchPlaces('honolulu', sources())[0]).toMatchObject({ label: 'Honolulu', detail: 'HI' })
+  })
+
+  it('still puts towns near the main destination first', () => {
+    const maine = { lat: 43.86, lng: -70.1 } // Freeport, ME
+    expect(searchPlaces('portland', sources(), 8, maine)[0]).toMatchObject({ label: 'Portland', detail: 'ME' })
+  })
+})

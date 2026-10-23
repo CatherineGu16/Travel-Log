@@ -4,21 +4,9 @@ import { saveTrip } from '../lib/travelActions.ts'
 import { indexedDbAvatars } from './avatarStore.ts'
 import { indexedDbBackend, memoryBackend } from './storage.ts'
 import { createTravelStore } from './travelStore.ts'
+import { tripInput } from '../test/tripInput.ts'
 
-const input = {
-  title: 'Moab',
-  startDate: '2024',
-  endDate: null,
-  approximate: false,
-  main: { place: { name: 'Moab', lat: 38.57, lng: -109.55, regionCode: 'US-UT' } },
-  stops: [],
-  companions: [],
-  isFamily: false,
-  description: '',
-  highlights: '',
-  rating: null,
-  tags: [],
-}
+const input = tripInput({ title: 'Moab', main: { name: 'Moab', lat: 38.57, lng: -109.55, regionCode: 'US-UT' } })
 
 describe('travelStore', () => {
   it('saves to IndexedDB, and the data is there after a reload', async () => {

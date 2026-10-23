@@ -7,7 +7,7 @@ import { FAMILY_GROUP_ID, type Group, type Person, type Place, type TravelData, 
 /** Newest trip first. */
 export const byNewest = (a: Trip, b: Trip) => comparePartialDates(b.startDate, a.startDate) || b.createdAt.localeCompare(a.createdAt)
 
-/** One pin per major location: every place that is the main destination of at least one trip. */
+/** One pin per major location: every place that is a main destination of at least one trip. */
 export interface Pin {
   place: Place
   /** Visits to this place, newest first. More than one means stacked dates. */
@@ -15,21 +15,27 @@ export interface Pin {
   isPark: boolean
 }
 
+/** A trip's main destinations (each gets a pin), in visit order. */
+export const mainPlaceIds = (trip: Trip) => trip.destinations.filter((d) => d.isMain).map((d) => d.placeId)
+
 export function pinsOf(data: TravelData): Pin[] {
   const places = new Map(live(data.places).map((p) => [p.id, p]))
   const byPlace = new Map<string, Trip[]>()
-  for (const trip of live(data.trips)) {
-    if (!places.has(trip.mainPlaceId)) continue
-    byPlace.set(trip.mainPlaceId, [...(byPlace.get(trip.mainPlaceId) ?? []), trip])
-  }
+  for (const trip of live(data.trips))
+    for (const placeId of new Set(mainPlaceIds(trip))) {
+      if (!places.has(placeId)) continue
+      byPlace.set(placeId, [...(byPlace.get(placeId) ?? []), trip])
+    }
   return [...byPlace].map(([placeId, trips]) => {
     const place = places.get(placeId)!
-    return { place, trips: trips.sort(byNewest), isPark: place.parkId !== null }
+    // Newest visit to this place first, by this place's own dates where the trip has them.
+    const at = (t: Trip) => t.destinations.find((d) => d.placeId === placeId)?.startDate ?? t.startDate
+    return { place, trips: trips.sort((a, b) => comparePartialDates(at(b), at(a)) || byNewest(a, b)), isPark: place.parkId !== null }
   })
 }
 
-/** Every place a trip visited: its main destination and its stops. */
-export const tripPlaceIds = (trip: Trip) => [trip.mainPlaceId, ...trip.stops.map((s) => s.placeId)]
+/** Every place a trip visited, in order. */
+export const tripPlaceIds = (trip: Trip) => trip.destinations.map((d) => d.placeId)
 
 /** How many trips visited each state (a trip counts once per state, however many stops it had there). */
 export function tripsPerRegion(data: TravelData): Map<string, number> {
@@ -91,19 +97,19 @@ export function visitsPerPlace(data: TravelData): Map<string, number> {
 
 export interface Visit {
   trip: Trip
-  /** The stop's own dates when it has them, otherwise the trip's. */
+  /** This destination's own dates when it has them, otherwise the trip's. */
   startDate: string
   endDate: string | null
   approximate: boolean
 }
 
-/** Every visit to a place, as a main destination or a stop: its stacked dates, newest first. */
+/** Every visit to a place: its stacked dates, newest first, using that destination's own dates when set. */
 export function visitsTo(data: TravelData, placeId: string): Visit[] {
   const visits: Visit[] = []
   for (const trip of live(data.trips)) {
-    const stop = trip.stops.find((s) => s.placeId === placeId)
-    if (trip.mainPlaceId !== placeId && !stop) continue
-    const own = stop?.startDate ? { startDate: stop.startDate, endDate: stop.endDate } : null
+    const stop = trip.destinations.find((d) => d.placeId === placeId)
+    if (!stop) continue
+    const own = stop.startDate ? { startDate: stop.startDate, endDate: stop.endDate } : null
     visits.push({ trip, startDate: own?.startDate ?? trip.startDate, endDate: own ? own.endDate : trip.endDate, approximate: trip.approximate })
   }
   return visits.sort((a, b) => comparePartialDates(b.startDate, a.startDate) || byNewest(a.trip, b.trip))
