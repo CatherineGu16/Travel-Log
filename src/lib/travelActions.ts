@@ -11,6 +11,7 @@ import {
   type Synced,
   type TravelData,
   type Trip,
+  type TripHike,
 } from './types.ts'
 
 /** Edits are pure: (data, context) → new data. The store applies, saves, and can undo them. */
@@ -95,6 +96,8 @@ export interface TripInput {
   highlights: string
   rating: number | null
   tags: string[]
+  /** Hikes done on this trip. Left as-is when omitted on an update. */
+  hikes?: TripHike[]
 }
 
 /** Creates a trip, or updates one when `tripId` is given. Places are created or reused as needed. */
@@ -121,6 +124,7 @@ export function saveTrip(data: TravelData, ctx: EditContext, input: TripInput, t
     highlights: input.highlights.trim(),
     rating: input.rating,
     tags: [...new Set(input.tags.map((t) => t.trim()).filter(Boolean))],
+    ...(input.hikes ? { hikes: cleanHikes(input.hikes) } : {}),
   }
   if (tripId) {
     const existing = next.trips.find((t) => t.id === tripId && !t.deleted)
@@ -131,8 +135,50 @@ export function saveTrip(data: TravelData, ctx: EditContext, input: TripInput, t
       trips: next.trips.map((t) => (t.id === tripId ? { ...t, ...fields, updatedAt: ctx.now } : t)),
     }
   }
-  const trip: Trip = { id: ctx.newId(), ...fields, hikes: [], createdAt: ctx.now, updatedAt: ctx.now }
+  const trip: Trip = { id: ctx.newId(), hikes: [], ...fields, createdAt: ctx.now, updatedAt: ctx.now }
   return { ...next, updatedAt: ctx.now, trips: [...next.trips, trip] }
+}
+
+// ---------- Hikes ----------
+
+/** One entry per hike per trip; custom hikes need a name. */
+function cleanHikes(hikes: TripHike[]): TripHike[] {
+  const seen = new Set<string>()
+  const out: TripHike[] = []
+  for (const h of hikes) {
+    const name = h.name.trim()
+    if (!name) continue
+    const key = hikeKey(h.parkId, h.hikeId, name)
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push({ parkId: h.parkId, hikeId: h.hikeId, name, date: h.date })
+  }
+  return out
+}
+
+/** Identifies a hike within a park: its NPS id, or for a hike you typed in, its name. */
+export const hikeKey = (parkId: string, hikeId: string | null, name: string) =>
+  `${parkId}|${hikeId ?? `custom:${name.trim().toLowerCase()}`}`
+
+/** Checks off a hike on a trip (or updates its date). */
+export function addHike(data: TravelData, ctx: EditContext, tripId: string, hike: TripHike): TravelData {
+  const trips = data.trips.map((t) =>
+    t.id === tripId
+      ? {
+          ...t,
+          hikes: cleanHikes([...t.hikes.filter((h) => hikeKey(h.parkId, h.hikeId, h.name) !== hikeKey(hike.parkId, hike.hikeId, hike.name)), hike]),
+          updatedAt: ctx.now,
+        }
+      : t,
+  )
+  return { ...data, updatedAt: ctx.now, trips }
+}
+
+export function removeHike(data: TravelData, ctx: EditContext, tripId: string, key: string): TravelData {
+  const trips = data.trips.map((t) =>
+    t.id === tripId ? { ...t, hikes: t.hikes.filter((h) => hikeKey(h.parkId, h.hikeId, h.name) !== key), updatedAt: ctx.now } : t,
+  )
+  return { ...data, updatedAt: ctx.now, trips }
 }
 
 export function deleteTrip(data: TravelData, ctx: EditContext, tripId: string): TravelData {

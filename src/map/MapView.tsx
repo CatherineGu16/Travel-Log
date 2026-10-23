@@ -1,12 +1,13 @@
-import { LngLatBounds, Map as MapLibreMap, setWorkerUrl, type GeoJSONSource, type MapMouseEvent } from 'maplibre-gl'
+import { LngLatBounds, Map as MapLibreMap, setWorkerUrl, type ExpressionSpecification, type GeoJSONSource, type MapMouseEvent } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { useEffect, useRef, useState } from 'react'
 import { shadeLevel, type Pin } from '../lib/derive.ts'
+import { loadParkBoundaries, PARKS } from '../lib/gazetteer.ts'
 import type { RoutePoint } from '../lib/route.ts'
 import { resolvedTheme } from '../ui/theme.ts'
 import { loadOutlineData } from './mapData.ts'
 import { outlineStyle, PALETTES, themedPaint } from './outlineStyle.ts'
-import { setPinImages } from './pinImages.ts'
+import { setParkImages, setPinImages } from './pinImages.ts'
 import { QUICK_JUMPS, VIEWS, type ViewId } from './views.ts'
 
 // MapLibre 6 runs its tile/geometry work in a separate worker file, served from the app's own assets.
@@ -17,6 +18,9 @@ const glyphsUrl = () => `${location.origin}${import.meta.env.BASE_URL}fonts/{fon
 
 const fitPadding = () => (window.innerWidth < 640 ? 24 : 56)
 const LONG_PRESS_MS = 550
+
+export type ParksMode = 'off' | 'all' | 'visited' | 'not-visited'
+const PARK_LAYERS = ['park-areas', 'park-outlines', 'park-icons', 'park-labels']
 
 /** Room around a fitted route for the header and the pin card (left panel on desktop, bottom sheet on phones). */
 const routePadding = () =>
@@ -37,6 +41,10 @@ export interface MapViewProps {
   /** While set, the next tap on the map picks a place instead of selecting pins. */
   picking: boolean
   onPick: (lng: number, lat: number) => void
+  /** National parks layer: which parks to show, which you've visited, and what tapping one does. */
+  parksMode: ParksMode
+  visitedParks: Set<string>
+  onSelectPark: (parkId: string) => void
   /** Changes when the map should fly to a place (e.g. a trip you just saved). */
   focus: { lng: number; lat: number; token: number } | null
 }
@@ -76,6 +84,7 @@ export function MapView(props: MapViewProps) {
         created.on('load', () => {
           if (cancelled) return
           setPinImages(created, { accent: palette.pin, park: palette.pinPark, center: palette.pinCenter })
+          setParkImages(created, { park: palette.park, muted: palette.parkMuted, surface: palette.surface })
           bindInteractions(created, latest)
           setMap(created)
         })
@@ -144,6 +153,38 @@ export function MapView(props: MapViewProps) {
     map.fitBounds(bounds, { padding: routePadding(), maxZoom: 10, duration: 800 })
   }, [map, routeTripId])
 
+  // National parks: badges for all 64, boundaries loaded the first time the layer is shown.
+  const { parksMode, visitedParks } = props
+  const [boundaries, setBoundaries] = useState<Awaited<ReturnType<typeof loadParkBoundaries>> | null>(null)
+  useEffect(() => {
+    if (parksMode !== 'off' && !boundaries) void loadParkBoundaries().then(setBoundaries)
+  }, [parksMode, boundaries])
+  useEffect(() => {
+    if (!map) return
+    map.getSource<GeoJSONSource>('parks')?.setData({
+      type: 'FeatureCollection',
+      features: PARKS.map((park) => ({
+        type: 'Feature',
+        properties: { parkId: park.id, name: park.name, visited: visitedParks.has(park.id) },
+        geometry: { type: 'Point', coordinates: [park.lng, park.lat] },
+      })),
+    })
+    if (boundaries)
+      map.getSource<GeoJSONSource>('park-areas')?.setData({
+        ...boundaries,
+        features: boundaries.features.map((f) => ({ ...f, properties: { ...f.properties, visited: visitedParks.has(f.properties.id) } })),
+      })
+  }, [map, visitedParks, boundaries])
+  useEffect(() => {
+    if (!map) return
+    for (const layer of PARK_LAYERS) map.setLayoutProperty(layer, 'visibility', parksMode === 'off' ? 'none' : 'visible')
+    const visited: ExpressionSpecification = ['boolean', ['get', 'visited'], false]
+    const show = parksMode === 'visited' ? visited : parksMode === 'not-visited' ? (['!', visited] satisfies ExpressionSpecification) : null
+    for (const layer of ['park-icons', 'park-labels', 'park-outlines']) map.setFilter(layer, show)
+    // Only visited parks are shaded, so in "not visited" mode there's nothing to fill.
+    map.setFilter('park-areas', parksMode === 'not-visited' ? ['==', 1, 0] : visited)
+  }, [map, parksMode])
+
   // States shaded by how many trips visited them.
   const { tripsPerRegion } = props
   const shaded = useRef(new Set<string>())
@@ -171,6 +212,7 @@ export function MapView(props: MapViewProps) {
       const palette = PALETTES[resolvedTheme()]
       for (const { layer, prop, value } of themedPaint(palette)) map.setPaintProperty(layer, prop, value)
       setPinImages(map, { accent: palette.pin, park: palette.pinPark, center: palette.pinCenter })
+      setParkImages(map, { park: palette.park, muted: palette.parkMuted, surface: palette.surface })
     }
     const media = window.matchMedia('(prefers-color-scheme: dark)')
     media.addEventListener('change', repaint)
@@ -228,10 +270,13 @@ function bindInteractions(map: MapLibreMap, latest: { current: MapViewProps }) {
       [e.point.x + 10, e.point.y + 10],
     ]
     const pin = map.queryRenderedFeatures(box, { layers: pinLayers })[0]
-    props.onSelectPin(pin ? (pin.properties.placeId as string) : null)
+    if (pin) return props.onSelectPin(pin.properties.placeId as string)
+    const park = props.parksMode !== 'off' ? map.queryRenderedFeatures(box, { layers: ['park-icons'] })[0] : undefined
+    if (park) return props.onSelectPark(park.properties.parkId as string)
+    props.onSelectPin(null)
   })
 
-  for (const layer of [...pinLayers, 'pin-clusters']) {
+  for (const layer of [...pinLayers, 'pin-clusters', 'park-icons']) {
     map.on('mouseenter', layer, () => !latest.current.picking && (map.getCanvas().style.cursor = 'pointer'))
     map.on('mouseleave', layer, () => !latest.current.picking && (map.getCanvas().style.cursor = ''))
   }

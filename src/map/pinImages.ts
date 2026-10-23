@@ -40,3 +40,40 @@ export function setPinImages(map: MapLibreMap, colors: { accent: string; park: s
     else map.addImage(name, image, { pixelRatio: ratio })
   }
 }
+
+const TREE = 'M12 4.5 7.2 11h2.6L6.5 15.5h4.3V19h2.4v-3.5h4.3L14.2 11h2.6Z'
+
+/** A round badge with a tree: filled for parks you've visited, outlined for ones you haven't. */
+function drawParkBadge(visited: boolean, colors: { park: string; muted: string; surface: string }): ImageData {
+  const S = 24
+  const ratio = Math.max(2, Math.ceil(window.devicePixelRatio || 1))
+  const canvas = document.createElement('canvas')
+  canvas.width = S * ratio
+  canvas.height = S * ratio
+  const ctx = canvas.getContext('2d')!
+  ctx.scale(ratio, ratio)
+  ctx.beginPath()
+  ctx.arc(12, 12, 10.5, 0, Math.PI * 2)
+  ctx.fillStyle = visited ? colors.park : colors.surface
+  ctx.fill()
+  ctx.lineWidth = 1.5
+  ctx.strokeStyle = visited ? colors.surface : colors.muted
+  ctx.stroke()
+  ctx.fillStyle = visited ? colors.surface : colors.muted
+  ctx.fill(new Path2D(TREE))
+  return ctx.getImageData(0, 0, canvas.width, canvas.height)
+}
+
+export const PARK_IMAGES = { visited: 'park-visited', notVisited: 'park-not-visited' } as const
+
+export function setParkImages(map: MapLibreMap, colors: { park: string; muted: string; surface: string }) {
+  const ratio = Math.max(2, Math.ceil(window.devicePixelRatio || 1))
+  for (const [name, visited] of [
+    [PARK_IMAGES.visited, true],
+    [PARK_IMAGES.notVisited, false],
+  ] as const) {
+    const image = drawParkBadge(visited, colors)
+    if (map.hasImage(name)) map.updateImage(name, image)
+    else map.addImage(name, image, { pixelRatio: ratio })
+  }
+}

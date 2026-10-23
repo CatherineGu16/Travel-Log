@@ -59,3 +59,22 @@ export async function placeAt(lng: number, lat: number): Promise<PlaceInput> {
   const name = park ? park.fullName : town ? (nearestM < IN_TOWN_M ? town : `Near ${town}`) : 'Dropped pin'
   return { name, lat, lng, city: town, countryCode: 'US', regionCode, parkId: parkId ?? null }
 }
+
+export interface NpsHike {
+  id: string
+  name: string
+  npsUrl: string
+}
+
+let hikes: Promise<Record<string, NpsHike[]>> | null = null
+/** The hikes each park lists on nps.gov (names and links only). */
+export const loadParkHikes = () => (hikes ??= import('../data/park-hikes.json').then((m) => m.default as Record<string, NpsHike[]>))
+
+/** The national park a point falls in, if any (for "Is this Yosemite National Park?"). */
+export async function parkAt(lng: number, lat: number): Promise<ParkInfo | null> {
+  const id = areaAt(await loadParkAreas(), lng, lat)
+  return (id && PARKS.find((p) => p.id === id)) || null
+}
+
+/** Park boundaries as GeoJSON, for the map's parks layer. */
+export const loadParkBoundaries = () => loadParkAreas().then((features) => ({ type: 'FeatureCollection' as const, features }))

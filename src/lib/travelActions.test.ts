@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { pinsOf, tripsPerRegion, statesVisited, parksVisited, shadeLevel, includesFamily, visitsTo } from './derive.ts'
+import { hikesDone, includesFamily, parkVisits, parksVisited, pinsOf, shadeLevel, statesVisited, tripsPerRegion, visitsTo } from './derive.ts'
 import {
   addGroup,
+  addHike,
   addPerson,
   deleteGroup,
   deletePerson,
   deleteTrip,
   emptyData,
   findSamePlace,
+  hikeKey,
+  removeHike,
   revertTo,
   saveTrip,
   setPersonGroups,
@@ -169,5 +172,36 @@ describe('visitsTo', () => {
       ['Utah 2023', '2023-07-03'],
       ['Utah 2023', '2019'],
     ])
+  })
+})
+
+describe('hikes', () => {
+  it('checks off hikes on trips and stacks repeat hikes; custom hikes are keyed by name', () => {
+    let data = saveTrip(emptyData('t0'), ctx(), trip({ title: 'Zion 2023' }))
+    data = saveTrip(data, ctx(), trip({ title: 'Zion 2025', startDate: '2025', endDate: null, stops: [] }))
+    const [first, second] = data.trips
+    const angels = { parkId: 'zion', hikeId: 'angels-landing', name: 'Angels Landing', date: null }
+    data = addHike(data, ctx(), first.id, angels)
+    data = addHike(data, ctx(), second.id, { ...angels, date: '2025-05-02' })
+    data = addHike(data, ctx(), second.id, { parkId: 'zion', hikeId: null, name: ' Secret slot canyon ', date: null })
+    data = addHike(data, ctx(), second.id, angels) // same hike again on the same trip: still one entry, date updated
+    expect(data.trips[1].hikes).toHaveLength(2)
+
+    const done = hikesDone(data, 'zion')
+    expect([...done.values()].map((h) => [h.name, h.times.map((t) => t.date)])).toEqual([
+      ['Angels Landing', ['2025', '2023-07-04']],
+      ['Secret slot canyon', ['2025']],
+    ])
+    expect(parkVisits(data, 'zion').map((v) => v.trip.title)).toEqual(['Zion 2025', 'Zion 2023'])
+
+    data = removeHike(data, ctx(), second.id, hikeKey('zion', null, 'secret slot canyon'))
+    expect(hikesDone(data, 'zion').size).toBe(1)
+  })
+
+  it('saves hikes from the trip form, and keeps them when an update leaves them out', () => {
+    let data = saveTrip(emptyData('t0'), ctx(), trip({ hikes: [{ parkId: 'zion', hikeId: 'the-narrows', name: 'The Narrows', date: null }] }))
+    expect(data.trips[0].hikes.map((h) => h.name)).toEqual(['The Narrows'])
+    data = saveTrip(data, ctx(), trip({ title: 'Renamed' }), data.trips[0].id)
+    expect(data.trips[0].hikes.map((h) => h.name)).toEqual(['The Narrows'])
   })
 })

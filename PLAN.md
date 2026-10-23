@@ -253,9 +253,10 @@ Same engine as Watchlist-Tracker (`src/sync/`).
   card (title, who went, stops, hikes) and redraws the route for that trip.
 - **Filter button**:
   - **Who**: All · Family · Not family, plus filter by person or group.
-  - **National parks layer**: shows all 64 parks as small tree icons (so they don't look like
-    trip pins). Visited parks are filled green (with a shaded boundary when zoomed in).
-    Not-yet-visited parks are gray outlines. A segmented
+  - **National parks layer** (the Parks button on the map, remembered per device): Off · All ·
+    Visited · Not visited. All 64 parks show as small tree badges (so they don't look like trip
+    pins). Visited parks are filled green (with a shaded boundary when zoomed in); not-yet-visited
+    parks are gray, with a dashed outline when zoomed in. Tapping a badge opens that park. A segmented
     control switches between **All · Visited · Not visited**, with a **"14 / 64 parks"** progress
     line.
   - Year and tag.
@@ -394,7 +395,7 @@ apps independent.
 | M2 ✅ | Local store (IndexedDB) + **Add trip** form (destination, dates, stops, who went, Family switch) + **people & groups** (avatars, Family group shortcut) + location pins (green for parks) + preview card + state shading by trip count | You can log a multi-stop trip end to end, and it survives a reload |
 | M3 ✅ | **Dotted routes** + stacked pins (×N) with date picker + place reuse and stacked visit dates + trip detail | Selecting a pin shows its route; a second trip to the same place stacks onto its pin, and picking either date shows the right route |
 | M4 ✅ | **Trips list** + **Places tab**: grouping, sorting, search, Family / Not family filter shared with the map | Every trip can be found without the map, and family trips filter correctly |
-| M5 | **National parks**: `park-hikes.json` (names from NPS Things To Do), map layer, All / Visited / Not visited, checklist with stacked dates, "Log a visit", auto-suggest a park link, **hikes checklist** (in the trip form and per park) | Parks show the correct visited state on the map and in the checklist, and hikes can be checked off per park |
+| M5 ✅ | **National parks**: `park-hikes.json` (names from NPS Things To Do), map layer, All / Visited / Not visited, checklist with stacked dates, "Log a visit", auto-suggest a park link, **hikes checklist** (in the trip form and per park) | Parks show the correct visited state on the map and in the checklist, and hikes can be checked off per park |
 | M6 | GitHub sync: Settings form, `travel.json` fetch/merge/save, **photo avatar** upload + download cache, status chip, `docs/ACCESS_KEY.md` | A trip and a new photo avatar added on phone appear on PC after refresh. Two-device conflict test passes |
 | M7 | Offline place search, **Map detail setting** (OpenFreeMap tiles + Photon search), stats in header, Export/Import (.zip with `travel.json` + avatars) | All flows work. With the setting off, the app makes no requests except to GitHub |
 | M8 | GitHub Actions deploy to Pages, Playwright E2E (desktop + phone), README | Live at `https://catherinegu16.github.io/Travel-Log/` |

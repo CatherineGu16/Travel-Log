@@ -22,6 +22,11 @@ export const PAGES: { id: Page; label: string; icon: ReactNode }[] = [
       </>
     ),
   },
+  {
+    id: 'parks',
+    label: 'Parks',
+    icon: <path d="M12 3.5 6.5 11h3L5.5 16.5H11V21h2v-4.5h5.5L14.5 11h3Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />,
+  },
 ]
 
 /** Page links for wider screens, shown inside the header. */

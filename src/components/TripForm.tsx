@@ -2,9 +2,10 @@ import { useMemo, useState } from 'react'
 import { includesFamily } from '../lib/derive.ts'
 import { todayIso, yearOf } from '../lib/partialDate.ts'
 import { addPerson, saveTrip, type PlaceInput, type TripInput } from '../lib/travelActions.ts'
-import { FAMILY_GROUP_ID, type PartialDate, type Trip } from '../lib/types.ts'
+import { FAMILY_GROUP_ID, type PartialDate, type Trip, type TripHike } from '../lib/types.ts'
 import { newId, useStore, useTravelState } from '../store/useTravel.ts'
 import { DateField } from './DateField.tsx'
+import { HikesField } from './HikesField.tsx'
 import { PeoplePicker } from './PeoplePicker.tsx'
 import { describeRef, PlacePicker, PinGlyph, type ChosenPlace } from './PlacePicker.tsx'
 import { Sheet } from './Sheet.tsx'
@@ -63,7 +64,11 @@ export function TripForm({
   const [highlights, setHighlights] = useState(trip?.highlights ?? '')
   const [rating, setRating] = useState<number | null>(trip?.rating ?? null)
   const [tags, setTags] = useState((trip?.tags ?? []).join(', '))
+  const [hikes, setHikes] = useState<TripHike[]>(trip?.hikes ?? [])
   const [error, setError] = useState<string | null>(null)
+
+  // National parks on this trip: their hikes can be checked off.
+  const parkIds = [...new Set([main?.parkId, ...stops.map((s) => s.place.parkId)].filter((id): id is string => !!id))]
 
   const suggestedTitle = useMemo(() => (main ? `${main.label.replace(/ National Park$/, '')} ${yearOf(startDate)}` : ''), [main, startDate])
 
@@ -101,6 +106,8 @@ export function TripForm({
       highlights,
       rating,
       tags: tags.split(','),
+      // Hikes in parks that are no longer on the trip are dropped.
+      hikes: hikes.filter((h) => parkIds.includes(h.parkId)),
     }
     const undoId = store.apply((d, c) => saveTrip(d, c, input, trip?.id), trip ? `Edited ${input.title}` : `Added ${input.title}`)
     if (undoId === null) return setError(store.getState().error ?? "Couldn't save the trip.")
@@ -214,6 +221,8 @@ export function TripForm({
             }
           />
         </section>
+
+        <HikesField parkIds={parkIds} value={hikes} onChange={setHikes} />
 
         <PeoplePicker
           data={data}

@@ -1,6 +1,6 @@
 import type { ExpressionSpecification, Map as MapLibreMap, StyleSpecification, SymbolLayerSpecification } from 'maplibre-gl'
 import type { OutlineData } from './mapData.ts'
-import { PIN_IMAGES } from './pinImages.ts'
+import { PARK_IMAGES, PIN_IMAGES } from './pinImages.ts'
 
 export type MapPalette = {
   water: string
@@ -21,6 +21,10 @@ export type MapPalette = {
   /** The selected trip's dashed route and numbered stops. */
   route: string
   routeText: string
+  /** Parks layer: icons, boundaries and labels. */
+  park: string
+  parkMuted: string
+  surface: string
 }
 
 export const PALETTES: Record<'light' | 'dark', MapPalette> = {
@@ -41,6 +45,9 @@ export const PALETTES: Record<'light' | 'dark', MapPalette> = {
     badgeText: '#ffffff',
     route: '#2b6f8f',
     routeText: '#ffffff',
+    park: '#2f7d4f',
+    parkMuted: '#8b8f80',
+    surface: '#fffdf7',
   },
   dark: {
     water: '#0f1b24',
@@ -59,6 +66,9 @@ export const PALETTES: Record<'light' | 'dark', MapPalette> = {
     badgeText: '#141a20',
     route: '#7cc4e4',
     routeText: '#0f1b24',
+    park: '#5cbf84',
+    parkMuted: '#7d8a96',
+    surface: '#1b232b',
   },
 }
 
@@ -109,6 +119,10 @@ export function themedPaint(p: MapPalette): { layer: string; prop: PaintProp; va
     { layer: 'route-stop-numbers', prop: 'text-color', value: p.routeText },
     { layer: 'route-labels', prop: 'text-color', value: p.label },
     { layer: 'route-labels', prop: 'text-halo-color', value: p.labelHalo },
+    { layer: 'park-areas', prop: 'fill-color', value: p.park },
+    { layer: 'park-outlines', prop: 'line-color', value: parkOutline(p) },
+    { layer: 'park-labels', prop: 'text-color', value: p.park },
+    { layer: 'park-labels', prop: 'text-halo-color', value: p.labelHalo },
   ]
 }
 
@@ -135,6 +149,8 @@ const cityLayer = (
 })
 
 const EMPTY = { type: 'FeatureCollection' as const, features: [] }
+/** Visited parks get a solid green outline; parks not visited yet a muted one. */
+const parkOutline = (p: MapPalette): ExpressionSpecification => ['case', ['boolean', ['get', 'visited'], false], p.park, p.parkMuted]
 /** Pin size grows a little when selected. */
 const pinSize: ExpressionSpecification = ['case', ['boolean', ['get', 'selected'], false], 1.3, 1]
 /** Other pins fade while one is selected. */
@@ -159,6 +175,8 @@ export function outlineStyle(data: OutlineData, palette: MapPalette, glyphsUrl: 
       cities: { type: 'geojson', data: data.cities },
       pins: { type: 'geojson', data: EMPTY, cluster: true, clusterRadius: 36, clusterMaxZoom: 5 },
       route: { type: 'geojson', data: EMPTY },
+      parks: { type: 'geojson', data: EMPTY, attribution: 'National Park Service' },
+      'park-areas': { type: 'geojson', data: EMPTY },
     },
     layers: [
       { id: 'water', type: 'background', paint: { 'background-color': p.water } },
@@ -178,6 +196,53 @@ export function outlineStyle(data: OutlineData, palette: MapPalette, glyphsUrl: 
       cityLayer('cities-major', 3, [0, 2], [11, 14], p),
       cityLayer('cities-mid', 5, [3, 5], [11, 13], p),
       cityLayer('cities-minor', 7, [6, 10], [10, 12], p),
+
+      // National parks layer (hidden until turned on): shaded boundaries when zoomed in, tree badges.
+      {
+        id: 'park-areas',
+        type: 'fill',
+        source: 'park-areas',
+        minzoom: 5,
+        layout: { visibility: 'none' },
+        filter: ['boolean', ['get', 'visited'], false],
+        paint: { 'fill-color': p.park, 'fill-opacity': 0.18 },
+      },
+      {
+        id: 'park-outlines',
+        type: 'line',
+        source: 'park-areas',
+        minzoom: 5,
+        layout: { visibility: 'none' },
+        paint: { 'line-color': parkOutline(p), 'line-width': 1.2, 'line-dasharray': [3, 2] },
+      },
+      {
+        id: 'park-icons',
+        type: 'symbol',
+        source: 'parks',
+        layout: {
+          visibility: 'none',
+          'icon-image': ['case', ['boolean', ['get', 'visited'], false], PARK_IMAGES.visited, PARK_IMAGES.notVisited],
+          'icon-allow-overlap': true,
+          'icon-size': ['interpolate', ['linear'], ['zoom'], 3, 0.8, 7, 1.1],
+          'symbol-sort-key': ['case', ['boolean', ['get', 'visited'], false], 1, 0],
+        },
+      },
+      {
+        id: 'park-labels',
+        type: 'symbol',
+        source: 'parks',
+        minzoom: 5,
+        layout: {
+          visibility: 'none',
+          'text-field': ['get', 'name'],
+          'text-font': ['Noto Sans Italic'],
+          'text-size': 11,
+          'text-anchor': 'top',
+          'text-offset': [0, 1],
+          'text-optional': true,
+        },
+        paint: { 'text-color': p.park, 'text-halo-color': p.labelHalo, 'text-halo-width': 1.4 },
+      },
 
       // The selected trip's route: a dashed line through its stops in visit order.
       {

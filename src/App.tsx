@@ -1,6 +1,9 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FilterButton, FilterSheet } from './components/FilterSheet.tsx'
 import { PageLinks, TabBar } from './components/Navigation.tsx'
+import { ParkSheet } from './components/ParkSheet.tsx'
+import { ParksLayerControl } from './components/ParksLayerControl.tsx'
+import { ParksPage } from './components/ParksPage.tsx'
 import { PeopleSheet } from './components/PeopleSheet.tsx'
 import { PinCard } from './components/PinCard.tsx'
 import { PlacesPage } from './components/PlacesPage.tsx'
@@ -12,11 +15,13 @@ import parks from './data/national-parks.json'
 import { parksVisited, pinsOf, statesVisited, tripsPerRegion } from './lib/derive.ts'
 import { filterData, NO_FILTER, reviveFilter, type TripFilter } from './lib/filters.ts'
 import { placeAt } from './lib/gazetteer.ts'
+import { parkInput, type ParkInfo } from './lib/placeSearch.ts'
 import { routeOf } from './lib/route.ts'
 import { live, type PlaceInput } from './lib/travelActions.ts'
 import type { Trip } from './lib/types.ts'
 import { loadStore, StoreContext, useStore, useTravelState } from './store/useTravel.ts'
 import type { TravelStore } from './store/travelStore.ts'
+import type { ParksMode } from './map/MapView.tsx'
 import { usePage } from './ui/route.ts'
 import { usePersistentState } from './ui/usePersistentState.ts'
 
@@ -54,7 +59,12 @@ function Shell() {
   const pins = useMemo(() => pinsOf(shown), [shown])
   const perRegion = useMemo(() => tripsPerRegion(shown), [shown])
   // Header totals always count everything, whatever the filter.
-  const totals = useMemo(() => ({ states: statesVisited(tripsPerRegion(data)), parks: parksVisited(data).size }), [data])
+  const visitedParks = useMemo(() => parksVisited(data), [data])
+  const totals = useMemo(() => ({ states: statesVisited(tripsPerRegion(data)), parks: visitedParks.size }), [data, visitedParks])
+  const [parksMode, setParksMode] = usePersistentState<ParksMode>('travel.parksLayer', 'off', (v) =>
+    v === 'all' || v === 'visited' || v === 'not-visited' ? v : 'off',
+  )
+  const [parkSheetId, setParkSheetId] = useState<string | null>(null)
 
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null)
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null)
@@ -76,10 +86,18 @@ function Shell() {
     setSelectedPlaceId(placeId)
     setSelectedTripId(tripId ?? pins.find((p) => p.place.id === placeId)?.trips[0]?.id ?? null)
   }
-  /** Shows a trip on the map: its pin selected, its route drawn. */
+  /** Moves the map to a trip: a trip with stops is fitted to its route, otherwise centered on its pin. */
+  const focusTrip = (tripId: string) => {
+    const latest = store.getState().data
+    const trip = latest.trips.find((t) => t.id === tripId)
+    const place = latest.places.find((p) => p.id === trip?.mainPlaceId)
+    if (place && trip && trip.stops.length === 0) setFocus({ lng: place.lng, lat: place.lat, token: ++focusToken.current })
+  }
+  /** Shows a trip on the map: its pin selected, and the map moved to it. */
   const showOnMap = (trip: Trip) => {
     goTo('map')
     selectPin(trip.mainPlaceId, trip.id)
+    focusTrip(trip.id)
   }
   const openTrip = (trip: Trip) => {
     selectPin(trip.mainPlaceId, trip.id)
@@ -88,6 +106,12 @@ function Shell() {
   const addTrip = () => {
     selectPin(null)
     setForm({ trip: null, initialMain: null })
+  }
+  /** "Log a visit" to a park: Add trip with the park as the main destination. */
+  const logParkVisit = (park: ParkInfo) => {
+    setParkSheetId(null)
+    selectPin(null)
+    setForm({ trip: null, initialMain: parkInput(park) })
   }
 
   const requestPick = useCallback(
@@ -128,6 +152,9 @@ function Shell() {
               setPick(null)
               void placeAt(lng, lat).then((p) => request?.resolve(p))
             }}
+            parksMode={parksMode}
+            visitedParks={visitedParks}
+            onSelectPark={setParkSheetId}
             focus={focus}
           />
         </Suspense>
@@ -135,6 +162,11 @@ function Shell() {
         {page === 'trips' && (
           <div className="absolute inset-0 z-10 overflow-y-auto bg-bg">
             <TripsPage data={shown} toolbar={filterButton} onOpenTrip={showOnMap} />
+          </div>
+        )}
+        {page === 'parks' && (
+          <div className="absolute inset-0 z-10 overflow-y-auto bg-bg">
+            <ParksPage data={data} onOpenPark={setParkSheetId} onLogVisit={logParkVisit} />
           </div>
         )}
         {page === 'places' && (
@@ -195,11 +227,10 @@ function Shell() {
         {onMap && !pick && (
           <>
             <ShadeLegend show={perRegion.size > 0 || pins.length > 0} />
-            {!selectedPin && (
-              <div className="absolute top-[calc(max(0.75rem,env(safe-area-inset-top))+4.25rem)] left-3 z-10 sm:top-20 sm:right-3 sm:left-auto">
-                {filterButton}
-              </div>
-            )}
+            <div className="absolute top-[calc(max(0.75rem,env(safe-area-inset-top))+4.25rem)] left-3 z-10 flex gap-2 sm:top-20 sm:right-3 sm:left-auto">
+              {filterButton}
+              <ParksLayerControl mode={parksMode} onChange={setParksMode} visited={visitedParks.size} total={parks.length} />
+            </div>
           </>
         )}
 
@@ -231,6 +262,19 @@ function Shell() {
 
       <TabBar page={page} onAdd={addTrip} />
 
+      {parkSheetId && !form && (
+        <ParkSheet
+          parkId={parkSheetId}
+          data={data}
+          onLogVisit={logParkVisit}
+          onShowTrip={(trip) => {
+            setParkSheetId(null)
+            showOnMap(trip)
+          }}
+          onClose={() => setParkSheetId(null)}
+        />
+      )}
+
       {detailTrip && !form && (
         <TripDetail
           trip={detailTrip}
@@ -260,11 +304,7 @@ function Shell() {
             goTo('map')
             setSelectedPlaceId(mainPlaceId)
             setSelectedTripId(tripId)
-            const saved = store.getState().data
-            const place = saved.places.find((p) => p.id === mainPlaceId)
-            // A trip with stops is fitted to its route instead.
-            const hasRoute = (saved.trips.find((t) => t.id === tripId)?.stops.length ?? 0) > 0
-            if (place && !hasRoute) setFocus({ lng: place.lng, lat: place.lat, token: ++focusToken.current })
+            focusTrip(tripId)
           }}
         />
       )}

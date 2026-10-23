@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useState } from 'react'
 import { visitsPerPlace } from '../lib/derive.ts'
-import { loadTowns, PARKS } from '../lib/gazetteer.ts'
+import { loadTowns, parkAt, PARKS } from '../lib/gazetteer.ts'
+import type { ParkInfo } from '../lib/placeSearch.ts'
 import { searchPlaces, type SearchResult, type TownRow } from '../lib/placeSearch.ts'
 import { live, type PlaceRef } from '../lib/travelActions.ts'
 import type { TravelData } from '../lib/types.ts'
@@ -11,15 +12,16 @@ export interface ChosenPlace {
   label: string
   detail: string
   isPark: boolean
+  parkId: string | null
 }
 
 /** Turns a saved place or a place input into what the form shows. */
 export function describeRef(ref: PlaceRef, data: TravelData): ChosenPlace {
   if ('placeId' in ref) {
     const p = data.places.find((x) => x.id === ref.placeId)
-    return { ref, label: p?.name ?? 'Unknown place', detail: p?.regionCode?.replace(/^US-/, '') ?? '', isPark: !!p?.parkId }
+    return { ref, label: p?.name ?? 'Unknown place', detail: p?.regionCode?.replace(/^US-/, '') ?? '', isPark: !!p?.parkId, parkId: p?.parkId ?? null }
   }
-  return { ref, label: ref.place.name, detail: ref.place.regionCode?.replace(/^US-/, '') ?? '', isPark: !!ref.place.parkId }
+  return { ref, label: ref.place.name, detail: ref.place.regionCode?.replace(/^US-/, '') ?? '', isPark: !!ref.place.parkId, parkId: ref.place.parkId ?? null }
 }
 
 /**
@@ -55,7 +57,7 @@ export function PlacePicker({
   const results = useMemo(() => searchPlaces(query, { yours, visits, parks: PARKS, towns }), [query, yours, visits, towns])
 
   const choose = (r: SearchResult) => {
-    onChange({ ref: r.ref, label: r.label, detail: r.detail, isPark: r.isPark })
+    onChange({ ...describeRef(r.ref, data), label: r.label })
     setQuery('')
   }
 
@@ -86,6 +88,10 @@ export function PlacePicker({
             Change
           </button>
         </div>
+        <ParkSuggestion
+          value={value}
+          onLink={(park) => 'place' in value.ref && onChange(describeRef({ place: { ...value.ref.place, parkId: park.id, name: park.fullName } }, data))}
+        />
       </div>
     )
   }
@@ -144,6 +150,39 @@ export function PlacePicker({
           ))}
         </ul>
       )}
+    </div>
+  )
+}
+
+/** "This is inside Yosemite National Park — link it?" for a new place that falls inside a park. */
+function ParkSuggestion({ value, onLink }: { value: ChosenPlace; onLink: (park: ParkInfo) => void }) {
+  const [park, setPark] = useState<ParkInfo | null>(null)
+  const [dismissed, setDismissed] = useState(false)
+  const place = 'place' in value.ref ? value.ref.place : null
+  const lat = place?.lat
+  const lng = place?.lng
+  const linked = !!place?.parkId
+  useEffect(() => {
+    setPark(null)
+    if (lat === undefined || lng === undefined || linked) return
+    let cancelled = false
+    void parkAt(lng, lat).then((p) => !cancelled && setPark(p))
+    return () => {
+      cancelled = true
+    }
+  }, [lat, lng, linked])
+  if (!park || dismissed || linked) return null
+  return (
+    <div role="status" className="mt-1.5 flex flex-wrap items-center gap-2 rounded-lg bg-park/10 px-3 py-2 text-sm">
+      <span className="mr-auto">
+        This is inside <b>{park.fullName}</b>. Count it as a visit?
+      </span>
+      <button type="button" onClick={() => onLink(park)} className="min-h-9 rounded-lg bg-park px-3 font-bold text-white">
+        Link to park
+      </button>
+      <button type="button" onClick={() => setDismissed(true)} className="min-h-9 px-2 text-muted">
+        No
+      </button>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { comparePartialDates } from './partialDate.ts'
-import { live } from './travelActions.ts'
+import { hikeKey, live } from './travelActions.ts'
 import { FAMILY_GROUP_ID, type Group, type Person, type Place, type TravelData, type Trip } from './types.ts'
 
 /** Values computed from your data, never stored. */
@@ -107,4 +107,41 @@ export function visitsTo(data: TravelData, placeId: string): Visit[] {
     visits.push({ trip, startDate: own?.startDate ?? trip.startDate, endDate: own ? own.endDate : trip.endDate, approximate: trip.approximate })
   }
   return visits.sort((a, b) => comparePartialDates(b.startDate, a.startDate) || byNewest(a.trip, b.trip))
+}
+
+export interface ParkVisit extends Visit {
+  placeId: string
+}
+
+/** Every visit to a national park (through any place linked to it), newest first. */
+export function parkVisits(data: TravelData, parkId: string): ParkVisit[] {
+  const visits = live(data.places)
+    .filter((p) => p.parkId === parkId)
+    .flatMap((p) => visitsTo(data, p.id).map((v) => ({ ...v, placeId: p.id })))
+  // One entry per trip, even if it visited two places linked to the park.
+  const byTrip = new Map(visits.map((v) => [v.trip.id, v]))
+  return [...byTrip.values()].sort((a, b) => comparePartialDates(b.startDate, a.startDate) || byNewest(a.trip, b.trip))
+}
+
+export interface HikeDone {
+  key: string
+  hikeId: string | null
+  name: string
+  /** Each time you did it: the trip and the hike's own date if you gave one. Newest first. */
+  times: { trip: Trip; date: string }[]
+}
+
+/** The hikes you've done in a park, across all trips, with their dates stacked. */
+export function hikesDone(data: TravelData, parkId: string): Map<string, HikeDone> {
+  const done = new Map<string, HikeDone>()
+  for (const trip of live(data.trips))
+    for (const h of trip.hikes) {
+      if (h.parkId !== parkId) continue
+      const key = hikeKey(h.parkId, h.hikeId, h.name)
+      const entry = done.get(key) ?? { key, hikeId: h.hikeId, name: h.name, times: [] }
+      entry.times.push({ trip, date: h.date ?? trip.startDate })
+      done.set(key, entry)
+    }
+  for (const entry of done.values()) entry.times.sort((a, b) => comparePartialDates(b.date, a.date))
+  return done
 }
