@@ -1,0 +1,124 @@
+@import 'tailwindcss';
+@import '@fontsource/barlow-condensed/500.css';
+@import '@fontsource/barlow-condensed/600.css';
+@import '@fontsource/barlow/400.css';
+@import '@fontsource/barlow/600.css';
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
+/* Paper-map light is the default; dark follows the system unless a theme is picked in Settings. */
+:root {
+  color-scheme: light;
+  --bg: #f4f1e8;
+  --surface: #fffdf7;
+  --raised: #ebe6d8;
+  --line: #d8d1bf;
+  --fg: #22261f;
+  --muted: #5f6458;
+  --primary: #d1543a;
+  --on-primary: #ffffff;
+  --focus: #2b6f8f;
+  --park: #2f7d4f;
+  --danger: #b3261e;
+  --ok: #2f7d4f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #141a20;
+    --surface: #1b232b;
+    --raised: #26303a;
+    --line: #34404c;
+    --fg: #e9eef2;
+    --muted: #a3b0bc;
+    --primary: #f07a5f;
+    --on-primary: #1a0d09;
+    --focus: #7cc4e4;
+    --park: #5cbf84;
+    --danger: #ff8a80;
+    --ok: #5cbf84;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #141a20;
+  --surface: #1b232b;
+  --raised: #26303a;
+  --line: #34404c;
+  --fg: #e9eef2;
+  --muted: #a3b0bc;
+  --primary: #f07a5f;
+  --on-primary: #1a0d09;
+  --focus: #7cc4e4;
+  --park: #5cbf84;
+  --danger: #ff8a80;
+  --ok: #5cbf84;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-focus: var(--focus);
+  --color-park: var(--park);
+  --color-danger: var(--danger);
+  --color-ok: var(--ok);
+
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-sans: 'Barlow', system-ui, sans-serif;
+  --font-weight-bold: 600;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html {
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* MapLibre's attribution control, restyled to match the app. */
+.maplibregl-ctrl-attrib {
+  background: color-mix(in srgb, var(--surface) 85%, transparent) !important;
+  color: var(--muted) !important;
+  font-family: var(--font-sans);
+}
+.maplibregl-ctrl-attrib a,
+.maplibregl-ctrl-attrib-inner {
+  color: var(--muted) !important;
+}
+.maplibregl-ctrl-attrib-button {
+  background-color: var(--surface) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

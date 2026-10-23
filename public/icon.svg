@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#f4f1e8"/>
+  <!-- A dashed route between two stops, ending at a pin -->
+  <path d="M120 400 C 170 300, 250 360, 300 250" fill="none" stroke="#2b6f8f" stroke-width="22" stroke-linecap="round" stroke-dasharray="2 46"/>
+  <circle cx="120" cy="400" r="26" fill="#2b6f8f"/>
+  <path d="M340 92a92 92 0 0 1 92 92c0 70-92 168-92 168s-92-98-92-168a92 92 0 0 1 92-92z" fill="#d1543a"/>
+  <circle cx="340" cy="184" r="36" fill="#f4f1e8"/>
+</svg>

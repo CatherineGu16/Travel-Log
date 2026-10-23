@@ -1,0 +1,3257 @@
+{
+ "acadia": [
+  {
+   "id": "bald-peak-and-parkman-mountain-loop",
+   "name": "Bald Peak and Parkman Mountain Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-bald-peak-parkman-mountain-loop.htm"
+  },
+  {
+   "id": "bar-island-trail",
+   "name": "Bar Island Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-bar-island-trail.htm"
+  },
+  {
+   "id": "beachcroft-path",
+   "name": "Beachcroft Path",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-beachcroft-path.htm"
+  },
+  {
+   "id": "beech-cliff-trail-with-island-explorer-bus",
+   "name": "Beech Cliff Trail with Island Explorer Bus",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-beech-cliff-trail-with-island-explorer-bus.htm"
+  },
+  {
+   "id": "beech-mountain-south-ridge-loop",
+   "name": "Beech Mountain South Ridge Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-beech-mountain-south-ridge-loop.htm"
+  },
+  {
+   "id": "beech-mountain-trail",
+   "name": "Beech Mountain Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-beech-mountain-trail.htm"
+  },
+  {
+   "id": "beehive-loop",
+   "name": "Beehive Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-beehive-loop.htm"
+  },
+  {
+   "id": "bubbles",
+   "name": "Bubbles",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-bubbles.htm"
+  },
+  {
+   "id": "bubbles-nubble-loop",
+   "name": "Bubbles Nubble Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-bubbles-nubble-loop.htm"
+  },
+  {
+   "id": "cadillac-north-ridge-trail",
+   "name": "Cadillac North Ridge Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-cadillac-north-ridge-trail.htm"
+  },
+  {
+   "id": "cadillac-south-ridge-trail",
+   "name": "Cadillac South Ridge Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-cadillac-south-ridge-trail.htm"
+  },
+  {
+   "id": "cadillac-summit-loop",
+   "name": "Cadillac Summit Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/acad_cadillac-summit-loop.htm"
+  },
+  {
+   "id": "carriage-roads",
+   "name": "Carriage Roads",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-carriage-roads.htm"
+  },
+  {
+   "id": "compass-harbor-trail",
+   "name": "Compass Harbor Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-compass-harbor-trail.htm"
+  },
+  {
+   "id": "dorr-mountain-south-ridge-loop",
+   "name": "Dorr Mountain South Ridge Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-dorr-south-ridge-loop.htm"
+  },
+  {
+   "id": "double-bubble-nubble-loop-with-island-explorer",
+   "name": "Double Bubble Nubble Loop with Island Explorer",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-double-bubble-nubble-loop-with-island-explorer.htm"
+  },
+  {
+   "id": "emery-path",
+   "name": "Emery Path",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-emery-path.htm"
+  },
+  {
+   "id": "flying-mountain-loop",
+   "name": "Flying Mountain Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-flying-mountain-loop.htm"
+  },
+  {
+   "id": "giant-slide-loop",
+   "name": "Giant Slide Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-giant-slide-loop.htm"
+  },
+  {
+   "id": "gorge-path",
+   "name": "Gorge Path",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-gorge-path.htm"
+  },
+  {
+   "id": "gorge-cadillac-mountain-north-ridge-loop-with-island-explorer-bus",
+   "name": "Gorge/Cadillac Mountain North Ridge Loop with Island Explorer Bus",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-gorge-cadillac-mountain-north-ridge-loop-with-island-explorer-bus.htm"
+  },
+  {
+   "id": "gorham-mountain-loop",
+   "name": "Gorham Mountain Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-gorham-mountain-loop.htm"
+  },
+  {
+   "id": "great-head-trail",
+   "name": "Great Head Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-great-head-trail.htm"
+  },
+  {
+   "id": "great-head-with-island-explorer-bus",
+   "name": "Great Head with Island Explorer Bus",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-great-head-with-island-explorer-bus.htm"
+  },
+  {
+   "id": "hadlock-ponds-loop",
+   "name": "Hadlock Ponds Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-hadlock-ponds-loop.htm"
+  },
+  {
+   "id": "homans-path",
+   "name": "Homans Path",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-homans-path.htm"
+  },
+  {
+   "id": "jesup-path-and-hemlock-path-loop",
+   "name": "Jesup Path and Hemlock Path Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-jesup-path-hemlock-path-loop.htm"
+  },
+  {
+   "id": "jordan-cliffs-loop",
+   "name": "Jordan Cliffs Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-jordan-cliffs-loop.htm"
+  },
+  {
+   "id": "jordan-pond-loop-with-island-explorer-bus",
+   "name": "Jordan Pond Loop with Island Explorer Bus",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-jordan-pond-loop-with-island-explorer-bus.htm"
+  },
+  {
+   "id": "jordan-pond-path",
+   "name": "Jordan Pond Path",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-jordan-pond-path.htm"
+  },
+  {
+   "id": "kebo-brook-trail-to-kebo-mountain",
+   "name": "Kebo Brook Trail to Kebo Mountain",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-kebo-brook-kebo-mountain.htm"
+  },
+  {
+   "id": "kurt-diederichs-climb",
+   "name": "Kurt Diederichs Climb",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-kurt-diederichs-climb.htm"
+  },
+  {
+   "id": "norumbega-mountain-loop",
+   "name": "Norumbega Mountain Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-norumbega-mountain-loop.htm"
+  },
+  {
+   "id": "ocean-path-trail",
+   "name": "Ocean Path Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-ocean-path-trail.htm"
+  },
+  {
+   "id": "ocean-path-trail-with-island-explorer-bus",
+   "name": "Ocean Path Trail with Island Explorer Bus",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-ocean-path-trail-with-island-explorer-bus.htm"
+  },
+  {
+   "id": "pemetic-mountain-loop",
+   "name": "Pemetic Mountain Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-pemetic-loop.htm"
+  },
+  {
+   "id": "pemetic-south-ridge",
+   "name": "Pemetic South Ridge",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-pemetic-south-ridge.htm"
+  },
+  {
+   "id": "pemetic-summit-with-island-explorer-bus",
+   "name": "Pemetic Summit with Island Explorer Bus",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-pemetic-summit-with-island-explorer-bus.htm"
+  },
+  {
+   "id": "perpendicular-and-razorback-loop",
+   "name": "Perpendicular and Razorback Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-perpendicular-razorback-loop.htm"
+  },
+  {
+   "id": "precipice-loop",
+   "name": "Precipice Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-precipice-loop.htm"
+  },
+  {
+   "id": "sargent-and-penobscot-mountains-from-jph-with-island-explorer-bus",
+   "name": "Sargent and Penobscot Mountains from JPH with Island Explorer Bus",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-sargent-and-penobscot-mountains-from-jph-with-island-explorer-bus.htm"
+  },
+  {
+   "id": "schiff-path",
+   "name": "Schiff Path",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-schiff-path.htm"
+  },
+  {
+   "id": "schoodic-peninsula-trails",
+   "name": "Schoodic Peninsula Trails",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-schoodic.htm"
+  },
+  {
+   "id": "ship-harbor-trail",
+   "name": "Ship Harbor Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-ship-harbor-trail.htm"
+  },
+  {
+   "id": "sieur-de-monts-to-jesup-path-with-island-explorer-bus",
+   "name": "Sieur de Monts to Jesup Path with Island Explorer Bus",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-sieur-de-monts-to-jesup-path-with-island-explorer-bus.htm"
+  },
+  {
+   "id": "sieur-de-monts-to-sand-beach-trek-with-island-explorer",
+   "name": "Sieur de Monts to Sand Beach Trek with Island Explorer",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-sieur-de-monts-to-sand-beach-trek-with-island-explorer.htm"
+  },
+  {
+   "id": "st-sauveur-and-acadia-mountain-loop",
+   "name": "St. Sauveur and Acadia Mountain Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-st-sauveur-acadia-mountain-loop.htm"
+  },
+  {
+   "id": "the-acadia-mountain-loop-with-island-explorer-bus",
+   "name": "The Acadia Mountain Loop with Island Explorer Bus",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-acadia-mountain-loop-with-island-explorer-bus.htm"
+  },
+  {
+   "id": "village-green-to-sieur-de-monts-with-island-explorer-bus",
+   "name": "Village Green to Sieur de Monts with Island Explorer Bus",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-village-green-to-sieur-de-monts-with-island-explorer-bus.htm"
+  },
+  {
+   "id": "western-mountain-loop",
+   "name": "Western Mountain Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-western-mountain-loop.htm"
+  },
+  {
+   "id": "wonderland-trail",
+   "name": "Wonderland Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-wonderland-trail.htm"
+  }
+ ],
+ "american-samoa": [
+  {
+   "id": "lower-sauma-ridge-trail",
+   "name": "Lower Sauma Ridge Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/lower-sauma-ridge-trail.htm"
+  },
+  {
+   "id": "mount-alava-trail",
+   "name": "Mount Alava Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/mount-alava-trail.htm"
+  },
+  {
+   "id": "pola-island-trail",
+   "name": "Pola Island Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/pola-island-trail.htm"
+  },
+  {
+   "id": "tuafanua-trail",
+   "name": "Tuafanua Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/tuafanua-trail.htm"
+  },
+  {
+   "id": "upper-sauma-ridge-trail",
+   "name": "Upper Sauma Ridge Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/upper-sauma-ridge-trail.htm"
+  }
+ ],
+ "arches": [
+  {
+   "id": "explore-the-fiery-furnace",
+   "name": "Explore the Fiery Furnace",
+   "npsUrl": "https://www.nps.gov/thingstodo/explore-the-fiery-furnace.htm"
+  }
+ ],
+ "badlands": [
+  {
+   "id": "badlands-back-roads-with-your-dog",
+   "name": "Badlands Back Roads With Your Dog",
+   "npsUrl": "https://www.nps.gov/thingstodo/badl-dogs-on-back-roads.htm"
+  },
+  {
+   "id": "horseback-riding-in-the-badlands",
+   "name": "Horseback Riding in the Badlands",
+   "npsUrl": "https://www.nps.gov/thingstodo/horseback-riding-badl.htm"
+  },
+  {
+   "id": "the-badlands",
+   "name": "The Badlands",
+   "npsUrl": "https://www.nps.gov/thingstodo/hiking-badl.htm"
+  },
+  {
+   "id": "visit-the-white-river-visitor-center",
+   "name": "Visit the White River Visitor Center",
+   "npsUrl": "https://www.nps.gov/thingstodo/white-river-vc.htm"
+  }
+ ],
+ "big-bend": [
+  {
+   "id": "into-santa-elena-canyon",
+   "name": "Into Santa Elena Canyon",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-into-santa-elena-canyon.htm"
+  },
+  {
+   "id": "see-the-rio-grande",
+   "name": "See the Rio Grande",
+   "npsUrl": "https://www.nps.gov/thingstodo/see-the-rio-grande.htm"
+  },
+  {
+   "id": "the-lost-mine-trail",
+   "name": "The Lost Mine Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-lost-mine-trail.htm"
+  }
+ ],
+ "biscayne": [],
+ "black-canyon-of-the-gunnison": [
+  {
+   "id": "cedar-point-nature-trail-south-rim",
+   "name": "Cedar Point Nature Trail - South Rim",
+   "npsUrl": "https://www.nps.gov/thingstodo/cedar-point.htm"
+  },
+  {
+   "id": "chasm-view-nature-trail-north-rim",
+   "name": "Chasm View Nature Trail - North Rim",
+   "npsUrl": "https://www.nps.gov/thingstodo/chasm-view-trail.htm"
+  },
+  {
+   "id": "deadhorse-trail-north-rim",
+   "name": "Deadhorse Trail - North Rim",
+   "npsUrl": "https://www.nps.gov/thingstodo/deadhorse-trail.htm"
+  },
+  {
+   "id": "north-vista-trail-north-rim",
+   "name": "North Vista Trail - North Rim",
+   "npsUrl": "https://www.nps.gov/thingstodo/north-vista-trail.htm"
+  },
+  {
+   "id": "oak-flat-trail-south-rim",
+   "name": "Oak Flat Trail - South Rim",
+   "npsUrl": "https://www.nps.gov/thingstodo/oak-flat.htm"
+  },
+  {
+   "id": "rim-rock-trail-south-rim",
+   "name": "Rim Rock Trail - South Rim",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-rim-rock-trail.htm"
+  },
+  {
+   "id": "uplands-trail-south-rim",
+   "name": "Uplands Trail - South Rim",
+   "npsUrl": "https://www.nps.gov/thingstodo/uplands-trail.htm"
+  },
+  {
+   "id": "warner-point-trail-south-rim",
+   "name": "Warner Point Trail - South Rim",
+   "npsUrl": "https://www.nps.gov/thingstodo/warner-trail.htm"
+  }
+ ],
+ "bryce-canyon": [
+  {
+   "id": "bristlecone-loop-trail",
+   "name": "Bristlecone Loop Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/bristlecone-loop-trail.htm"
+  },
+  {
+   "id": "bryce-amphitheater-traverse",
+   "name": "Bryce Amphitheater Traverse",
+   "npsUrl": "https://www.nps.gov/thingstodo/bryce-amphitheater-traverse.htm"
+  },
+  {
+   "id": "fairyland-loop",
+   "name": "Fairyland Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/fairyland-loop.htm"
+  },
+  {
+   "id": "figure-8-combination",
+   "name": "Figure-8 Combination",
+   "npsUrl": "https://www.nps.gov/thingstodo/figure-8-combination.htm"
+  },
+  {
+   "id": "full-moon-hike",
+   "name": "Full Moon Hike",
+   "npsUrl": "https://www.nps.gov/thingstodo/full-moon-hike.htm"
+  },
+  {
+   "id": "go-for-a-winter-hike",
+   "name": "Go For a Winter Hike",
+   "npsUrl": "https://www.nps.gov/thingstodo/go-for-a-winter-hike.htm"
+  },
+  {
+   "id": "hat-shop",
+   "name": "Hat Shop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hat-shop.htm"
+  },
+  {
+   "id": "mossy-cave-trail",
+   "name": "Mossy Cave Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/mossy-cave-trail.htm"
+  },
+  {
+   "id": "navajo-loop-trail",
+   "name": "Navajo Loop Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/navajo-loop-trail.htm"
+  },
+  {
+   "id": "navajo-peekaboo-combination-loop",
+   "name": "Navajo/Peekaboo Combination Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/navajo-peekaboo-combination-loop.htm"
+  },
+  {
+   "id": "peekaboo-loop",
+   "name": "Peekaboo Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/peekaboo-loop.htm"
+  },
+  {
+   "id": "queens-garden-trail",
+   "name": "Queen's Garden Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/queen-s-garden-trail.htm"
+  },
+  {
+   "id": "queens-navajo-combination-loop",
+   "name": "Queen's/Navajo Combination Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/queen-s-navajo-combination-loop.htm"
+  },
+  {
+   "id": "riggs-spring-loop",
+   "name": "Riggs Spring Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/riggs-spring-loop.htm"
+  },
+  {
+   "id": "sunset-point-to-sunrise-point-hike",
+   "name": "Sunset Point to Sunrise Point Hike",
+   "npsUrl": "https://www.nps.gov/thingstodo/sunset-point-to-sunrise-point-hike.htm"
+  },
+  {
+   "id": "swamp-canyon-loop",
+   "name": "Swamp Canyon Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/swamp-canyon-loop.htm"
+  },
+  {
+   "id": "the-hoodoos",
+   "name": "The Hoodoos",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-hoodoos.htm"
+  },
+  {
+   "id": "the-rim-trail",
+   "name": "The Rim Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/walk-the-rim-trail.htm"
+  },
+  {
+   "id": "tower-bridge",
+   "name": "Tower Bridge",
+   "npsUrl": "https://www.nps.gov/thingstodo/tower-bridge.htm"
+  }
+ ],
+ "canyonlands": [],
+ "capitol-reef": [
+  {
+   "id": "a-strenuous-trail",
+   "name": "A Strenuous Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-a-strenuous-trail.htm"
+  },
+  {
+   "id": "an-easy-or-moderate-trail",
+   "name": "An Easy or Moderate Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-an-easy-or-moderate-trail.htm"
+  },
+  {
+   "id": "cathedral-valley",
+   "name": "Cathedral Valley",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-cathedral-valley.htm"
+  },
+  {
+   "id": "in-the-south-waterpocket-district",
+   "name": "In the South (Waterpocket) District",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-in-the-south-waterpocket-district.htm"
+  },
+  {
+   "id": "watch-the-sunset",
+   "name": "Watch the Sunset",
+   "npsUrl": "https://www.nps.gov/thingstodo/watch-the-sunset.htm"
+  }
+ ],
+ "carlsbad-caverns": [
+  {
+   "id": "chihuahuan-desert-nature-trail",
+   "name": "Chihuahuan Desert Nature Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/desert-nature-trail.htm"
+  },
+  {
+   "id": "explore-the-cavern-at-your-own-pace",
+   "name": "Explore the Cavern at Your Own Pace",
+   "npsUrl": "https://www.nps.gov/thingstodo/explore-the-cavern-at-your-own-pace.htm"
+  },
+  {
+   "id": "juniper-ridge-trail",
+   "name": "Juniper Ridge Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/juniper-ridge-trail.htm"
+  },
+  {
+   "id": "lower-rattlesnake-canyon-trail",
+   "name": "Lower Rattlesnake Canyon Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/lower-rattlesnake-canyon-trail.htm"
+  },
+  {
+   "id": "old-guano-trail",
+   "name": "Old Guano Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/old-guano-trail.htm"
+  },
+  {
+   "id": "slaughter-canyon-cave-trail",
+   "name": "Slaughter Canyon Cave Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/slaughter-canyon-cave-trail.htm"
+  },
+  {
+   "id": "slaughter-canyon-trail",
+   "name": "Slaughter Canyon Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/slaughter-canyon-trail.htm"
+  },
+  {
+   "id": "upper-rattlesnake-canyon-loop-trail",
+   "name": "Upper Rattlesnake Canyon Loop Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/upper-rattlesnake-canyon-trail.htm"
+  },
+  {
+   "id": "walnut-canyon-overlook-trail",
+   "name": "Walnut Canyon Overlook Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/walnut-canyon-overlook-trail.htm"
+  },
+  {
+   "id": "yucca-canyon-trail",
+   "name": "Yucca Canyon Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yucca-canyon-trail.htm"
+  }
+ ],
+ "channel-islands": [],
+ "chiricahua": [
+  {
+   "id": "bonita-creek-loop",
+   "name": "Bonita Creek Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/bonita-creek-loop.htm"
+  },
+  {
+   "id": "bonita-creek-trail",
+   "name": "Bonita Creek Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/bonita-creek-trail.htm"
+  },
+  {
+   "id": "echo-canyon-grottoes",
+   "name": "Echo Canyon Grottoes",
+   "npsUrl": "https://www.nps.gov/thingstodo/echo-canyon-grottoes.htm"
+  },
+  {
+   "id": "echo-canyon-loop-trail",
+   "name": "Echo Canyon Loop Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-echo-canyon.htm"
+  },
+  {
+   "id": "echo-canyon-to-visitor-center",
+   "name": "Echo Canyon to Visitor Center",
+   "npsUrl": "https://www.nps.gov/thingstodo/echo-canyon-to-visitor-center.htm"
+  },
+  {
+   "id": "heart-of-rocks-loop",
+   "name": "Heart of Rocks Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/heart-of-rocks-loop.htm"
+  },
+  {
+   "id": "inspiration-point-trail",
+   "name": "Inspiration Point Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/inspiration-point-trail.htm"
+  },
+  {
+   "id": "lower-rhyolite-canyon-trail",
+   "name": "Lower Rhyolite Canyon Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/lower-rhyolite-canyon-trail.htm"
+  },
+  {
+   "id": "massai-point-nature-trail",
+   "name": "Massai Point Nature Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-massai-point.htm"
+  },
+  {
+   "id": "silver-spur-meadow-trail",
+   "name": "Silver Spur Meadow Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/silver-spur-meadow-trail.htm"
+  },
+  {
+   "id": "sugarloaf-mountain-trail",
+   "name": "Sugarloaf Mountain Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/sugarloaf-mountain-trail.htm"
+  },
+  {
+   "id": "the-big-loop",
+   "name": "The Big Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/the-big-loop.htm"
+  },
+  {
+   "id": "the-trails-at-chiricahua",
+   "name": "The Trails at Chiricahua",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-chiricahua.htm"
+  },
+  {
+   "id": "trail-to-natural-bridge",
+   "name": "Trail to Natural Bridge",
+   "npsUrl": "https://www.nps.gov/thingstodo/natural-bridge-trail-chiricahua-nm.htm"
+  }
+ ],
+ "congaree": [],
+ "crater-lake": [],
+ "cuyahoga-valley": [
+  {
+   "id": "blue-hen-falls-from-boston",
+   "name": "Blue Hen Falls from Boston",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-blue-hen-falls.htm"
+  },
+  {
+   "id": "find-spring-wildflowers-in-cuyahoga-valley",
+   "name": "Find Spring Wildflowers in Cuyahoga Valley",
+   "npsUrl": "https://www.nps.gov/thingstodo/spring-wildflowers-cuyahoga-valley.htm"
+  },
+  {
+   "id": "find-the-best-fall-colors-in-cuyahoga-valley",
+   "name": "Find the Best Fall Colors in Cuyahoga Valley",
+   "npsUrl": "https://www.nps.gov/thingstodo/best-fall-colors-cuyahoga-valley.htm"
+  },
+  {
+   "id": "short-towpath-trail-walks",
+   "name": "Short Towpath Trail Walks",
+   "npsUrl": "https://www.nps.gov/thingstodo/short-towpath-trail-walks.htm"
+  },
+  {
+   "id": "the-brandywine-gorge-loop",
+   "name": "The Brandywine Gorge Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-brandywine-gorge-loop.htm"
+  },
+  {
+   "id": "the-ledges-trail",
+   "name": "The Ledges Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-ledges-trail.htm"
+  }
+ ],
+ "death-valley": [
+  {
+   "id": "hiking-visiting-with-pets",
+   "name": "Hiking/Visiting with Pets",
+   "npsUrl": "https://www.nps.gov/thingstodo/hiking-visiting-with-pets.htm"
+  },
+  {
+   "id": "running-in-death-valley",
+   "name": "Running in Death Valley",
+   "npsUrl": "https://www.nps.gov/thingstodo/running-in-death-valley.htm"
+  }
+ ],
+ "denali": [
+  {
+   "id": "a-short-trail-from-the-denali-visitor-center",
+   "name": "A Short Trail From the Denali Visitor Center",
+   "npsUrl": "https://www.nps.gov/thingstodo/denali-short-hike.htm"
+  },
+  {
+   "id": "discover-the-boreal-forest-identify-plants-while-hiking-in-denali",
+   "name": "Discover the Boreal Forest: Identify Plants While Hiking in Denali",
+   "npsUrl": "https://www.nps.gov/thingstodo/botanizing-in-denali.htm"
+  },
+  {
+   "id": "early-morning-hike-to-horseshoe-lake",
+   "name": "Early Morning Hike to Horseshoe Lake",
+   "npsUrl": "https://www.nps.gov/thingstodo/denali-horseshoe-lake.htm"
+  },
+  {
+   "id": "explore-mountain-vista-savage-river",
+   "name": "Explore Mountain Vista & Savage River",
+   "npsUrl": "https://www.nps.gov/thingstodo/denali-savage-river.htm"
+  },
+  {
+   "id": "off-trail-in-denali",
+   "name": "Off Trail in Denali",
+   "npsUrl": "https://www.nps.gov/thingstodo/dena-hiking-off-trail.htm"
+  }
+ ],
+ "dry-tortugas": [],
+ "everglades": [
+  {
+   "id": "the-anhinga-trail",
+   "name": "The Anhinga Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/walk-the-anhinga-trail.htm"
+  }
+ ],
+ "gates-of-the-arctic": [
+  {
+   "id": "backpack-the-brooks-ranges-arctic-wilderness",
+   "name": "Backpack the Brooks Range's Arctic Wilderness",
+   "npsUrl": "https://www.nps.gov/thingstodo/backpack-arctic-wilderness.htm"
+  }
+ ],
+ "gateway-arch": [],
+ "glacier": [
+  {
+   "id": "take-a-full-day-hike-in-glacier",
+   "name": "Take a Full Day Hike in Glacier",
+   "npsUrl": "https://www.nps.gov/thingstodo/glacier-full-day-hike.htm"
+  },
+  {
+   "id": "take-a-half-day-hike-in-glacier",
+   "name": "Take a Half-Day Hike in Glacier",
+   "npsUrl": "https://www.nps.gov/thingstodo/glacier-half-day-hike.htm"
+  }
+ ],
+ "glacier-bay": [
+  {
+   "id": "the-trails-at-bartlett-cove",
+   "name": "The Trails at Bartlett Cove",
+   "npsUrl": "https://www.nps.gov/thingstodo/glba-hiking.htm"
+  }
+ ],
+ "grand-canyon": [],
+ "grand-teton": [
+  {
+   "id": "aspen-ridge-boulder-ridge",
+   "name": "Aspen Ridge - Boulder Ridge",
+   "npsUrl": "https://www.nps.gov/thingstodo/aspen-boulderridge.htm"
+  },
+  {
+   "id": "bearpaw-and-trapper-lakes",
+   "name": "Bearpaw and Trapper Lakes",
+   "npsUrl": "https://www.nps.gov/thingstodo/bearpaw-trapper.htm"
+  },
+  {
+   "id": "christian-pond-loop",
+   "name": "Christian Pond Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/christianpond.htm"
+  },
+  {
+   "id": "death-canyon-static-peak-divide-junction",
+   "name": "Death Canyon - Static Peak Divide Junction",
+   "npsUrl": "https://www.nps.gov/thingstodo/deathcanyon.htm"
+  },
+  {
+   "id": "emma-matilda-lake",
+   "name": "Emma Matilda Lake",
+   "npsUrl": "https://www.nps.gov/thingstodo/emmamatilda.htm"
+  },
+  {
+   "id": "flagg-canyon",
+   "name": "Flagg Canyon",
+   "npsUrl": "https://www.nps.gov/thingstodo/flaggcanyon.htm"
+  },
+  {
+   "id": "forks-of-cascade-canyon",
+   "name": "Forks of Cascade Canyon",
+   "npsUrl": "https://www.nps.gov/thingstodo/cascadecanyon.htm"
+  },
+  {
+   "id": "garnet-canyon",
+   "name": "Garnet Canyon",
+   "npsUrl": "https://www.nps.gov/thingstodo/garnetcanyon.htm"
+  },
+  {
+   "id": "grand-view-point",
+   "name": "Grand View Point",
+   "npsUrl": "https://www.nps.gov/thingstodo/grandview.htm"
+  },
+  {
+   "id": "granite-canyon",
+   "name": "Granite Canyon",
+   "npsUrl": "https://www.nps.gov/thingstodo/granite-canyon.htm"
+  },
+  {
+   "id": "hermitage-point",
+   "name": "Hermitage Point",
+   "npsUrl": "https://www.nps.gov/thingstodo/hermitagepoint.htm"
+  },
+  {
+   "id": "heron-pond-swan-lake-loop-trail",
+   "name": "Heron Pond - Swan Lake Loop Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/heronpond-swanlake.htm"
+  },
+  {
+   "id": "hidden-falls",
+   "name": "Hidden Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/hiddenfalls.htm"
+  },
+  {
+   "id": "holly-lake",
+   "name": "Holly Lake",
+   "npsUrl": "https://www.nps.gov/thingstodo/hollylake.htm"
+  },
+  {
+   "id": "hurricane-pass",
+   "name": "Hurricane Pass",
+   "npsUrl": "https://www.nps.gov/thingstodo/hurricane-pass.htm"
+  },
+  {
+   "id": "inspiration-point",
+   "name": "Inspiration Point",
+   "npsUrl": "https://www.nps.gov/thingstodo/inspirationpoint.htm"
+  },
+  {
+   "id": "jenny-lake-loop",
+   "name": "Jenny Lake Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/jennylakeloop.htm"
+  },
+  {
+   "id": "lake-creek-woodland-trail-loop",
+   "name": "Lake Creek - Woodland Trail Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/lakecreek-woodlandtrail.htm"
+  },
+  {
+   "id": "lake-solitude",
+   "name": "Lake Solitude",
+   "npsUrl": "https://www.nps.gov/thingstodo/lakesolitude.htm"
+  },
+  {
+   "id": "lakeshore-trail",
+   "name": "Lakeshore Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/colterlakeshore.htm"
+  },
+  {
+   "id": "leigh-lake",
+   "name": "Leigh Lake",
+   "npsUrl": "https://www.nps.gov/thingstodo/leighlake.htm"
+  },
+  {
+   "id": "lunch-tree-hill",
+   "name": "Lunch Tree Hill",
+   "npsUrl": "https://www.nps.gov/thingstodo/lunchtreehill.htm"
+  },
+  {
+   "id": "marion-lake",
+   "name": "Marion Lake",
+   "npsUrl": "https://www.nps.gov/thingstodo/marionlake.htm"
+  },
+  {
+   "id": "moose-ponds",
+   "name": "Moose Ponds",
+   "npsUrl": "https://www.nps.gov/thingstodo/mooseponds.htm"
+  },
+  {
+   "id": "murie-ranch-hike",
+   "name": "Murie Ranch Hike",
+   "npsUrl": "https://www.nps.gov/thingstodo/murieranchhike.htm"
+  },
+  {
+   "id": "open-canyon",
+   "name": "Open Canyon",
+   "npsUrl": "https://www.nps.gov/thingstodo/open-canyon.htm"
+  },
+  {
+   "id": "paintbrush-canyon-cascade-canyon-loop",
+   "name": "Paintbrush Canyon - Cascade Canyon Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/paintbrushcascade.htm"
+  },
+  {
+   "id": "phelps-lake",
+   "name": "Phelps Lake",
+   "npsUrl": "https://www.nps.gov/thingstodo/phelps.htm"
+  },
+  {
+   "id": "phelps-lake-loop",
+   "name": "Phelps Lake Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/phelpslake.htm"
+  },
+  {
+   "id": "phelps-lake-overlook",
+   "name": "Phelps Lake Overlook",
+   "npsUrl": "https://www.nps.gov/thingstodo/phelpsoverlook.htm"
+  },
+  {
+   "id": "polecat-creek-loop",
+   "name": "Polecat Creek Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/polecatcreek.htm"
+  },
+  {
+   "id": "signal-mountain-trail",
+   "name": "Signal Mountain Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/signalmountain.htm"
+  },
+  {
+   "id": "static-peak-divide-trail",
+   "name": "Static Peak Divide Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/staticpeak.htm"
+  },
+  {
+   "id": "string-lake",
+   "name": "String Lake",
+   "npsUrl": "https://www.nps.gov/thingstodo/stringlake.htm"
+  },
+  {
+   "id": "surprise-and-amphitheater-lakes",
+   "name": "Surprise and Amphitheater Lakes",
+   "npsUrl": "https://www.nps.gov/thingstodo/amphitheaterlake.htm"
+  },
+  {
+   "id": "taggart-lake",
+   "name": "Taggart Lake",
+   "npsUrl": "https://www.nps.gov/thingstodo/taggartlake.htm"
+  },
+  {
+   "id": "taggart-lake-beaver-creek-loop",
+   "name": "Taggart Lake - Beaver Creek Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/taggartloop.htm"
+  },
+  {
+   "id": "taggart-lake-bradley-lake-loop",
+   "name": "Taggart Lake - Bradley Lake Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/taggartbradley.htm"
+  },
+  {
+   "id": "two-ocean-lake",
+   "name": "Two Ocean Lake",
+   "npsUrl": "https://www.nps.gov/thingstodo/twoocean.htm"
+  },
+  {
+   "id": "two-ocean-lake-emma-matilda-lake-loop",
+   "name": "Two Ocean Lake - Emma Matilda Lake Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/twoocean-emmamatilda.htm"
+  },
+  {
+   "id": "valley-trail-phelps-lake-overlook",
+   "name": "Valley Trail - Phelps Lake Overlook",
+   "npsUrl": "https://www.nps.gov/thingstodo/valley-trail-phelps-lake-overlook.htm"
+  }
+ ],
+ "great-basin": [
+  {
+   "id": "backpack-the-baker-johnson-lakes-loop",
+   "name": "Backpack the Baker & Johnson Lakes Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/backpack-baker-johnson.htm"
+  },
+  {
+   "id": "baker-lake",
+   "name": "Baker Lake",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-baker-lake.htm"
+  },
+  {
+   "id": "dead-lake",
+   "name": "Dead Lake",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-dead-lake.htm"
+  },
+  {
+   "id": "johnson-lake-from-baker-creek",
+   "name": "Johnson Lake from Baker Creek",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-johnson-lake-baker-creek.htm"
+  },
+  {
+   "id": "johnson-lake-from-snake-creek",
+   "name": "Johnson Lake from Snake Creek",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-johnson-lake-snake-creek.htm"
+  },
+  {
+   "id": "lexington-arch",
+   "name": "Lexington Arch",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-lexington-arch.htm"
+  },
+  {
+   "id": "pole-canyon",
+   "name": "Pole Canyon",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-pole-canyon.htm"
+  },
+  {
+   "id": "snake-creek-overlook",
+   "name": "Snake Creek Overlook",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-snake-creek-overlook.htm"
+  },
+  {
+   "id": "the-ada-sky-island-forest-trail",
+   "name": "The ADA Sky Island Forest Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-ada-sky-island.htm"
+  },
+  {
+   "id": "the-alpine-lakes-loop",
+   "name": "The Alpine Lakes Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-alpine-lakes-loop.htm"
+  },
+  {
+   "id": "the-baker-creek-loop",
+   "name": "The Baker Creek Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-baker-creek-loop.htm"
+  },
+  {
+   "id": "the-big-wash-trail",
+   "name": "The Big Wash Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-big-wash-trail.htm"
+  },
+  {
+   "id": "the-glacier",
+   "name": "The Glacier",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-glacier-trail.htm"
+  },
+  {
+   "id": "the-highland-route",
+   "name": "The Highland Route",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-highland-route.htm"
+  },
+  {
+   "id": "the-lehman-creek-trail",
+   "name": "The Lehman Creek Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-lehman-creek.htm"
+  },
+  {
+   "id": "the-mountain-view-nature-trail",
+   "name": "The Mountain View Nature Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-mountain-view-nature-trail.htm"
+  },
+  {
+   "id": "the-sage-steppe-loop",
+   "name": "The Sage Steppe Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-strawberry-creek-loop.htm"
+  },
+  {
+   "id": "the-serviceberry-trail",
+   "name": "The Serviceberry Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-serviceberry-trail.htm"
+  },
+  {
+   "id": "the-shoshone-ada-trail",
+   "name": "The Shoshone ADA Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-shoshone-ada-trail.htm"
+  },
+  {
+   "id": "the-snake-divide-route",
+   "name": "The Snake Divide Route",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-snake-divide-route.htm"
+  },
+  {
+   "id": "the-timber-creek-trail",
+   "name": "The Timber Creek Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-timber-creek-trail.htm"
+  },
+  {
+   "id": "the-upper-strawberry-trail",
+   "name": "The Upper Strawberry Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-upper-strawberry.htm"
+  },
+  {
+   "id": "the-wheeler-peak-bristlecone-grove",
+   "name": "The Wheeler Peak Bristlecone Grove",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-the-wheeler-peak-bristlecone-grove.htm"
+  },
+  {
+   "id": "wheeler-peak",
+   "name": "Wheeler Peak",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-wheeler-peak.htm"
+  }
+ ],
+ "great-sand-dunes": [
+  {
+   "id": "explore-the-dunes",
+   "name": "Explore the Dunes",
+   "npsUrl": "https://www.nps.gov/thingstodo/explore-the-dunes.htm"
+  },
+  {
+   "id": "medano-lake-and-mount-herard",
+   "name": "Medano Lake and Mount Herard",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-medano-lake-and-mount-herard.htm"
+  },
+  {
+   "id": "montville-nature-trail-or-mosca-pass-trail",
+   "name": "Montville Nature Trail or Mosca Pass Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-montville-and-mosca-pass-trails.htm"
+  },
+  {
+   "id": "sand-creek-lakes",
+   "name": "Sand Creek Lakes",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-sand-creek-lakes.htm"
+  }
+ ],
+ "great-smoky-mountains": [
+  {
+   "id": "abrams-falls",
+   "name": "Abrams Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-abrams-falls.htm"
+  },
+  {
+   "id": "alum-cave-bluffs",
+   "name": "Alum Cave Bluffs",
+   "npsUrl": "https://www.nps.gov/thingstodo/alum-cave-to-the-bluffs.htm"
+  },
+  {
+   "id": "andrews-bald",
+   "name": "Andrews Bald",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-andrews-bald.htm"
+  },
+  {
+   "id": "bradley-fork-trail",
+   "name": "Bradley Fork Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-bradley-fork-trail.htm"
+  },
+  {
+   "id": "cable-mill-area-trails",
+   "name": "Cable Mill Area Trails",
+   "npsUrl": "https://www.nps.gov/thingstodo/walk-cable-mill-area-trails.htm"
+  },
+  {
+   "id": "charlies-bunion",
+   "name": "Charlies Bunion",
+   "npsUrl": "https://www.nps.gov/thingstodo/charlies-bunion-via-appalachian-trail.htm"
+  },
+  {
+   "id": "chasteen-creek-cascade",
+   "name": "Chasteen Creek Cascade",
+   "npsUrl": "https://www.nps.gov/thingstodo/bradley-fork-trail-to-chasteen-creek-cascade.htm"
+  },
+  {
+   "id": "chestnut-top-trail",
+   "name": "Chestnut Top Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-on-chestnut-top-trail.htm"
+  },
+  {
+   "id": "chimney-tops-overlook",
+   "name": "Chimney Tops Overlook",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-chimney-tops-overlook.htm"
+  },
+  {
+   "id": "cooper-road-trail",
+   "name": "Cooper Road Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-cooper-road-trail.htm"
+  },
+  {
+   "id": "cove-hardwood-trail",
+   "name": "Cove Hardwood Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-cove-hardwood-trail.htm"
+  },
+  {
+   "id": "deep-creek-trail-to-indian-creek-falls",
+   "name": "Deep Creek Trail to Indian Creek Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-deep-creek-trail-to-indian-creek-falls.htm"
+  },
+  {
+   "id": "goldmine-loop-via-tunnel-bypass-trail",
+   "name": "Goldmine Loop via Tunnel Bypass Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/goldmine-loop.htm"
+  },
+  {
+   "id": "grotto-falls",
+   "name": "Grotto Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-grotto-falls.htm"
+  },
+  {
+   "id": "hen-wallow-falls",
+   "name": "Hen Wallow Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-hen-wallow-falls.htm"
+  },
+  {
+   "id": "john-oliver-cabin",
+   "name": "John Oliver Cabin",
+   "npsUrl": "https://www.nps.gov/thingstodo/walk-to-john-oliver-cabin.htm"
+  },
+  {
+   "id": "kephart-prong-trail-to-historic-ccc-camp",
+   "name": "Kephart Prong Trail to Historic CCC Camp",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-kephart-prong.htm"
+  },
+  {
+   "id": "kuwohi",
+   "name": "Kuwohi",
+   "npsUrl": "https://www.nps.gov/thingstodo/kuwohi.htm"
+  },
+  {
+   "id": "laurel-falls",
+   "name": "Laurel Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-laurel-falls.htm"
+  },
+  {
+   "id": "little-river-trail",
+   "name": "Little River Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-little-river-trail.htm"
+  },
+  {
+   "id": "look-rock-tower",
+   "name": "Look Rock Tower",
+   "npsUrl": "https://www.nps.gov/thingstodo/look-rock-tower-trail.htm"
+  },
+  {
+   "id": "lynn-camp-prong-cascades",
+   "name": "Lynn Camp Prong Cascades",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-lynn-camp-prong-cascades.htm"
+  },
+  {
+   "id": "mount-le-conte-on-alum-cave-trail",
+   "name": "Mount Le Conte on Alum Cave Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/leconte-via-alum-cave-trail.htm"
+  },
+  {
+   "id": "mount-le-conte-on-bullhead-trail",
+   "name": "Mount Le Conte on Bullhead Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/leconte-via-bullhead-trail.htm"
+  },
+  {
+   "id": "mount-le-conte-on-rainbow-falls-trail",
+   "name": "Mount Le Conte on Rainbow Falls Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/leconte-via-rainbow-falls-trail.htm"
+  },
+  {
+   "id": "mount-le-conte-on-the-appalachian-trail-and-boulevard-trail",
+   "name": "Mount Le Conte on the Appalachian Trail and Boulevard Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/leconte-via-appalachian-trail-boulevard-trail.htm"
+  },
+  {
+   "id": "mount-le-conte-on-trillium-gap-trail",
+   "name": "Mount Le Conte on Trillium Gap Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/leconte-via-trillium-gap-trail.htm"
+  },
+  {
+   "id": "porters-creek-trail",
+   "name": "Porters Creek Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-porters-creek.htm"
+  },
+  {
+   "id": "rainbow-falls",
+   "name": "Rainbow Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-rainbow-falls.htm"
+  },
+  {
+   "id": "ramsey-cascades",
+   "name": "Ramsey Cascades",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-ramsey-cascades.htm"
+  },
+  {
+   "id": "smokemont-nature-trail",
+   "name": "Smokemont Nature Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-smokemont-nature-trail.htm"
+  },
+  {
+   "id": "steve-woody-house",
+   "name": "Steve Woody House",
+   "npsUrl": "https://www.nps.gov/thingstodo/steve-woody-house.htm"
+  },
+  {
+   "id": "sugarlands-valley-nature-trail",
+   "name": "Sugarlands Valley Nature Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/walk-sugarlands-valley-nature-trail.htm"
+  },
+  {
+   "id": "the-deep-creek-waterfalls-loop",
+   "name": "The Deep Creek Waterfalls Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-deep-creek-waterfalls-loop.htm"
+  },
+  {
+   "id": "the-finley-cane-bote-mountain-lead-cove-loop",
+   "name": "The Finley Cane, Bote Mountain, Lead Cove Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-finley-cane-bote-mountain-lead-cove-loop.htm"
+  },
+  {
+   "id": "the-gatlinburg-trail",
+   "name": "The Gatlinburg Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-gatlinburg-trail.htm"
+  },
+  {
+   "id": "the-little-greenbrier-school-and-walker-homesite",
+   "name": "The Little Greenbrier School and Walker Homesite",
+   "npsUrl": "https://www.nps.gov/thingstodo/little-greenbrier-school-and-walker-homesite.htm"
+  },
+  {
+   "id": "the-little-river-cucumber-gap-jakes-creek-loop",
+   "name": "The Little River, Cucumber Gap, Jakes Creek Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-little-river-cucumber-gap-jakes-creek-loop.htm"
+  },
+  {
+   "id": "the-oconaluftee-river-trail",
+   "name": "The Oconaluftee River Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-oconaluftee-river-trail.htm"
+  },
+  {
+   "id": "twentymile-cascade",
+   "name": "Twentymile Cascade",
+   "npsUrl": "https://www.nps.gov/thingstodo/twentymile-cascade.htm"
+  },
+  {
+   "id": "west-prong-trail",
+   "name": "West Prong Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-west-prong-trail.htm"
+  }
+ ],
+ "guadalupe-mountains": [
+  {
+   "id": "campground-connector-trail",
+   "name": "Campground Connector Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_ps_connectortrail.htm"
+  },
+  {
+   "id": "can-i-take-my-dog",
+   "name": "Can I Take My Dog?",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_pet-friendly.htm"
+  },
+  {
+   "id": "day-hike-preparation",
+   "name": "Day Hike Preparation",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_dayhikeprep.htm"
+  },
+  {
+   "id": "dealing-with-human-waste",
+   "name": "Dealing with Human Waste",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_human_waste_wilderness.htm"
+  },
+  {
+   "id": "devils-hall",
+   "name": "Devil's Hall",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_hike_devils_hall_trail.htm"
+  },
+  {
+   "id": "fall-colors",
+   "name": "Fall Colors",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo-fall-colors.htm"
+  },
+  {
+   "id": "foothills-loop",
+   "name": "Foothills Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_foothills_loop.htm"
+  },
+  {
+   "id": "guadalupe-peak",
+   "name": "Guadalupe Peak",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_hike_guadalupe_peak.htm"
+  },
+  {
+   "id": "hunter-peak",
+   "name": "Hunter Peak",
+   "npsUrl": "https://www.nps.gov/thingstodo/hunter-peak.htm"
+  },
+  {
+   "id": "indian-meadow-nature-trail",
+   "name": "Indian Meadow Nature Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_indian_meadow_nature_trail.htm"
+  },
+  {
+   "id": "leave-no-trace",
+   "name": "Leave No Trace",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_lnt.htm"
+  },
+  {
+   "id": "lost-peak-saddle",
+   "name": "Lost Peak Saddle",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_lost_peak.htm"
+  },
+  {
+   "id": "manzanita-spring",
+   "name": "Manzanita Spring",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_manzanita_spring.htm"
+  },
+  {
+   "id": "marcus-overlook",
+   "name": "Marcus Overlook",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_marcus-overlook.htm"
+  },
+  {
+   "id": "mckittrick-canyon-nature-trail",
+   "name": "McKittrick Canyon Nature Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_hike_mckittrick_canyon_nature_trail.htm"
+  },
+  {
+   "id": "mckittrick-canyon-to-dog-canyon",
+   "name": "McKittrick Canyon to Dog Canyon",
+   "npsUrl": "https://www.nps.gov/thingstodo/mckittrick-canyon-to-dog-canyon.htm"
+  },
+  {
+   "id": "mckittrick-ridge",
+   "name": "McKittrick Ridge",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_hike_mckittrick_ridge.htm"
+  },
+  {
+   "id": "off-trail",
+   "name": "Off-trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_off-trail-hiking.htm"
+  },
+  {
+   "id": "permian-reef-trail",
+   "name": "Permian Reef Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_permian_reef_trail.htm"
+  },
+  {
+   "id": "pine-springs-to-mckittrick-canyon",
+   "name": "Pine Springs to McKittrick Canyon",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_pinesprings2mckittrickcyn.htm"
+  },
+  {
+   "id": "pinery-trail",
+   "name": "Pinery Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_pinery_trail.htm"
+  },
+  {
+   "id": "pratt-cabin",
+   "name": "Pratt Cabin",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_hiketoprattcabin.htm"
+  },
+  {
+   "id": "salt-basin-dunes-trail",
+   "name": "Salt Basin Dunes Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_salt_basin_dunes_trail.htm"
+  },
+  {
+   "id": "search-and-rescue-policy",
+   "name": "Search and Rescue Policy",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_sar_policy.htm"
+  },
+  {
+   "id": "smith-spring-trail-loop",
+   "name": "Smith Spring Trail Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_hike_smith_springs_trail.htm"
+  },
+  {
+   "id": "tejas-thru-hike",
+   "name": "Tejas Thru Hike",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_tejastrail_hikethru.htm"
+  },
+  {
+   "id": "the-grotto-and-hunter-line-shack",
+   "name": "The Grotto and Hunter Line Shack",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_hiketogrottohunter.htm"
+  },
+  {
+   "id": "the-notch",
+   "name": "The Notch",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_hike_the_notch.htm"
+  },
+  {
+   "id": "virtual-summit-log",
+   "name": "Virtual Summit Log",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_virtualsummitlog.htm"
+  },
+  {
+   "id": "with-a-group",
+   "name": "With a Group",
+   "npsUrl": "https://www.nps.gov/thingstodo/gumo_grouphiking.htm"
+  }
+ ],
+ "haleakala": [
+  {
+   "id": "moderate-hike-into-haleakalas-crater",
+   "name": "Moderate Hike into Haleakalā's Crater",
+   "npsUrl": "https://www.nps.gov/thingstodo/moderate-hike-into-into-haleakala-crater.htm"
+  },
+  {
+   "id": "moderate-hike-to-the-crater-edge",
+   "name": "Moderate Hike to the Crater Edge",
+   "npsUrl": "https://www.nps.gov/thingstodo/moderate-hike-to-the-crater-edge.htm"
+  },
+  {
+   "id": "moderate-hike-up-to-the-bamboo-forest",
+   "name": "Moderate Hike up to the Bamboo Forest",
+   "npsUrl": "https://www.nps.gov/thingstodo/moderate-hike-up-to-bamboo-forest.htm"
+  },
+  {
+   "id": "short-hike-to-leleiwi-overlook",
+   "name": "Short Hike to Leleiwi Overlook",
+   "npsUrl": "https://www.nps.gov/thingstodo/short-hike-to-leleiwi-overlook.htm"
+  },
+  {
+   "id": "short-hike-to-makahiku-falls",
+   "name": "Short Hike to Makahiku Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/short-hike-to-makahiku-falls.htm"
+  },
+  {
+   "id": "strenuous-hike-across-the-crater-floor",
+   "name": "Strenuous Hike Across the Crater Floor",
+   "npsUrl": "https://www.nps.gov/thingstodo/haleakala-crater-thru-hike.htm"
+  }
+ ],
+ "hawaii-volcanoes": [
+  {
+   "id": "crater-rim-trail",
+   "name": "Crater Rim Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-crater-rim-trail.htm"
+  },
+  {
+   "id": "devastation-trail",
+   "name": "Devastation Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/devastation-trail.htm"
+  },
+  {
+   "id": "footprints-area",
+   "name": "Footprints Area",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-footprints.htm"
+  },
+  {
+   "id": "haakulamanu-via-sulphur-banks-trail",
+   "name": "Haʻakulamanu via Sulphur Banks Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/walk-to-haakulamanu.htm"
+  },
+  {
+   "id": "halemaumau-trail",
+   "name": "Halemaʻumaʻu Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/halemaumau-trail.htm"
+  },
+  {
+   "id": "holei-sea-arch",
+   "name": "Hōlei Sea Arch",
+   "npsUrl": "https://www.nps.gov/thingstodo/walk-to-holei-sea-arch.htm"
+  },
+  {
+   "id": "keanakakoi",
+   "name": "Keanakākoʻi",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-keanakakoi.htm"
+  },
+  {
+   "id": "kilauea-iki-trail",
+   "name": "Kīlauea Iki Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/ttd_kilauea_iki.htm"
+  },
+  {
+   "id": "kipukapuaulu-trail",
+   "name": "Kīpukapuaulu Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-kipukapuaulu.htm"
+  },
+  {
+   "id": "kupinai-pali-waldron-ledge",
+   "name": "Kūpinaʻi Pali (Waldron Ledge)",
+   "npsUrl": "https://www.nps.gov/thingstodo/waldron-ledge.htm"
+  },
+  {
+   "id": "maunaulu-via-napau-trail",
+   "name": "Maunaulu via Nāpau Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-puuhuluhulu.htm"
+  },
+  {
+   "id": "nahuku-lava-tube-trail",
+   "name": "Nāhuku Lava Tube Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-nahuku.htm"
+  },
+  {
+   "id": "puuloa-petroglyphs-trail",
+   "name": "Puʻuloa Petroglyphs Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/ttd-puuloa.htm"
+  },
+  {
+   "id": "visit-kahuku-forested-pit-crater",
+   "name": "Visit Kahuku: Forested Pit Crater",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-forested-pit-crater.htm"
+  },
+  {
+   "id": "visit-kahuku-glover-trail",
+   "name": "Visit Kahuku: Glover Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-glover-trail.htm"
+  },
+  {
+   "id": "visit-kahuku-kamakapaa-trail",
+   "name": "Visit Kahuku: Kamakapaʻa Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-kamakapaa.htm"
+  },
+  {
+   "id": "visit-kahuku-kona-trail",
+   "name": "Visit Kahuku: Kona Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-kona-trail.htm"
+  },
+  {
+   "id": "visit-kahuku-palm-trail",
+   "name": "Visit Kahuku: Palm Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-palm-trail.htm"
+  },
+  {
+   "id": "visit-kahuku-puu-o-lokuana",
+   "name": "Visit Kahuku: Puʻu o Lokuana",
+   "npsUrl": "https://www.nps.gov/thingstodo/puuolokuana.htm"
+  }
+ ],
+ "hot-springs": [
+  {
+   "id": "an-overview-hot-springs-and-north-mountain-trails",
+   "name": "An Overview: Hot Springs and North Mountain Trails",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-hot-springs-and-north-mountain-trails.htm"
+  },
+  {
+   "id": "an-overview-west-mountain-trails",
+   "name": "An Overview: West Mountain Trails",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-west-mountain-trails.htm"
+  },
+  {
+   "id": "arlington-trail",
+   "name": "Arlington Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/arlington-trail.htm"
+  },
+  {
+   "id": "canyon-trail",
+   "name": "Canyon Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/canyon-trail.htm"
+  },
+  {
+   "id": "floral-trail",
+   "name": "Floral Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/floral-trail.htm"
+  },
+  {
+   "id": "fountain-trail",
+   "name": "Fountain Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/fountain-trail.htm"
+  },
+  {
+   "id": "goat-rock-trail",
+   "name": "Goat Rock Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/goat-rock-trail.htm"
+  },
+  {
+   "id": "grand-avenue-trail",
+   "name": "Grand Avenue Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/grand-avenue-trail.htm"
+  },
+  {
+   "id": "grand-promenade-national-recreation-trail",
+   "name": "Grand Promenade National Recreation Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/grand-promenade-national-recreation-trail.htm"
+  },
+  {
+   "id": "gulpha-gorge-trail",
+   "name": "Gulpha Gorge Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/gulpha-gorge-trail.htm"
+  },
+  {
+   "id": "honeysuckle-trail",
+   "name": "Honeysuckle Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/honeysuckle-trail.htm"
+  },
+  {
+   "id": "hot-springs-mountain-trail",
+   "name": "Hot Springs Mountain Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hot-springs-mountain-trail.htm"
+  },
+  {
+   "id": "lower-dogwood-trail",
+   "name": "Lower Dogwood Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/lower-dogwood-trail.htm"
+  },
+  {
+   "id": "mountain-top-trail",
+   "name": "Mountain Top Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/mountain-top-trail.htm"
+  },
+  {
+   "id": "oak-trail",
+   "name": "Oak Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/oak-trail.htm"
+  },
+  {
+   "id": "oertel-trail",
+   "name": "Oertel Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/oertel-trail.htm"
+  },
+  {
+   "id": "peak-trail",
+   "name": "Peak Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-peak-trail-to-the-hot-springs-mountain-tower.htm"
+  },
+  {
+   "id": "pullman-trail",
+   "name": "Pullman Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/pullman-trail.htm"
+  },
+  {
+   "id": "reserve-trail",
+   "name": "Reserve Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/reserve-trail.htm"
+  },
+  {
+   "id": "short-cut-trail",
+   "name": "Short Cut Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/short-cut-trail.htm"
+  },
+  {
+   "id": "sunset-trail",
+   "name": "Sunset Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hikethe-sunset-trail.htm"
+  },
+  {
+   "id": "tufa-terrace-trail",
+   "name": "Tufa Terrace Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/tufa-terrace-trail.htm"
+  },
+  {
+   "id": "upper-dogwood-trail",
+   "name": "Upper Dogwood Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/upper-dogwood-trail.htm"
+  },
+  {
+   "id": "west-mountain-trail",
+   "name": "West Mountain Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/west-mountain-trail.htm"
+  },
+  {
+   "id": "whittington-trail",
+   "name": "Whittington Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/whittington-trail.htm"
+  }
+ ],
+ "indiana-dunes": [
+  {
+   "id": "1966-hiking-challenge",
+   "name": "1966 Hiking Challenge",
+   "npsUrl": "https://www.nps.gov/thingstodo/1966-hiking-challenge.htm"
+  },
+  {
+   "id": "indiana-dunes",
+   "name": "Indiana Dunes",
+   "npsUrl": "https://www.nps.gov/thingstodo/hikingthedunes.htm"
+  }
+ ],
+ "isle-royale": [
+  {
+   "id": "explore-raspberry-island",
+   "name": "Explore Raspberry Island",
+   "npsUrl": "https://www.nps.gov/thingstodo/explore-raspberry-island.htm"
+  },
+  {
+   "id": "grace-creek-overlook",
+   "name": "Grace Creek Overlook",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-grace-creek-overlook.htm"
+  },
+  {
+   "id": "minong-ridge-overlook",
+   "name": "Minong Ridge Overlook",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-minong-ridge-overlook.htm"
+  },
+  {
+   "id": "stoll-memorial-trail-scoville-point",
+   "name": "Stoll Memorial Trail (Scoville Point)",
+   "npsUrl": "https://www.nps.gov/thingstodo/stoll-memorial-trail.htm"
+  },
+  {
+   "id": "suzys-cave",
+   "name": "Suzy's Cave",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-suzy-s-cave.htm"
+  },
+  {
+   "id": "the-windigo-nature-trail",
+   "name": "The Windigo Nature Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/walk-the-windigo-nature-trail.htm"
+  }
+ ],
+ "joshua-tree": [
+  {
+   "id": "arch-rock",
+   "name": "Arch Rock",
+   "npsUrl": "https://www.nps.gov/thingstodo/hikearchrock.htm"
+  },
+  {
+   "id": "bajada-trail",
+   "name": "Bajada Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-bajada-trail.htm"
+  },
+  {
+   "id": "barker-dam-trail",
+   "name": "Barker Dam Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-barker-dam-trail.htm"
+  },
+  {
+   "id": "boy-scout-trail",
+   "name": "Boy Scout Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-boy-scout-trail.htm"
+  },
+  {
+   "id": "cap-rock",
+   "name": "Cap Rock",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-cap-rock.htm"
+  },
+  {
+   "id": "cholla-cactus-garden",
+   "name": "Cholla Cactus Garden",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-cholla-cactus-garden.htm"
+  },
+  {
+   "id": "contact-mine",
+   "name": "Contact Mine",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-contact-mine.htm"
+  },
+  {
+   "id": "cottonwood-spring",
+   "name": "Cottonwood Spring",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-cottonwood-spring.htm"
+  },
+  {
+   "id": "fortynine-palms-oasis",
+   "name": "Fortynine Palms Oasis",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-fortynine-palms-oasis.htm"
+  },
+  {
+   "id": "hi-view-trail",
+   "name": "Hi-View Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-hi-view-trail.htm"
+  },
+  {
+   "id": "hidden-valley-trail",
+   "name": "Hidden Valley Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-hidden-valley-trail.htm"
+  },
+  {
+   "id": "indian-cove-trail",
+   "name": "Indian Cove Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-indian-cove-trail.htm"
+  },
+  {
+   "id": "lost-horse-mine",
+   "name": "Lost Horse Mine",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-lost-horse-mine.htm"
+  },
+  {
+   "id": "lost-palms-oasis",
+   "name": "Lost Palms Oasis",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-lost-palms-oasis.htm"
+  },
+  {
+   "id": "mastodon-peak",
+   "name": "Mastodon Peak",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-mastodon-peak.htm"
+  },
+  {
+   "id": "minerva-hoyt-trail",
+   "name": "Minerva Hoyt Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-minerva-hoyt-trail.htm"
+  },
+  {
+   "id": "oasis-of-mara",
+   "name": "Oasis of Mara",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-oasis-of-mara.htm"
+  },
+  {
+   "id": "panorama-loop-trail",
+   "name": "Panorama Loop Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-panorama-loop.htm"
+  },
+  {
+   "id": "pine-city-trail",
+   "name": "Pine City Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-pine-city-trail.htm"
+  },
+  {
+   "id": "ryan-mountain",
+   "name": "Ryan Mountain",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-ryan-mountain.htm"
+  },
+  {
+   "id": "skull-rock",
+   "name": "Skull Rock",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-skull-rock.htm"
+  },
+  {
+   "id": "split-rock",
+   "name": "Split Rock",
+   "npsUrl": "https://www.nps.gov/thingstodo/hikesplitrock.htm"
+  },
+  {
+   "id": "wall-street-mill",
+   "name": "Wall Street Mill",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-wall-street-mill.htm"
+  },
+  {
+   "id": "west-side-loop",
+   "name": "West Side Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-west-side-loop.htm"
+  },
+  {
+   "id": "willow-hole",
+   "name": "Willow Hole",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-willow-hole.htm"
+  }
+ ],
+ "katmai": [
+  {
+   "id": "dumpling-overlook",
+   "name": "Dumpling Overlook",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-dumpling-overlook.htm"
+  }
+ ],
+ "kenai-fjords": [
+  {
+   "id": "explore-the-exit-glacier-area-in-a-couple-of-hours",
+   "name": "Explore the Exit Glacier area in a couple of hours",
+   "npsUrl": "https://www.nps.gov/thingstodo/explore-the-exit-glacier-area-in-a-couple-of-hours.htm"
+  },
+  {
+   "id": "the-harding-icefield-trail",
+   "name": "The Harding Icefield Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-harding-icefield-trail.htm"
+  }
+ ],
+ "kings-canyon": [
+  {
+   "id": "big-stump",
+   "name": "Big Stump",
+   "npsUrl": "https://www.nps.gov/thingstodo/big-stump.htm"
+  },
+  {
+   "id": "discover-sheep-creek-cascade",
+   "name": "Discover Sheep Creek Cascade",
+   "npsUrl": "https://www.nps.gov/thingstodo/sheep-creek-cascade.htm"
+  },
+  {
+   "id": "general-grant-tree",
+   "name": "General Grant Tree",
+   "npsUrl": "https://www.nps.gov/thingstodo/general-grant-tree.htm"
+  },
+  {
+   "id": "grant-grove-loop-winter-trail",
+   "name": "Grant Grove Loop Winter Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/grant-grove-loop-winter.htm"
+  },
+  {
+   "id": "panoramic-point",
+   "name": "Panoramic Point",
+   "npsUrl": "https://www.nps.gov/thingstodo/panoramic-point.htm"
+  },
+  {
+   "id": "roads-end",
+   "name": "Road's End",
+   "npsUrl": "https://www.nps.gov/thingstodo/road-s-end.htm"
+  },
+  {
+   "id": "roaring-river-falls",
+   "name": "Roaring River Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/roaring-river-falls.htm"
+  },
+  {
+   "id": "take-a-short-hike-to-buena-vista-peak",
+   "name": "Take a Short Hike to Buena Vista Peak",
+   "npsUrl": "https://www.nps.gov/thingstodo/buena-vista-trail.htm"
+  },
+  {
+   "id": "zumwalt-meadow",
+   "name": "Zumwalt Meadow",
+   "npsUrl": "https://www.nps.gov/thingstodo/zumwalt-meadow.htm"
+  }
+ ],
+ "kobuk-valley": [],
+ "lake-clark": [
+  {
+   "id": "tanalian-mountain",
+   "name": "Tanalian Mountain",
+   "npsUrl": "https://www.nps.gov/thingstodo/take-a-day-hike-up-tanalian-mountain.htm"
+  }
+ ],
+ "lassen-volcanic": [
+  {
+   "id": "bumpass-hell",
+   "name": "Bumpass Hell",
+   "npsUrl": "https://www.nps.gov/thingstodo/hikebumpasshell.htm"
+  },
+  {
+   "id": "kings-creek-falls",
+   "name": "Kings Creek Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/hikekingscreekfalls.htm"
+  },
+  {
+   "id": "lassen-peak",
+   "name": "Lassen Peak",
+   "npsUrl": "https://www.nps.gov/thingstodo/hikelassenpeak.htm"
+  },
+  {
+   "id": "manzanita-lake-trail",
+   "name": "Manzanita Lake Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/walkmanzanitalake.htm"
+  },
+  {
+   "id": "reflection-lake-loop",
+   "name": "Reflection Lake Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/https-www-nps-gov-thingstodo-hikereflectionlake-htm.htm"
+  }
+ ],
+ "mammoth-cave": [
+  {
+   "id": "explore-wildflowers-at-cedar-sink",
+   "name": "Explore Wildflowers at Cedar Sink",
+   "npsUrl": "https://www.nps.gov/thingstodo/cedar-sink-trail.htm"
+  },
+  {
+   "id": "take-a-ridge-top-walk-to-sunset-point",
+   "name": "Take a Ridge-top Walk to Sunset Point",
+   "npsUrl": "https://www.nps.gov/thingstodo/heritage-trail.htm"
+  }
+ ],
+ "mesa-verde": [],
+ "mount-rainier": [
+  {
+   "id": "a-day-in-longmire",
+   "name": "A Day In Longmire",
+   "npsUrl": "https://www.nps.gov/thingstodo/a-day-in-longmire.htm"
+  },
+  {
+   "id": "a-day-in-paradise",
+   "name": "A Day In Paradise",
+   "npsUrl": "https://www.nps.gov/thingstodo/a-day-in-paradise.htm"
+  },
+  {
+   "id": "a-day-in-sunrise",
+   "name": "A Day In Sunrise",
+   "npsUrl": "https://www.nps.gov/thingstodo/a-day-in-sunrise.htm"
+  },
+  {
+   "id": "a-half-day-in-paradise",
+   "name": "A Half-Day in Paradise",
+   "npsUrl": "https://www.nps.gov/thingstodo/a-half-day-in-paradise.htm"
+  },
+  {
+   "id": "bench-and-snow-lakes",
+   "name": "Bench and Snow Lakes",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-bench-and-snow-lakes.htm"
+  },
+  {
+   "id": "burroughs-mountain",
+   "name": "Burroughs Mountain",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-burroughs-mountain.htm"
+  },
+  {
+   "id": "cloudy-day-activities-at-mount-rainier",
+   "name": "Cloudy Day Activities at Mount Rainier",
+   "npsUrl": "https://www.nps.gov/thingstodo/cloudy-day-activities-at-mount-rainier.htm"
+  },
+  {
+   "id": "emmons-moraine-trail",
+   "name": "Emmons Moraine Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-emmons-moraine-trail.htm"
+  },
+  {
+   "id": "explore-tipsoo-lake",
+   "name": "Explore Tipsoo Lake",
+   "npsUrl": "https://www.nps.gov/thingstodo/explore-tipsoo-lake.htm"
+  },
+  {
+   "id": "family-friendly-paradise-activities",
+   "name": "Family-Friendly Paradise Activities",
+   "npsUrl": "https://www.nps.gov/thingstodo/family-friendly-paradise-activities.htm"
+  },
+  {
+   "id": "gobblers-knob-fire-lookout",
+   "name": "Gobblers Knob Fire Lookout",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-gobblers-knob-fire-lookout.htm"
+  },
+  {
+   "id": "kid-friendly-hikes-at-mount-rainier",
+   "name": "Kid-Friendly Hikes at Mount Rainier",
+   "npsUrl": "https://www.nps.gov/thingstodo/kid-friendly-hikes-at-mount-rainier.htm"
+  },
+  {
+   "id": "mount-rainier-off-the-beaten-path",
+   "name": "Mount Rainier: Off the Beaten Path",
+   "npsUrl": "https://www.nps.gov/thingstodo/mount-rainier-off-the-beaten-path.htm"
+  },
+  {
+   "id": "nisqually-vista-trail",
+   "name": "Nisqually Vista Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-nisqually-vista-trail.htm"
+  },
+  {
+   "id": "ohanapecosh-area-activities",
+   "name": "Ohanapecosh Area Activities",
+   "npsUrl": "https://www.nps.gov/thingstodo/ohanapecosh-area-activities.htm"
+  },
+  {
+   "id": "rampart-ridge",
+   "name": "Rampart Ridge",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-rampart-ridge.htm"
+  },
+  {
+   "id": "shriner-peak-fire-lookout",
+   "name": "Shriner Peak Fire Lookout",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-shriner-peak-fire-lookout.htm"
+  },
+  {
+   "id": "silver-falls",
+   "name": "Silver Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-silver-falls.htm"
+  },
+  {
+   "id": "spray-falls",
+   "name": "Spray Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-spray-falls.htm"
+  },
+  {
+   "id": "spring-recreation",
+   "name": "Spring Recreation",
+   "npsUrl": "https://www.nps.gov/thingstodo/spring-recreation.htm"
+  }
+ ],
+ "new-river-gorge": [
+  {
+   "id": "castle-rock-hike",
+   "name": "Castle Rock Hike",
+   "npsUrl": "https://www.nps.gov/thingstodo/castle-rock-hike.htm"
+  },
+  {
+   "id": "the-grandview-rim-trail",
+   "name": "The Grandview Rim Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-grandview-rim-trail.htm"
+  },
+  {
+   "id": "trail-run-at-endless-wall",
+   "name": "Trail run at Endless Wall",
+   "npsUrl": "https://www.nps.gov/thingstodo/trail-run-at-endless-wall.htm"
+  },
+  {
+   "id": "trail-run-grandview-rim-trail",
+   "name": "Trail Run Grandview Rim Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/trail-run-grandview-rim-trail.htm"
+  },
+  {
+   "id": "trail-run-or-hike-the-little-laurel-trail",
+   "name": "Trail Run or hike the Little Laurel Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/trail-run-or-hike-the-little-laurel-trail.htm"
+  }
+ ],
+ "north-cascades": [],
+ "olympic": [
+  {
+   "id": "go-to-the-beach",
+   "name": "Go to the Beach",
+   "npsUrl": "https://www.nps.gov/thingstodo/olympicbeaches.htm"
+  },
+  {
+   "id": "see-madison-falls",
+   "name": "See Madison Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/madisonfalls.htm"
+  },
+  {
+   "id": "take-a-pet-friendly-hike",
+   "name": "Take a Pet-Friendly Hike",
+   "npsUrl": "https://www.nps.gov/thingstodo/olympethike.htm"
+  },
+  {
+   "id": "take-a-short-hike-near-the-visitor-center",
+   "name": "Take a Short Hike Near the Visitor Center",
+   "npsUrl": "https://www.nps.gov/thingstodo/olymvcdayhike.htm"
+  },
+  {
+   "id": "the-moments-in-time-trail",
+   "name": "The Moments in Time Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/momentsintime.htm"
+  }
+ ],
+ "petrified-forest": [
+  {
+   "id": "become-a-bark-ranger",
+   "name": "Become a BARK Ranger!",
+   "npsUrl": "https://www.nps.gov/thingstodo/become-a-bark-ranger.htm"
+  },
+  {
+   "id": "blue-mesa-trail",
+   "name": "Blue Mesa Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/walk-blue-mesa-trail.htm"
+  },
+  {
+   "id": "crystal-forest-trail",
+   "name": "Crystal Forest Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/walk-crystal-forest-trail.htm"
+  },
+  {
+   "id": "long-logs-trail",
+   "name": "Long Logs Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/walk-long-logs-trail.htm"
+  },
+  {
+   "id": "puerco-pueblo-trail",
+   "name": "Puerco Pueblo Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/walk-puerco-pueblo-trail.htm"
+  },
+  {
+   "id": "take-a-self-guided-tour-of-giant-logs",
+   "name": "Take a Self-Guided Tour of Giant Logs",
+   "npsUrl": "https://www.nps.gov/thingstodo/self-guided-tour-of-giant-logs.htm"
+  },
+  {
+   "id": "the-painted-desert-rim-trail",
+   "name": "The Painted Desert Rim Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/walk-the-painted-desert-rim-trail.htm"
+  },
+  {
+   "id": "the-tawa-trail",
+   "name": "The Tawa Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/walk-the-tawa-trail.htm"
+  }
+ ],
+ "pinnacles": [
+  {
+   "id": "bacon-butterfield-ranch-trail",
+   "name": "Bacon-Butterfield Ranch Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/pinnacles-hike-bacon-butterfield-ranch-trail.htm"
+  },
+  {
+   "id": "balconies-cliffs-trail-to-balconies-cave-trail-loop",
+   "name": "Balconies Cliffs Trail to Balconies Cave Trail Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/pinnacles-hike-balconies-cliffs-trail-balconies-cave-trail.htm"
+  },
+  {
+   "id": "bench-trail-to-balconies-cave-trail",
+   "name": "Bench Trail to Balconies Cave Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/pinnacles-hike-bench-trail-balconies-cave-trail.htm"
+  },
+  {
+   "id": "bench-trail-to-south-wilderness-trail",
+   "name": "Bench Trail to South Wilderness Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/pinnacles-hike-bench-trail-to-south-wilderness-trail.htm"
+  },
+  {
+   "id": "bench-trail-to-sycamore-trail",
+   "name": "Bench Trail to Sycamore Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/pinnacles-hike-bench-trail-to-sycamore-trail.htm"
+  },
+  {
+   "id": "chalone-peak-trail",
+   "name": "Chalone Peak Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/pinnacles-hike-chalone-peak-trail.htm"
+  },
+  {
+   "id": "condor-gulch-trail",
+   "name": "Condor Gulch Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/pinnacles-hike-condor-gulch-trail.htm"
+  },
+  {
+   "id": "condor-gulch-trail-to-high-peaks-trail-loop",
+   "name": "Condor Gulch Trail to High Peaks Trail Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/pinnacles-hike-condor-gulch-trail-high-peaks-trail.htm"
+  },
+  {
+   "id": "high-peaks-to-balconies-cave-loop",
+   "name": "High Peaks to Balconies Cave Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/pinnacles-hike-high-peaks-to-balconies-cave-loop.htm"
+  },
+  {
+   "id": "high-peaks-to-bear-gulch-loop",
+   "name": "High Peaks to Bear Gulch Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/pinnacles-hike-high-peaks-to-bear-gulch-loop.htm"
+  },
+  {
+   "id": "jawbone-trail",
+   "name": "Jawbone Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/pinnacles-hike-jawbone-trail.htm"
+  },
+  {
+   "id": "juniper-canyon-trail-loop",
+   "name": "Juniper Canyon Trail Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/pinnacles-hike-juniper-canyon-trail-high-peaks-trail.htm"
+  },
+  {
+   "id": "moses-spring-trail-to-rim-trail-loop",
+   "name": "Moses Spring Trail to Rim Trail Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/pinnacles-hike-moses-spring-trail-rim-trail.htm"
+  },
+  {
+   "id": "north-wilderness-trail-loop",
+   "name": "North Wilderness Trail Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/pinnacles-hike-north-wilderness-trail.htm"
+  },
+  {
+   "id": "old-pinnacles-trail-to-balconies-cave",
+   "name": "Old Pinnacles Trail to Balconies Cave",
+   "npsUrl": "https://www.nps.gov/thingstodo/pinnacles-hike-old-pinnacles-trail-to-balconies-cave.htm"
+  },
+  {
+   "id": "prewett-point-trail",
+   "name": "Prewett Point Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/pinnacles-hike-prewett-point-trail.htm"
+  }
+ ],
+ "redwood": [
+  {
+   "id": "stroll-the-simpson-reed-trail",
+   "name": "Stroll the Simpson-Reed Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/simspon-reed_trail.htm"
+  },
+  {
+   "id": "stroll-to-the-big-tree-wayside",
+   "name": "Stroll to the Big Tree Wayside",
+   "npsUrl": "https://www.nps.gov/thingstodo/bigtreewayside.htm"
+  },
+  {
+   "id": "the-boy-scout-tree-trail",
+   "name": "The Boy Scout Tree Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/boyscouttrail.htm"
+  },
+  {
+   "id": "the-fern-canyon-loop-trail",
+   "name": "The Fern Canyon Loop Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/ferncanyon.htm"
+  },
+  {
+   "id": "the-grove-of-titans",
+   "name": "The Grove Of Titans",
+   "npsUrl": "https://www.nps.gov/thingstodo/got.htm"
+  },
+  {
+   "id": "the-james-irvine-trail-to-fern-canyon-loop",
+   "name": "The James Irvine Trail to Fern Canyon Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/jamesirvine-ferncanyonloop.htm"
+  },
+  {
+   "id": "the-karl-knapp-prairie-creek-to-foothill-trail-loop",
+   "name": "The Karl Knapp (Prairie Creek) to Foothill Trail Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/knapp_foothill-trail.htm"
+  },
+  {
+   "id": "the-lady-bird-johnson-grove",
+   "name": "The Lady Bird Johnson Grove",
+   "npsUrl": "https://www.nps.gov/thingstodo/lbjgrove.htm"
+  },
+  {
+   "id": "the-stout-memorial-grove-trail",
+   "name": "The Stout Memorial Grove Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/stout-grove-trail.htm"
+  },
+  {
+   "id": "the-tall-trees-grove",
+   "name": "The Tall Trees Grove",
+   "npsUrl": "https://www.nps.gov/thingstodo/talltreeshike.htm"
+  },
+  {
+   "id": "trillium-falls",
+   "name": "Trillium Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/hiking-trilliumfalls.htm"
+  },
+  {
+   "id": "zig-zag-loop",
+   "name": "Zig Zag Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-zig-zag-loop.htm"
+  }
+ ],
+ "rocky-mountain": [
+  {
+   "id": "visit-the-holzwarth-historic-site",
+   "name": "Visit the Holzwarth Historic Site",
+   "npsUrl": "https://www.nps.gov/thingstodo/romo_holzwarthhistoricsite.htm"
+  },
+  {
+   "id": "with-traction-devices",
+   "name": "With Traction Devices",
+   "npsUrl": "https://www.nps.gov/thingstodo/hiking-with-traction-devices.htm"
+  }
+ ],
+ "saguaro": [],
+ "sequoia": [
+  {
+   "id": "a-birds-eye-view",
+   "name": "A Bird's Eye View",
+   "npsUrl": "https://www.nps.gov/thingstodo/a-bird-s-eye-view.htm"
+  },
+  {
+   "id": "among-the-giants",
+   "name": "Among the Giants",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-among-the-giants.htm"
+  },
+  {
+   "id": "cold-springs-nature-trail",
+   "name": "Cold Springs Nature Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/cold-springs-nature-trail.htm"
+  },
+  {
+   "id": "crescent-meadow",
+   "name": "Crescent Meadow",
+   "npsUrl": "https://www.nps.gov/thingstodo/crescent-meadow.htm"
+  },
+  {
+   "id": "discover-the-lodgepole-sherman-tree-trail",
+   "name": "Discover the Lodgepole-Sherman Tree Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/discover-the-lodgepole-sherman-tree-trail.htm"
+  },
+  {
+   "id": "discover-tokopah-valley-and-falls",
+   "name": "Discover Tokopah Valley and Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/discover-tokopah-valley-and-falls.htm"
+  },
+  {
+   "id": "eagle-and-mosquito-lakes",
+   "name": "Eagle and Mosquito Lakes",
+   "npsUrl": "https://www.nps.gov/thingstodo/eagle-and-mosquito-lakes.htm"
+  },
+  {
+   "id": "enjoy-a-360-degree-view-at-little-baldy-dome",
+   "name": "Enjoy a 360-Degree View at Little Baldy Dome",
+   "npsUrl": "https://www.nps.gov/thingstodo/little-baldy-trail.htm"
+  },
+  {
+   "id": "explore-hidden-sequoias-at-muir-grove",
+   "name": "Explore Hidden Sequoias at Muir Grove",
+   "npsUrl": "https://www.nps.gov/thingstodo/muir-grove-trail.htm"
+  },
+  {
+   "id": "explore-sub-alpine-landscapes-at-mineral-king",
+   "name": "Explore Sub-Alpine Landscapes at Mineral King",
+   "npsUrl": "https://www.nps.gov/thingstodo/mineral-king-trails.htm"
+  },
+  {
+   "id": "mist-falls",
+   "name": "Mist Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/mist-falls.htm"
+  },
+  {
+   "id": "monarch-lake",
+   "name": "Monarch Lake",
+   "npsUrl": "https://www.nps.gov/thingstodo/monarch-lake.htm"
+  },
+  {
+   "id": "moro-rock",
+   "name": "Moro Rock",
+   "npsUrl": "https://www.nps.gov/thingstodo/moro-rock.htm"
+  },
+  {
+   "id": "paradise-creek",
+   "name": "Paradise Creek",
+   "npsUrl": "https://www.nps.gov/thingstodo/paradise-creek-trail.htm"
+  },
+  {
+   "id": "sequoia-historic-entrance-sign",
+   "name": "Sequoia Historic Entrance Sign",
+   "npsUrl": "https://www.nps.gov/thingstodo/sequoia-historic-entrance-sign.htm"
+  },
+  {
+   "id": "the-general-sherman-tree",
+   "name": "The General Sherman Tree",
+   "npsUrl": "https://www.nps.gov/thingstodo/the-general-sherman-tree-summer.htm"
+  },
+  {
+   "id": "the-wuksachi-trail",
+   "name": "The Wuksachi Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-wuksachi-trail.htm"
+  },
+  {
+   "id": "view-sunset-from-sunset-rock",
+   "name": "View Sunset from Sunset Rock",
+   "npsUrl": "https://www.nps.gov/thingstodo/sunset-rock-trail.htm"
+  }
+ ],
+ "shenandoah": [
+  {
+   "id": "all-about-hiking-start-here",
+   "name": "All About Hiking - Start Here!",
+   "npsUrl": "https://www.nps.gov/thingstodo/shenandoah-hiking.htm"
+  },
+  {
+   "id": "appalachian-trail-tanners-ridge-road",
+   "name": "Appalachian Trail - Tanners Ridge Road",
+   "npsUrl": "https://www.nps.gov/thingstodo/at-tanners-ridge.htm"
+  },
+  {
+   "id": "bearfence-rock-scramble",
+   "name": "Bearfence Rock Scramble",
+   "npsUrl": "https://www.nps.gov/thingstodo/bearfence-rock-scramble.htm"
+  },
+  {
+   "id": "bearfence-viewpoint",
+   "name": "Bearfence Viewpoint",
+   "npsUrl": "https://www.nps.gov/thingstodo/bearfence-viewpoint.htm"
+  },
+  {
+   "id": "blackrock-summit",
+   "name": "Blackrock Summit",
+   "npsUrl": "https://www.nps.gov/thingstodo/blackrock-summit.htm"
+  },
+  {
+   "id": "browns-gap",
+   "name": "Browns Gap",
+   "npsUrl": "https://www.nps.gov/thingstodo/browns-gap.htm"
+  },
+  {
+   "id": "cedar-run-whiteoak-circuit",
+   "name": "Cedar Run - Whiteoak Circuit",
+   "npsUrl": "https://www.nps.gov/thingstodo/cedar-run-whiteoak-circuit.htm"
+  },
+  {
+   "id": "chimney-rock",
+   "name": "Chimney Rock",
+   "npsUrl": "https://www.nps.gov/thingstodo/chimney-rock.htm"
+  },
+  {
+   "id": "compton-peak",
+   "name": "Compton Peak",
+   "npsUrl": "https://www.nps.gov/thingstodo/compton-peak.htm"
+  },
+  {
+   "id": "dark-hollow-falls",
+   "name": "Dark Hollow Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/dark-hollow-falls.htm"
+  },
+  {
+   "id": "doyles-river-falls",
+   "name": "Doyles River Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/doyles-river-falls.htm"
+  },
+  {
+   "id": "fort-windham-rocks",
+   "name": "Fort Windham Rocks",
+   "npsUrl": "https://www.nps.gov/thingstodo/fort-windham-rocks.htm"
+  },
+  {
+   "id": "fox-hollow-trail",
+   "name": "Fox Hollow Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/fox-hollow-trail.htm"
+  },
+  {
+   "id": "frazier-discovery-trail",
+   "name": "Frazier Discovery Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/frazier-discovery-trail.htm"
+  },
+  {
+   "id": "hawksbill-loop",
+   "name": "Hawksbill Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hawksbill-loop.htm"
+  },
+  {
+   "id": "hawksbill-summit",
+   "name": "Hawksbill Summit",
+   "npsUrl": "https://www.nps.gov/thingstodo/hawksbill-summit.htm"
+  },
+  {
+   "id": "hawksbill-summit-via-upper-hawksbill",
+   "name": "Hawksbill Summit via Upper Hawksbill",
+   "npsUrl": "https://www.nps.gov/thingstodo/upper-hawksbill-summit.htm"
+  },
+  {
+   "id": "hazel-river-falls",
+   "name": "Hazel River Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/hazel-river-falls.htm"
+  },
+  {
+   "id": "hightop-summit",
+   "name": "Hightop Summit",
+   "npsUrl": "https://www.nps.gov/thingstodo/hightop-summit.htm"
+  },
+  {
+   "id": "jones-run-falls",
+   "name": "Jones Run Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/jones-run-falls.htm"
+  },
+  {
+   "id": "knob-mountain-jeremys-run",
+   "name": "Knob Mountain - Jeremys Run",
+   "npsUrl": "https://www.nps.gov/thingstodo/knob-mountain-jeremys-run.htm"
+  },
+  {
+   "id": "lands-run-falls",
+   "name": "Lands Run Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/lands-run-falls.htm"
+  },
+  {
+   "id": "lewis-falls-trail",
+   "name": "Lewis Falls Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/lewis-falls-trail.htm"
+  },
+  {
+   "id": "limberlost",
+   "name": "Limberlost",
+   "npsUrl": "https://www.nps.gov/thingstodo/limberlost.htm"
+  },
+  {
+   "id": "little-devils-stairs-loop",
+   "name": "Little Devils Stairs Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/little-devils-stairs-loop.htm"
+  },
+  {
+   "id": "marys-rock-from-meadow-spring",
+   "name": "Marys Rock From Meadow Spring",
+   "npsUrl": "https://www.nps.gov/thingstodo/marys-rock-from-meadow-spring.htm"
+  },
+  {
+   "id": "marys-rock-summit",
+   "name": "Marys Rock Summit",
+   "npsUrl": "https://www.nps.gov/thingstodo/marys-rock-summit.htm"
+  },
+  {
+   "id": "mill-prong-laurel-prong-loop",
+   "name": "Mill Prong - Laurel Prong Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/mill-prong-laurel-prong.htm"
+  },
+  {
+   "id": "millers-head",
+   "name": "Millers Head",
+   "npsUrl": "https://www.nps.gov/thingstodo/millers-head.htm"
+  },
+  {
+   "id": "nicholson-hollow",
+   "name": "Nicholson Hollow",
+   "npsUrl": "https://www.nps.gov/thingstodo/nicholson-hollow.htm"
+  },
+  {
+   "id": "old-rag-circuit",
+   "name": "Old Rag Circuit",
+   "npsUrl": "https://www.nps.gov/thingstodo/old-rag-circuit.htm"
+  },
+  {
+   "id": "old-rag-summit-via-berry-hollow",
+   "name": "Old Rag Summit via Berry Hollow",
+   "npsUrl": "https://www.nps.gov/thingstodo/old-rag-summit-berry-hollow.htm"
+  },
+  {
+   "id": "overall-run-falls",
+   "name": "Overall Run Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/overall-run-falls.htm"
+  },
+  {
+   "id": "pass-mountain-loop",
+   "name": "Pass Mountain Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/pass-mountain-loop.htm"
+  },
+  {
+   "id": "rapidan-camp",
+   "name": "Rapidan Camp",
+   "npsUrl": "https://www.nps.gov/thingstodo/rapidan-camp.htm"
+  },
+  {
+   "id": "riprap-wildcat-ridge",
+   "name": "Riprap - Wildcat Ridge",
+   "npsUrl": "https://www.nps.gov/thingstodo/riprap-wildcat-ridge.htm"
+  },
+  {
+   "id": "rose-river-falls",
+   "name": "Rose River Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/rose-river-falls.htm"
+  },
+  {
+   "id": "snead-farm-loop",
+   "name": "Snead Farm Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/snead-farm-loop.htm"
+  },
+  {
+   "id": "south-river-falls",
+   "name": "South River Falls",
+   "npsUrl": "https://www.nps.gov/thingstodo/south-river-falls.htm"
+  },
+  {
+   "id": "south-river-falls-observation-point",
+   "name": "South River Falls Observation Point",
+   "npsUrl": "https://www.nps.gov/thingstodo/south-river-falls-observation.htm"
+  },
+  {
+   "id": "stony-man",
+   "name": "Stony Man",
+   "npsUrl": "https://www.nps.gov/thingstodo/stony-man.htm"
+  },
+  {
+   "id": "story-of-the-forest",
+   "name": "Story of the Forest",
+   "npsUrl": "https://www.nps.gov/thingstodo/story-of-the-forest.htm"
+  },
+  {
+   "id": "sugarloaf-loop",
+   "name": "Sugarloaf Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/sugarloaf-loop.htm"
+  },
+  {
+   "id": "traces-trail",
+   "name": "Traces Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/traces-trail.htm"
+  },
+  {
+   "id": "turk-mountain",
+   "name": "Turk Mountain",
+   "npsUrl": "https://www.nps.gov/thingstodo/turk-mountain.htm"
+  },
+  {
+   "id": "whiteoak-falls-lower",
+   "name": "Whiteoak Falls (Lower)",
+   "npsUrl": "https://www.nps.gov/thingstodo/lower-whiteoak-falls.htm"
+  },
+  {
+   "id": "whiteoak-falls-upper",
+   "name": "Whiteoak Falls (Upper)",
+   "npsUrl": "https://www.nps.gov/thingstodo/upper-whiteoak-falls.htm"
+  }
+ ],
+ "theodore-roosevelt": [
+  {
+   "id": "boicourt-trail",
+   "name": "Boicourt Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-boicourt-trail.htm"
+  },
+  {
+   "id": "buck-hill",
+   "name": "Buck Hill",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-up-buck-hill.htm"
+  },
+  {
+   "id": "coal-vein-trail",
+   "name": "Coal Vein Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-coal-vein-trail.htm"
+  },
+  {
+   "id": "explore-the-cannonball-concretions",
+   "name": "Explore the Cannonball Concretions",
+   "npsUrl": "https://www.nps.gov/thingstodo/explore-the-cannonball-concretions.htm"
+  },
+  {
+   "id": "skyline-vista-trail",
+   "name": "Skyline Vista Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-skyline-vista-trail.htm"
+  },
+  {
+   "id": "the-little-mo-nature-trail",
+   "name": "The Little Mo Nature Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-little-mo-nature-trail.htm"
+  },
+  {
+   "id": "the-painted-canyon-nature-trail",
+   "name": "The Painted Canyon Nature Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-painted-canyon-nature-trail.htm"
+  },
+  {
+   "id": "the-petrified-forest",
+   "name": "The Petrified Forest",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-petrified-forest.htm"
+  },
+  {
+   "id": "visit-the-elkhorn-ranch-unit",
+   "name": "Visit the Elkhorn Ranch Unit",
+   "npsUrl": "https://www.nps.gov/thingstodo/visit-the-elkhorn-ranch-unit.htm"
+  },
+  {
+   "id": "wind-canyon-trail",
+   "name": "Wind Canyon Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-wind-canyon-trail.htm"
+  }
+ ],
+ "virgin-islands": [
+  {
+   "id": "caneel-hill-trail",
+   "name": "Caneel Hill Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/caneel-hill-trail.htm"
+  },
+  {
+   "id": "cinnamon-bay-trails",
+   "name": "Cinnamon Bay Trails",
+   "npsUrl": "https://www.nps.gov/thingstodo/cinnamon-bay-trails.htm"
+  },
+  {
+   "id": "francis-bay-trail",
+   "name": "Francis Bay Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/francis-bay-trail.htm"
+  },
+  {
+   "id": "johnny-horn-trail",
+   "name": "Johnny Horn Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/johnny-horn-trail.htm"
+  },
+  {
+   "id": "lesperance-trail",
+   "name": "L'Esperance Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/l-esperance-trail.htm"
+  },
+  {
+   "id": "salt-pond-bay-and-ram-head-trails",
+   "name": "Salt Pond Bay and Ram Head Trails",
+   "npsUrl": "https://www.nps.gov/thingstodo/salt-pond-and-ram-head-trails.htm"
+  },
+  {
+   "id": "tektite-trail",
+   "name": "Tektite Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/tektite-trail.htm"
+  },
+  {
+   "id": "the-lind-point-trails",
+   "name": "The Lind Point Trails",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-lind-point-trails.htm"
+  },
+  {
+   "id": "yawzi-point-trail",
+   "name": "Yawzi Point Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yawzi-point-trail.htm"
+  }
+ ],
+ "voyageurs": [
+  {
+   "id": "anderson-bay-loop",
+   "name": "Anderson Bay Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-anderson-bay-loop.htm"
+  },
+  {
+   "id": "beaver-pond-overlook-trail",
+   "name": "Beaver Pond Overlook Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/voyabeaver-pond-overlook.htm"
+  },
+  {
+   "id": "black-bay-beaver-pond-trail",
+   "name": "Black Bay Beaver Pond Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-black-bay-beaver-pond-trail.htm"
+  },
+  {
+   "id": "blind-ash-bay-trail",
+   "name": "Blind Ash Bay Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-blind-ash-bay-trail.htm"
+  },
+  {
+   "id": "echo-bay-trail",
+   "name": "Echo Bay Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/echo-bay-trail.htm"
+  },
+  {
+   "id": "kab-ash-trail",
+   "name": "Kab-Ash Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-kab-ash-trail.htm"
+  },
+  {
+   "id": "kabetogama-lake-overlook-trail",
+   "name": "Kabetogama Lake Overlook Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-kabetogama-lake-overlook-trail.htm"
+  },
+  {
+   "id": "rainy-lake-recreation-trail",
+   "name": "Rainy Lake Recreation Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/rainy-lake-recreation-trail.htm"
+  },
+  {
+   "id": "the-cruiser-lake-trail",
+   "name": "The Cruiser Lake Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-cruiser-lake-trail.htm"
+  },
+  {
+   "id": "the-locator-lake-trail",
+   "name": "The Locator Lake Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-locator-lake-trail.htm"
+  },
+  {
+   "id": "the-mukooda-trail",
+   "name": "The Mukooda Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-mukooda-trail.htm"
+  },
+  {
+   "id": "the-oberholtzer-trail",
+   "name": "The Oberholtzer Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/oberholtzer-trail.htm"
+  },
+  {
+   "id": "the-sullivan-bay-trail",
+   "name": "The Sullivan Bay Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/sullivan-bay-trail.htm"
+  },
+  {
+   "id": "voyageurs-forest-overlook-trail",
+   "name": "Voyageurs Forest Overlook Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-voyageurs-forest-overlook-trail.htm"
+  }
+ ],
+ "white-sands": [
+  {
+   "id": "alkali-flat-trail",
+   "name": "Alkali Flat Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hiking-alkali-flat-trail.htm"
+  },
+  {
+   "id": "backcountry-camping-trail",
+   "name": "Backcountry Camping Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hiking-backcountry-camping-trail.htm"
+  },
+  {
+   "id": "dune-life-nature-trail",
+   "name": "Dune Life Nature Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hiking-dune-life-nature-trail.htm"
+  },
+  {
+   "id": "interdune-boardwalk",
+   "name": "Interdune Boardwalk",
+   "npsUrl": "https://www.nps.gov/thingstodo/hiking-interdune-boardwalk.htm"
+  },
+  {
+   "id": "the-ice-age-trail",
+   "name": "The Ice Age Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hiking-the-ice-age-trail.htm"
+  }
+ ],
+ "wind-cave": [
+  {
+   "id": "pet-friendly-hikes",
+   "name": "Pet Friendly Hikes",
+   "npsUrl": "https://www.nps.gov/thingstodo/pet-friendly-hikes-wica.htm"
+  },
+  {
+   "id": "visit-wind-caves-natural-entrance",
+   "name": "Visit Wind Cave's Natural Entrance",
+   "npsUrl": "https://www.nps.gov/thingstodo/wind-cave-natural-entrance.htm"
+  }
+ ],
+ "wrangell-st-elias": [
+  {
+   "id": "backpacking-in-wrangell-st-elias",
+   "name": "Backpacking in Wrangell-St Elias",
+   "npsUrl": "https://www.nps.gov/thingstodo/backpacking-in-wrangell-st-elias.htm"
+  },
+  {
+   "id": "front-country-hiking-trails",
+   "name": "Front country Hiking Trails",
+   "npsUrl": "https://www.nps.gov/thingstodo/front-country-hiking-trails.htm"
+  }
+ ],
+ "yellowstone": [
+  {
+   "id": "avalanche-peak-trail",
+   "name": "Avalanche Peak Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-avalanche-peak.htm"
+  },
+  {
+   "id": "beaver-ponds-trail",
+   "name": "Beaver Ponds Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-beaver-ponds.htm"
+  },
+  {
+   "id": "blacktail-deer-creek-to-yellowstone-river-trail",
+   "name": "Blacktail Deer Creek to Yellowstone River Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-blacktail-deer-creek-to-yellowstone-river.htm"
+  },
+  {
+   "id": "brink-of-the-lower-falls-trail",
+   "name": "Brink of the Lower Falls Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-brink-of-the-lower-falls.htm"
+  },
+  {
+   "id": "bunsen-peak-trail",
+   "name": "Bunsen Peak Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-bunsen-peak.htm"
+  },
+  {
+   "id": "cascade-lake-trail",
+   "name": "Cascade Lake Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-cascade-lake.htm"
+  },
+  {
+   "id": "chittenden-road-mount-washburn-trail",
+   "name": "Chittenden Road - Mount Washburn Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-chittdenden-road-mount-washburn.htm"
+  },
+  {
+   "id": "delacy-creek-trail",
+   "name": "DeLacy Creek Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-delacy-creek.htm"
+  },
+  {
+   "id": "duck-lake-trail",
+   "name": "Duck Lake Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-duck-lake.htm"
+  },
+  {
+   "id": "dunraven-pass-mount-washburn-trail",
+   "name": "Dunraven Pass - Mount Washburn Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-dunraven-pass-mount-washburn.htm"
+  },
+  {
+   "id": "elephant-back-mountain-trail",
+   "name": "Elephant Back Mountain Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-elephant-back-mountain.htm"
+  },
+  {
+   "id": "explore-the-fort-yellowstone-historic-district",
+   "name": "Explore the Fort Yellowstone Historic District",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-tour-fort-yellowstone.htm"
+  },
+  {
+   "id": "fairy-falls-ski-trail",
+   "name": "Fairy Falls Ski Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-fairy-falls-ski-trail.htm"
+  },
+  {
+   "id": "fairy-falls-trail",
+   "name": "Fairy Falls Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-fairy-falls.htm"
+  },
+  {
+   "id": "forces-of-the-northern-range-self-guided-trail",
+   "name": "Forces of the Northern Range Self-guided Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/forces-of-the-northern-range-self-guided-trail.htm"
+  },
+  {
+   "id": "fountain-paint-pot-trail",
+   "name": "Fountain Paint Pot Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-fountain-paint-pot-trail.htm"
+  },
+  {
+   "id": "garnet-hill-trail",
+   "name": "Garnet Hill Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-garnet-hill.htm"
+  },
+  {
+   "id": "grand-canyon-of-the-yellowstone",
+   "name": "Grand Canyon of the Yellowstone",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-grand-canyon-of-the-yellowstone.htm"
+  },
+  {
+   "id": "grand-prismatic-overlook-trail",
+   "name": "Grand Prismatic Overlook Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-grand-prismatic-overlook.htm"
+  },
+  {
+   "id": "grebe-lake-trail",
+   "name": "Grebe Lake Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-grebe-lake.htm"
+  },
+  {
+   "id": "harlequin-lake-trail",
+   "name": "Harlequin Lake Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-harlequin-lake.htm"
+  },
+  {
+   "id": "hellroaring-trail",
+   "name": "Hellroaring Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-hellroaring.htm"
+  },
+  {
+   "id": "howard-eaton-trail-canyon-area",
+   "name": "Howard Eaton Trail (Canyon Area)",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-howard-eaton-canyon.htm"
+  },
+  {
+   "id": "howard-eaton-trail-old-faithful-area",
+   "name": "Howard Eaton Trail (Old Faithful Area)",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-howard-eaton-old-faithful.htm"
+  },
+  {
+   "id": "lava-creek-trail",
+   "name": "Lava Creek Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-lava-creek.htm"
+  },
+  {
+   "id": "lewis-river-channel-dogshead-trail",
+   "name": "Lewis River Channel/Dogshead Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-lewis-river-channel-dogshead.htm"
+  },
+  {
+   "id": "lone-star-geyser-trail",
+   "name": "Lone Star Geyser Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-lone-star-geyser.htm"
+  },
+  {
+   "id": "lost-lake-trail",
+   "name": "Lost Lake Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-lost-lake.htm"
+  },
+  {
+   "id": "mallard-lake-trail",
+   "name": "Mallard Lake Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-mallard-lake.htm"
+  },
+  {
+   "id": "mammoth-hot-springs-trails",
+   "name": "Mammoth Hot Springs Trails",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-mammoth-hot-springs-trails.htm"
+  },
+  {
+   "id": "mount-washburn-spur-trail",
+   "name": "Mount Washburn Spur Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-mount-washburn-spur.htm"
+  },
+  {
+   "id": "mud-volcano-trail",
+   "name": "Mud Volcano Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-mud-volcano-trails.htm"
+  },
+  {
+   "id": "mystic-falls-trail",
+   "name": "Mystic Falls Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-mystic-falls.htm"
+  },
+  {
+   "id": "natural-bridge-trail",
+   "name": "Natural Bridge Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-natural-bridge.htm"
+  },
+  {
+   "id": "norris-geyser-basin-trails",
+   "name": "Norris Geyser Basin Trails",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-norris-geyser-basin-trails.htm"
+  },
+  {
+   "id": "observation-peak-trail",
+   "name": "Observation Peak Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-observation-peak.htm"
+  },
+  {
+   "id": "observation-point-trail",
+   "name": "Observation Point Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-observation-point.htm"
+  },
+  {
+   "id": "osprey-falls-trail",
+   "name": "Osprey Falls Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-osprey-falls.htm"
+  },
+  {
+   "id": "pelican-creek-nature-trail",
+   "name": "Pelican Creek Nature Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-pelican-creek.htm"
+  },
+  {
+   "id": "pelican-valley-trail",
+   "name": "Pelican Valley Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-pelican-valley.htm"
+  },
+  {
+   "id": "purple-mountain-trail",
+   "name": "Purple Mountain Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-purple-mountain.htm"
+  },
+  {
+   "id": "rescue-creek-trail",
+   "name": "Rescue Creek Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-rescue-creek.htm"
+  },
+  {
+   "id": "ribbon-lake-trail",
+   "name": "Ribbon Lake Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-ribbon-lake.htm"
+  },
+  {
+   "id": "riddle-lake-trail",
+   "name": "Riddle Lake Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-riddle-lake.htm"
+  },
+  {
+   "id": "sentinel-meadows-queens-laundry-trail",
+   "name": "Sentinel Meadows & Queen’s Laundry Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-sentinel-meadows.htm"
+  },
+  {
+   "id": "sepulcher-mountain-trail",
+   "name": "Sepulcher Mountain Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-sepulcher-mountain.htm"
+  },
+  {
+   "id": "seven-mile-hole-trail",
+   "name": "Seven Mile Hole Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-seven-mile-hole.htm"
+  },
+  {
+   "id": "slough-creek-trail",
+   "name": "Slough Creek Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-slough-creek.htm"
+  },
+  {
+   "id": "specimen-ridge-day-hike-trail",
+   "name": "Specimen Ridge Day Hike Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-specimen-ridge-day-hike.htm"
+  },
+  {
+   "id": "storm-point-trail",
+   "name": "Storm Point Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-storm-point.htm"
+  },
+  {
+   "id": "trout-lake-trail",
+   "name": "Trout Lake Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-trout-lake.htm"
+  },
+  {
+   "id": "west-thumb-geyser-basin-trail",
+   "name": "West Thumb Geyser Basin Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-west-thumb-geyser-basin.htm"
+  },
+  {
+   "id": "wraith-falls-trail",
+   "name": "Wraith Falls Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-wraith-falls.htm"
+  },
+  {
+   "id": "yellowstone-lake-overlook-trail",
+   "name": "Yellowstone Lake Overlook Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-yellowstone-lake-overlook.htm"
+  },
+  {
+   "id": "yellowstone-river-picnic-area-trail",
+   "name": "Yellowstone River Picnic Area Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/yell-trail-yellowstone-river-picnic-area.htm"
+  }
+ ],
+ "yosemite": [],
+ "zion": [
+  {
+   "id": "angels-landing",
+   "name": "Angels Landing",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-angels-landing.htm"
+  },
+  {
+   "id": "canyon-overlook",
+   "name": "Canyon Overlook",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-canyon-overlook.htm"
+  },
+  {
+   "id": "grotto-trail",
+   "name": "Grotto Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-grotto-trail.htm"
+  },
+  {
+   "id": "kayenta-trail",
+   "name": "Kayenta Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-kayenta-trail.htm"
+  },
+  {
+   "id": "la-verkin-creek-trail-to-kolob-arch",
+   "name": "La Verkin Creek Trail to Kolob Arch",
+   "npsUrl": "https://www.nps.gov/thingstodo/la-verkin-creek-trail-to-kolob-arch.htm"
+  },
+  {
+   "id": "lower-emerald-pool-trail",
+   "name": "Lower Emerald Pool Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-lower-emerald-pool-trail.htm"
+  },
+  {
+   "id": "middle-emerald-pools-trail",
+   "name": "Middle Emerald Pools Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-middle-emerald-pools-trail.htm"
+  },
+  {
+   "id": "parus-trail",
+   "name": "Pa'rus Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-pa-rus-trail.htm"
+  },
+  {
+   "id": "riverside-walk",
+   "name": "Riverside Walk",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-riverside-walk.htm"
+  },
+  {
+   "id": "sand-bench",
+   "name": "Sand Bench",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-sand-bench.htm"
+  },
+  {
+   "id": "taylor-creek-trail",
+   "name": "Taylor Creek Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/taylor-creek-trail.htm"
+  },
+  {
+   "id": "the-narrows",
+   "name": "The Narrows",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-the-narrows.htm"
+  },
+  {
+   "id": "timber-creek-overlook",
+   "name": "Timber Creek Overlook",
+   "npsUrl": "https://www.nps.gov/thingstodo/timber-creek-overlook.htm"
+  },
+  {
+   "id": "upper-emerald-pools-trail",
+   "name": "Upper Emerald Pools Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-upper-emerald-pools.htm"
+  },
+  {
+   "id": "watchman-trail",
+   "name": "Watchman Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-watchman-trail.htm"
+  },
+  {
+   "id": "weeping-rock",
+   "name": "Weeping Rock",
+   "npsUrl": "https://www.nps.gov/thingstodo/weeping-rock.htm"
+  },
+  {
+   "id": "west-rim-to-scout-lookout",
+   "name": "West Rim to Scout Lookout",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-to-scout-lookout.htm"
+  }
+ ]
+}
