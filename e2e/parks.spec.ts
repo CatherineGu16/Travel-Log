@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { setTripYear } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -7,10 +8,7 @@ const nav = (page: Page, name: string) => page.getByRole('navigation', { name: '
 
 async function saveYear(page: Page, year: string) {
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
-  await dialog.getByRole('radio', { name: 'Year' }).first().click()
-  const input = dialog.getByRole('textbox', { name: 'Start year' })
-  await input.fill(year)
-  await input.press('Enter')
+  await setTripYear(dialog, year)
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(dialog).toBeHidden()
 }

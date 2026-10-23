@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hikesDone, includesFamily, parkVisits, parksVisited, pinsOf, shadeLevel, statesVisited, tripsPerRegion, visitsTo } from './derive.ts'
+import { hikesDone, includesFamily, tripPeopleIds, parkVisits, parksVisited, pinsOf, shadeLevel, statesVisited, tripsPerRegion, visitsTo } from './derive.ts'
 import {
   addGroup,
   addHike,
@@ -37,9 +37,12 @@ const trip = (over: Parameters<typeof tripInput>[0] = {}): TripInput =>
   })
 
 describe('emptyData', () => {
-  it('starts with a Family group that has a fixed id, so devices merge it into one', () => {
+  it('starts with Family and Friends groups that have fixed ids, so devices merge them into one', () => {
     const data = emptyData('now')
-    expect(data.groups).toEqual([expect.objectContaining({ id: FAMILY_GROUP_ID, name: 'Family', isFamily: true })])
+    expect(data.groups).toEqual([
+      expect.objectContaining({ id: FAMILY_GROUP_ID, name: 'Family', isFamily: true }),
+      expect.objectContaining({ id: 'friends', name: 'Friends', isFamily: false }),
+    ])
   })
 })
 
@@ -227,5 +230,16 @@ describe('trips with more than one main destination', () => {
   it('makes the first destination the main one when none is marked', () => {
     const data = saveTrip(emptyData('t0'), ctx(), tripInput({ stops: [{ place: { place: vegas } }, { place: { place: zion } }] }))
     expect(data.trips[0].destinations.map((d) => d.isMain)).toEqual([true, false])
+  })
+})
+
+describe('who went', () => {
+  it('tags groups without listing people, and a Family tag counts as family', () => {
+    let data = addPerson(emptyData('t0'), ctx(), 'mom', { name: 'Mom', groupIds: [FAMILY_GROUP_ID] })
+    data = saveTrip(data, ctx(), trip({ companionGroupIds: [FAMILY_GROUP_ID, 'friends', FAMILY_GROUP_ID] }))
+    expect(data.trips[0].companionGroupIds).toEqual([FAMILY_GROUP_ID, 'friends'])
+    expect(tripPeopleIds(data.trips[0], data)).toEqual(['mom'])
+    expect(includesFamily(data, [], ['friends'])).toBe(false)
+    expect(includesFamily(data, [], [FAMILY_GROUP_ID])).toBe(true)
   })
 })

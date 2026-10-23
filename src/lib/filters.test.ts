@@ -66,3 +66,12 @@ describe('groupTrips', () => {
     ])
   })
 })
+
+describe('group tags', () => {
+  it('counts everyone in a tagged group as on the trip, for filters and search', () => {
+    let d = addPerson(emptyData('t'), ctx, 'sam', { name: 'Sam', groupIds: ['friends'] })
+    d = saveTrip(d, ctx, input({ title: 'Beach weekend', companionGroupIds: ['friends'], tripType: 'friends' }))
+    expect(titles(filterData(d, { ...NO_FILTER, personIds: ['sam'] }))).toEqual(['Beach weekend'])
+    expect(d.trips.filter((t) => matchesSearch(t, d, 'friends')).map((t) => t.title)).toEqual(['Beach weekend'])
+  })
+})

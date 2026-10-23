@@ -1,6 +1,7 @@
 import { distanceMeters } from './geo.ts'
 import {
   FAMILY_GROUP_ID,
+  FRIENDS_GROUP_ID,
   type Avatar,
   type EditContext,
   type Group,
@@ -18,11 +19,18 @@ import {
 
 /** Edits are pure: (data, context) → new data. The store applies, saves, and can undo them. */
 
+const EPOCH = new Date(0).toISOString()
+
+/** Family and Friends, there from the start (Friends works as a tag without adding anyone). */
+export const builtInGroups = (): Group[] => [
+  { id: FAMILY_GROUP_ID, name: 'Family', memberIds: [], isFamily: true, createdAt: EPOCH, updatedAt: EPOCH },
+  { id: FRIENDS_GROUP_ID, name: 'Friends', memberIds: [], isFamily: false, createdAt: EPOCH, updatedAt: EPOCH },
+]
+
 /**
- * The built-in Family group is stamped at the epoch, so a new device's empty copy never wins a sync
+ * The built-in groups are stamped at the epoch, so a new device's empty copy never wins a sync
  * merge over a Family group you've actually edited on another device.
  */
-const EPOCH = new Date(0).toISOString()
 
 export function emptyData(now: string): TravelData {
   return {
@@ -31,7 +39,7 @@ export function emptyData(now: string): TravelData {
     trips: [],
     places: [],
     people: [],
-    groups: [{ id: FAMILY_GROUP_ID, name: 'Family', memberIds: [], isFamily: true, createdAt: EPOCH, updatedAt: EPOCH }],
+    groups: builtInGroups(),
   }
 }
 
@@ -107,6 +115,8 @@ export interface TripInput {
   /** In visit order. If none is marked main, the first one is. */
   destinations: DestinationInput[]
   companions: string[]
+  /** Groups tagged on the trip as a whole ("Friends"). */
+  companionGroupIds?: string[]
   tripType: TripType | null
   travelMode?: TravelMode | null
   description: string
@@ -143,6 +153,7 @@ export function saveTrip(data: TravelData, ctx: EditContext, input: TripInput, t
     approximate: input.approximate,
     destinations,
     companions: [...new Set(input.companions)],
+    companionGroupIds: [...new Set(input.companionGroupIds ?? [])],
     tripType: input.tripType,
     travelMode: input.travelMode ?? null,
     description: input.description.trim(),

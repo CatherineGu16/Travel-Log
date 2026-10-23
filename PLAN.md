@@ -175,7 +175,8 @@ units (monuments, seashores, historic sites — 400+ total) could be added later
                                startDate | null, endDate | null,   // this place's own dates
                                note } ],
              travelMode | null,              // "road-trip" | "flight" | "cruise"
-             companions: [personId],         // who went
+             companions: [personId],         // people who went, one by one
+             companionGroupIds: [groupId],   // groups tagged as a whole ("Friends")
              hikes: [ { parkId,              // hikes done on this trip
                         hikeId | null,       // from park-hikes.json, or null for a custom hike
                         name,                // trail name (custom hikes type their own)
@@ -199,7 +200,7 @@ units (monuments, seashores, historic sites — 400+ total) could be added later
               createdAt, updatedAt, deleted? } ],
   groups: [ { id, name,                      // "Family", "College friends", "Work team"
               memberIds: [personId],
-              isFamily,                      // exactly one group, "Family", has this; created by default
+              isFamily,                      // only the built-in "Family" group; "Friends" is also built in
               createdAt, updatedAt, deleted? } ]
 }
 ```
@@ -295,24 +296,26 @@ Same engine as Watchlist-Tracker (`src/sync/`).
   the bundled outlines and its nearest town from the bundled places list, and can be renamed.
   - The first destination is the **main** one; tap any destination's pin/number to make it a main
     destination too (each gets a pin), or back to a stop.
-  - Each destination can have **its own dates** ("I know when I was here": Arrived / Left) and a
+  - Each destination can have **its own dates** ("I know when I was here", as a date range) and a
     note. On a new trip, these fill in the trip's start and end until you set those yourself.
   - A place inside a national park offers to be linked to the park ("This is inside Zion National
     Park. Count it as a visit?").
   - Move up / down, remove.
-- **Dates**: start and end, each **Date / Month / Year** (both required; the end follows the start
-  until you change it), plus "Dates are approximate".
+- **Trip dates**: a **date range picker**: tap the first day, then the last, on a calendar (Date),
+  a month grid (Month) or a year grid (Year). Typed fields underneath jump to any date. Plus "Dates
+  are approximate".
 - **How you traveled**: Road trip / Flight / Cruise.
 - **Title** (suggested from the main destinations and year, e.g. "Zion & Las Vegas 2024").
 - **Hikes**: for every national park on the trip. Check off trails from that park's list (with
   difficulty, distance and time), or add a custom hike by name. An optional date per hike.
-- **Who went**: shown as avatar chips.
-  - **Group shortcuts** at the top: tapping **Family** (or any group) adds everyone in it at once.
-    Tap a chip's × to drop anyone who didn't come.
-  - Search people by name to add individuals, or **add a new person** (name, avatar, and which
+- **Who went**:
+  - **Group tags**: **+ Family**, **+ Friends** (both built in) or any group you create adds the
+    group as **one tag**, without listing each person. Everyone in a tagged group counts as on the
+    trip for filters.
+  - Individual people (optional): search by name, or **add a new person** (name, avatar, and which
     groups they belong to) without leaving the form.
-- **Type of trip**: Family / Friends / Work (tap again to clear); Family is picked automatically
-  when anyone from the Family group is added, until you choose yourself.
+- **Type of trip**: Family / Friends / Work (tap again to clear); picked automatically from a
+  Family or Friends tag (or anyone from the Family group), until you choose yourself.
 - Optional: description, highlights, rating, tags.
 - Save, then the map flies to the new pin and shows its route.
 - **On phones**, while the on-screen keyboard is open the form fills exactly the visible part of the

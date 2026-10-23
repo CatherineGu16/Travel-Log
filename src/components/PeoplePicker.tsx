@@ -4,18 +4,22 @@ import { FAMILY_GROUP_ID, type TravelData } from '../lib/types.ts'
 import { Avatar } from './Avatar.tsx'
 
 /**
- * "Who went": chosen people as avatar chips. Group shortcuts add everyone in a group at once (then
- * drop anyone who didn't come); search adds individuals, or adds someone new.
+ * "Who went": groups as one tag each ("+ Friends", without listing anyone), and individual people
+ * as avatar chips. Search adds people you've added before, or someone new.
  */
 export function PeoplePicker({
   data,
   value,
   onChange,
+  groupIds,
+  onGroupsChange,
   onAddPerson,
 }: {
   data: TravelData
   value: string[]
   onChange: (ids: string[]) => void
+  groupIds: string[]
+  onGroupsChange: (ids: string[]) => void
   /** Creates a person and returns their id. */
   onAddPerson: (name: string, inFamily: boolean) => string | null
 }) {
@@ -23,7 +27,8 @@ export function PeoplePicker({
   const [query, setQuery] = useState('')
   const [newInFamily, setNewInFamily] = useState(false)
   const people = useMemo(() => livePeople(data), [data])
-  const groups = useMemo(() => liveGroups(data).filter((g) => g.memberIds.length > 0), [data])
+  const groups = useMemo(() => liveGroups(data), [data])
+  const tagged = groups.filter((g) => groupIds.includes(g.id))
   const chosen = value.map((pid) => data.people.find((p) => p.id === pid)).filter((p) => p !== undefined)
 
   const q = query.trim().toLowerCase()
@@ -42,27 +47,39 @@ export function PeoplePicker({
     <fieldset className="min-w-0">
       <legend className="mb-1.5 text-sm font-bold">Who went</legend>
 
-      {groups.length > 0 && (
-        <div className="mb-2 flex flex-wrap gap-2" aria-label="Add a group">
-          {groups.map((g) => {
-            const all = g.memberIds.every((m) => value.includes(m))
-            return (
-              <button
-                key={g.id}
-                type="button"
-                disabled={all}
-                onClick={() => add(g.memberIds.filter((m) => people.some((p) => p.id === m)))}
-                className={`min-h-9 rounded-full border px-3 text-sm font-bold disabled:opacity-50 ${g.id === FAMILY_GROUP_ID ? 'border-park text-park' : 'border-line text-fg'} hover:bg-raised`}
-              >
-                + {g.name} <span className="font-normal text-muted">({g.memberIds.length})</span>
-              </button>
-            )
-          })}
-        </div>
-      )}
+      <div className="mb-2 flex flex-wrap gap-2" role="group" aria-label="Add a group">
+        {groups
+          .filter((g) => !groupIds.includes(g.id))
+          .map((g) => (
+            <button
+              key={g.id}
+              type="button"
+              onClick={() => onGroupsChange([...groupIds, g.id])}
+              className={`min-h-9 rounded-full border px-3 text-sm font-bold ${g.id === FAMILY_GROUP_ID ? 'border-park text-park' : 'border-line text-fg'} hover:bg-raised`}
+            >
+              + {g.name}
+            </button>
+          ))}
+      </div>
 
-      {chosen.length > 0 && (
-        <ul className="mb-2 flex flex-wrap gap-1.5" aria-label="People on this trip">
+      {(tagged.length > 0 || chosen.length > 0) && (
+        <ul className="mb-2 flex flex-wrap gap-1.5" aria-label="Who went">
+          {tagged.map((g) => (
+            <li key={g.id} className={`flex items-center gap-1.5 rounded-full py-1 pr-1 pl-3 ${g.id === FAMILY_GROUP_ID ? 'bg-park/15 text-park' : 'bg-raised'}`}>
+              <GroupIcon />
+              <span className="text-sm font-bold">{g.name}</span>
+              <button
+                type="button"
+                aria-label={`Remove ${g.name}`}
+                onClick={() => onGroupsChange(groupIds.filter((x) => x !== g.id))}
+                className="grid size-7 place-items-center rounded-full text-muted hover:bg-line hover:text-fg"
+              >
+                <svg viewBox="0 0 20 20" className="size-3.5" aria-hidden>
+                  <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+                </svg>
+              </button>
+            </li>
+          ))}
           {chosen.map((p) => (
             <li key={p.id} className="flex items-center gap-1.5 rounded-full bg-raised py-1 pr-1 pl-1">
               <Avatar person={p} size={26} />
@@ -87,7 +104,7 @@ export function PeoplePicker({
         type="search"
         aria-label="Add a person"
         autoComplete="off"
-        placeholder={people.length ? 'Add a person' : 'Add the first person'}
+        placeholder="Add a person (optional)"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {
@@ -131,5 +148,16 @@ export function PeoplePicker({
         </ul>
       )}
     </fieldset>
+  )
+}
+
+export function GroupIcon({ className = 'size-4' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={`shrink-0 ${className}`} aria-hidden>
+      <circle cx="9" cy="8" r="3.2" fill="none" stroke="currentColor" strokeWidth="2" />
+      <path d="M3 19c.6-3.3 3.1-5 6-5s5.4 1.7 6 5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="17" cy="9" r="2.4" fill="none" stroke="currentColor" strokeWidth="2" />
+      <path d="M17 14c2.2 0 3.6 1.4 4 3.6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
   )
 }

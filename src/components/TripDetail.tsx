@@ -3,6 +3,7 @@ import { formatDateRange } from '../lib/partialDate.ts'
 import { routeOf } from '../lib/route.ts'
 import type { TravelData, Trip } from '../lib/types.ts'
 import { Avatar } from './Avatar.tsx'
+import { GroupIcon } from './PeoplePicker.tsx'
 import { PinGlyph } from './PlacePicker.tsx'
 import { Sheet } from './Sheet.tsx'
 import { TravelModeBadge, TripTypeBadge } from './TravelMode.tsx'
@@ -61,10 +62,18 @@ export function TripDetail({
       }
     >
       <div className="flex flex-col gap-6">
-        {people.length > 0 && (
+        {(people.length > 0 || trip.companionGroupIds.length > 0) && (
           <section>
             <h3 className="mb-2 text-sm font-bold text-muted">Who went</h3>
             <ul className="flex flex-wrap gap-2">
+              {data.groups
+                .filter((g) => !g.deleted && trip.companionGroupIds.includes(g.id))
+                .map((g) => (
+                  <li key={g.id} className="flex items-center gap-1.5 rounded-full bg-raised py-1.5 pr-3 pl-2.5 text-sm font-bold">
+                    <GroupIcon />
+                    {g.name}
+                  </li>
+                ))}
               {people.map((p) => (
                 <li key={p.id} className="flex items-center gap-1.5 rounded-full bg-raised py-1 pr-3 pl-1 text-sm">
                   <Avatar person={p} size={26} />

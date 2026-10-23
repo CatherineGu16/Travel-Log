@@ -76,10 +76,19 @@ export function shadeLevel(trips: number): 0 | 1 | 2 | 3 | 4 {
 
 export const familyGroup = (data: TravelData): Group | undefined => data.groups.find((g) => g.id === FAMILY_GROUP_ID && !g.deleted)
 
-/** True when anyone on the list is in the Family group. Picks the Family trip type by default. */
-export function includesFamily(data: TravelData, personIds: string[]): boolean {
-  const family = new Set(familyGroup(data)?.memberIds ?? [])
-  return personIds.some((id) => family.has(id))
+/** True when the Family group is tagged, or anyone on the list is in it. Picks the Family trip type. */
+export function includesFamily(data: TravelData, personIds: string[], groupIds: string[] = []): boolean {
+  const family = familyGroup(data)
+  if (!family) return false
+  return groupIds.includes(family.id) || personIds.some((id) => family.memberIds.includes(id))
+}
+
+/** Everyone on a trip: the people listed, plus the members of any group tagged on it. */
+export function tripPeopleIds(trip: Trip, data: TravelData): string[] {
+  const members = live(data.groups)
+    .filter((g) => trip.companionGroupIds.includes(g.id))
+    .flatMap((g) => g.memberIds)
+  return [...new Set([...trip.companions, ...members])]
 }
 
 export const livePeople = (data: TravelData): Person[] => live(data.people).sort((a, b) => a.name.localeCompare(b.name))

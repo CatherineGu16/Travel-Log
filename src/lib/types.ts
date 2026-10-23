@@ -54,7 +54,10 @@ export interface Trip extends Synced {
   approximate: boolean
   /** Where the trip went, in visit order; at least one is a main destination. */
   destinations: Destination[]
+  /** People who went, one by one. */
   companions: string[]
+  /** Groups that went, as a tag ("Friends"), without listing each person. */
+  companionGroupIds: string[]
   hikes: TripHike[]
   /** Family, friends or work trip (optional). */
   tripType: TripType | null
@@ -100,5 +103,6 @@ export interface EditContext {
   newId: () => string
 }
 
-/** A fixed id, so each device's default Family group is the same record and merges into one. */
+/** Fixed ids, so each device's default Family and Friends groups are the same records and merge into one. */
 export const FAMILY_GROUP_ID = 'family'
+export const FRIENDS_GROUP_ID = 'friends'

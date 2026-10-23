@@ -4,7 +4,7 @@ import type { RoutePoint } from '../lib/route.ts'
 import { deleteTrip } from '../lib/travelActions.ts'
 import type { TravelData, Trip } from '../lib/types.ts'
 import { useStore } from '../store/useTravel.ts'
-import { AvatarStack } from './Avatar.tsx'
+import { WhoWent } from './WhoWent.tsx'
 import { PinGlyph } from './PlacePicker.tsx'
 import { useToast } from './toastContext.ts'
 import { TravelModeBadge, TripTypeBadge } from './TravelMode.tsx'
@@ -35,7 +35,6 @@ export function PinCard({
 }) {
   const store = useStore()
   const toast = useToast()
-  const people = trip.companions.map((id) => data.people.find((p) => p.id === id)).filter((p) => p !== undefined)
 
   const remove = () => {
     const undoId = store.apply((d, c) => deleteTrip(d, c, trip.id), `Deleted ${trip.title}`)
@@ -115,7 +114,7 @@ export function PinCard({
             </ol>
           )}
           <div className="mt-3 flex items-center gap-1">
-            <AvatarStack people={people} />
+            <WhoWent trip={trip} data={data} />
             <span className="ml-auto" />
             <button onClick={() => onDetails(trip)} className="min-h-10 rounded-lg px-3 text-sm font-bold hover:bg-raised">
               Details

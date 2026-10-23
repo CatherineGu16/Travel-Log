@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { liveGroups, livePeople } from '../lib/derive.ts'
+import { liveGroups, livePeople, tripPeopleIds } from '../lib/derive.ts'
 import {
   addGroup,
   addPerson,
@@ -45,7 +45,7 @@ function PeopleList({ onPerson, onGroup }: { onPerson: (id: string | null) => vo
   const { data } = useTravelState()
   const people = livePeople(data)
   const groups = liveGroups(data)
-  const tripCount = (id: string) => live(data.trips).filter((t) => t.companions.includes(id)).length
+  const tripCount = (id: string) => live(data.trips).filter((t) => tripPeopleIds(t, data).includes(id)).length
 
   return (
     <div className="flex flex-col gap-6">

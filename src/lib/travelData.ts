@@ -1,6 +1,6 @@
 import { isPartialDate } from './partialDate.ts'
 import { insertCheapest } from './route.ts'
-import { emptyData } from './travelActions.ts'
+import { builtInGroups } from './travelActions.ts'
 import { FAMILY_GROUP_ID, type Avatar, type Destination, type Group, type Person, type Place, type Synced, type TravelData, type Trip } from './types.ts'
 
 /**
@@ -148,6 +148,7 @@ export function parseTravelData(input: unknown): TravelData {
       approximate: x.approximate === true,
       destinations,
       companions: strings(x.companions),
+      companionGroupIds: strings(x.companionGroupIds),
       hikes: (Array.isArray(x.hikes) ? x.hikes : [])
         .filter((h): h is Record<string, unknown> => isObject(h) && typeof h.parkId === 'string' && typeof h.name === 'string')
         .map((h) => ({ parkId: h.parkId as string, hikeId: typeof h.hikeId === 'string' ? h.hikeId : null, name: h.name as string, date: dateOrNull(h.date) })),
@@ -169,8 +170,8 @@ export function parseTravelData(input: unknown): TravelData {
     memberIds: strings(x.memberIds),
     isFamily: base.id === FAMILY_GROUP_ID,
   }))
-  // Every copy has the Family group, even an old or hand-made file.
-  if (!groups.some((g) => g.id === FAMILY_GROUP_ID)) groups.push(emptyData(str(o.updatedAt, new Date(0).toISOString())).groups[0])
+  // Every copy has the built-in Family and Friends groups, even an old or hand-made file.
+  for (const g of builtInGroups()) if (!groups.some((x) => x.id === g.id)) groups.push(g)
 
   return { schemaVersion: 1, updatedAt: str(o.updatedAt, new Date(0).toISOString()), trips, places, people, groups }
 }

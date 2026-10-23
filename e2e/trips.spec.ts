@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { setTripYear } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -51,10 +52,7 @@ test('a second trip to the same place stacks on its pin', async ({ page }) => {
     await page.getByRole('button', { name: 'Add trip' }).click()
     const dialog = page.getByRole('dialog', { name: 'Add trip' })
     await choosePlace(page, DEST, 'moab', /^Moab/)
-    await dialog.getByRole('radio', { name: 'Year' }).first().click()
-    const yearInput = dialog.getByRole('textbox', { name: 'Start year' })
-    await yearInput.fill(year)
-    await yearInput.press('Enter')
+    await setTripYear(dialog, year)
     await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
     await expect(dialog).toBeHidden()
     if (year === '2019') await page.getByRole('region', { name: 'Moab trips' }).getByRole('button', { name: 'Close' }).click()
@@ -75,10 +73,7 @@ test('picking a stacked date shows that trip’s route, and details show other v
     const dialog = page.getByRole('dialog', { name: 'Add trip' })
     await choosePlace(page, DEST, 'moab', /^Moab/)
     for (const [q, o] of stops) await choosePlace(page, DEST, q, o)
-    await dialog.getByRole('radio', { name: 'Year' }).first().click()
-    const yearInput = dialog.getByRole('textbox', { name: 'Start year' })
-    await yearInput.fill(year)
-    await yearInput.press('Enter')
+    await setTripYear(dialog, year)
     await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
     await expect(dialog).toBeHidden()
     if (year === '2019') await page.getByRole('region', { name: 'Moab trips' }).getByRole('button', { name: 'Close' }).click()
@@ -120,11 +115,11 @@ test('a trip with two main destinations, each with its own dates', async ({ page
     const row = dialog.getByRole('listitem', { name })
     await row.getByRole('button', { name: /Add dates/ }).click()
     await row.getByRole('checkbox', { name: 'I know when I was here' }).check()
-    await row.getByLabel('Arrived', { exact: true }).fill(from)
-    await row.getByLabel('Left', { exact: true }).fill(to)
+    await row.getByLabel(`Dates at ${name} start`, { exact: true }).fill(from)
+    await row.getByLabel(`Dates at ${name} end`, { exact: true }).fill(to)
   }
-  await expect(dialog.getByLabel('Start', { exact: true })).toHaveValue('2024-05-01')
-  await expect(dialog.getByLabel('End', { exact: true })).toHaveValue('2024-05-06')
+  await expect(dialog.getByLabel('Trip dates start', { exact: true })).toHaveValue('2024-05-01')
+  await expect(dialog.getByLabel('Trip dates end', { exact: true })).toHaveValue('2024-05-06')
 
   await dialog.getByRole('button', { name: /Road trip/ }).click()
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
@@ -140,10 +135,36 @@ test('a trip with two main destinations, each with its own dates', async ({ page
   await expect(row).toContainText('Road trip')
 })
 
-test('start and end dates offer only date, month or year', async ({ page }) => {
+test('trip dates are a range picker: tap the first day, then the last', async ({ page }) => {
   await page.goto('./')
   await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
-  for (const label of ['Start', 'End'])
-    await expect(dialog.getByRole('radiogroup', { name: `${label} precision` }).getByRole('radio')).toHaveText(['Date', 'Month', 'Year'])
+  const range = dialog.getByRole('group', { name: /^Trip dates/ })
+  await expect(range.getByRole('radiogroup', { name: 'Trip dates precision' }).getByRole('radio')).toHaveText(['Date', 'Month', 'Year'])
+
+  await range.getByRole('combobox', { name: 'Trip dates calendar month' }).selectOption('7')
+  await range.getByRole('combobox', { name: 'Trip dates calendar year' }).selectOption('2023')
+  await range.getByRole('button', { name: 'July 4, 2023' }).click()
+  await range.getByRole('button', { name: 'July 9, 2023' }).click()
+  await expect(range).toContainText('Jul 4 – 9, 2023')
+  await expect(range.getByRole('button', { name: 'July 6, 2023' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(range.getByRole('button', { name: 'July 10, 2023' })).toHaveAttribute('aria-pressed', 'false')
+
+  // Month precision keeps the range as months.
+  await range.getByRole('radio', { name: 'Month' }).click()
+  await expect(range).toContainText('Jul 2023')
+})
+
+test('Friends can be added as one tag, without listing anyone', async ({ page }) => {
+  await page.goto('./')
+  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
+  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await choosePlace(page, DEST, 'chicago', /^Chicago/)
+  await dialog.getByRole('group', { name: 'Add a group' }).getByRole('button', { name: '+ Friends' }).click()
+  await expect(dialog.getByRole('list', { name: 'Who went' })).toContainText('Friends')
+  await expect(dialog.getByRole('radiogroup', { name: 'Type of trip' }).getByRole('radio', { name: 'Friends' })).toBeChecked()
+  await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+
+  const card = page.getByRole('region', { name: 'Chicago trips' })
+  await expect(card).toContainText('Friends')
 })

@@ -48,7 +48,7 @@ describe('parseTravelData', () => {
     })
     expect(parsed.trips).toEqual([])
     expect(parsed.places).toHaveLength(1)
-    expect(parsed.groups.map((g) => g.id)).toEqual([FAMILY_GROUP_ID])
+    expect(parsed.groups.map((g) => g.id)).toEqual([FAMILY_GROUP_ID, 'friends'])
   })
 })
 

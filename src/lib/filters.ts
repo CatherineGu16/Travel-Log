@@ -1,4 +1,4 @@
-import { byNewest, tripPlaceIds } from './derive.ts'
+import { byNewest, tripPeopleIds, tripPlaceIds } from './derive.ts'
 import { formatDateRange, yearOf } from './partialDate.ts'
 import { regionName } from './states.ts'
 import { live } from './travelActions.ts'
@@ -35,9 +35,12 @@ export function reviveFilter(stored: unknown): TripFilter {
   }
 }
 
-export function matchesFilter(trip: Trip, f: TripFilter): boolean {
+export function matchesFilter(trip: Trip, f: TripFilter, data?: TravelData): boolean {
   if (f.type && trip.tripType !== f.type) return false
-  if (f.personIds.length && !f.personIds.some((id) => trip.companions.includes(id))) return false
+  if (f.personIds.length) {
+    const people = data ? tripPeopleIds(trip, data) : trip.companions
+    if (!f.personIds.some((id) => people.includes(id))) return false
+  }
   if (f.year && yearOf(trip.startDate) !== f.year && !(trip.endDate && yearOf(trip.startDate) < f.year && yearOf(trip.endDate) >= f.year))
     return false
   if (f.tag && !trip.tags.includes(f.tag)) return false
@@ -48,7 +51,7 @@ export function matchesFilter(trip: Trip, f: TripFilter): boolean {
 /** Your data with only the trips that pass the filter, so pins and shading can be derived as usual. */
 export function filterData(data: TravelData, f: TripFilter): TravelData {
   if (activeFilterCount(f) === 0) return data
-  return { ...data, trips: data.trips.filter((t) => t.deleted || matchesFilter(t, f)) }
+  return { ...data, trips: data.trips.filter((t) => t.deleted || matchesFilter(t, f, data)) }
 }
 
 const normalize = (s: string) =>
@@ -64,7 +67,7 @@ export function matchesSearch(trip: Trip, data: TravelData, query: string): bool
   const places = tripPlaceIds(trip).map((id) => data.places.find((p) => p.id === id))
   const people = trip.companions.map((id) => data.people.find((p) => p.id === id)?.name)
   const groups = live(data.groups)
-    .filter((g) => g.memberIds.some((m) => trip.companions.includes(m)))
+    .filter((g) => trip.companionGroupIds.includes(g.id) || g.memberIds.some((m) => trip.companions.includes(m)))
     .map((g) => g.name)
   const haystack = normalize(
     [

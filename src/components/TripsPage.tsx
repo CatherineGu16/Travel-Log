@@ -4,7 +4,7 @@ import { formatDateRange } from '../lib/partialDate.ts'
 import { live } from '../lib/travelActions.ts'
 import type { TravelData, Trip } from '../lib/types.ts'
 import { usePersistentState } from '../ui/usePersistentState.ts'
-import { AvatarStack } from './Avatar.tsx'
+import { WhoWent } from './WhoWent.tsx'
 import { PinGlyph } from './PlacePicker.tsx'
 import { TravelModeBadge, TripTypeBadge } from './TravelMode.tsx'
 
@@ -72,7 +72,6 @@ export function TripsPage({ data, toolbar, onOpenTrip }: { data: TravelData; too
 function TripRow({ trip, data, onOpen }: { trip: Trip; data: TravelData; onOpen: () => void }) {
   const mains = trip.destinations.filter((d) => d.isMain).map((d) => data.places.find((p) => p.id === d.placeId)).filter((p) => p !== undefined)
   const stops = trip.destinations.length - mains.length
-  const people = trip.companions.map((id) => data.people.find((p) => p.id === id)).filter((p) => p !== undefined)
   return (
     <li>
       <button onClick={onOpen} className="flex min-h-16 w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-raised">
@@ -90,7 +89,7 @@ function TripRow({ trip, data, onOpen }: { trip: Trip; data: TravelData; onOpen:
             {trip.rating && ` · ${'★'.repeat(trip.rating)}`}
           </span>
         </span>
-        <AvatarStack people={people} size={24} max={3} />
+        <WhoWent trip={trip} data={data} size={24} max={3} />
       </button>
     </li>
   )

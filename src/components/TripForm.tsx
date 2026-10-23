@@ -3,10 +3,10 @@ import { describeRef, type ChosenPlace } from '../lib/chosenPlace.ts'
 import { includesFamily } from '../lib/derive.ts'
 import { comparePartialDates, formatDateRange, todayIso, yearOf } from '../lib/partialDate.ts'
 import { addPerson, saveTrip, type PlaceInput, type TripInput } from '../lib/travelActions.ts'
-import { FAMILY_GROUP_ID, type PartialDate, type TravelMode, type Trip, type TripHike, type TripType } from '../lib/types.ts'
+import { FAMILY_GROUP_ID, FRIENDS_GROUP_ID, type PartialDate, type TravelMode, type Trip, type TripHike, type TripType } from '../lib/types.ts'
 import { TRIP_TYPES } from '../lib/tripTypes.ts'
 import { newId, useStore, useTravelState } from '../store/useTravel.ts'
-import { DateField } from './DateField.tsx'
+import { DateRangeField } from './DateRangeField.tsx'
 import { HikesField } from './HikesField.tsx'
 import { PeoplePicker } from './PeoplePicker.tsx'
 import { ParkSuggestion, PinGlyph, PlacePicker } from './PlacePicker.tsx'
@@ -61,10 +61,8 @@ export function TripForm({
   const [title, setTitle] = useState(trip?.title ?? '')
   const [startDate, setStartDate] = useState<PartialDate>(trip?.startDate ?? todayIso())
   const [endDate, setEndDate] = useState<PartialDate>(trip?.endDate ?? trip?.startDate ?? todayIso())
-  // On a new trip, destination dates fill in the trip's dates until you set them yourself, and the
-  // end date follows the start date until you change it.
+  // On a new trip, destination dates fill in the trip's dates until you set them yourself.
   const [datesTouched, setDatesTouched] = useState(!!trip)
-  const [endTouched, setEndTouched] = useState(!!trip)
   const [approximate, setApproximate] = useState(trip?.approximate ?? false)
   const [destinations, setDestinations] = useState<DestinationDraft[]>(() => {
     if (trip)
@@ -83,8 +81,10 @@ export function TripForm({
   })
   const [travelMode, setTravelMode] = useState<TravelMode | null>(trip?.travelMode ?? null)
   const [companions, setCompanions] = useState<string[]>(trip?.companions ?? [])
+  const [companionGroupIds, setCompanionGroupIds] = useState<string[]>(trip?.companionGroupIds ?? [])
   const [tripType, setTripType] = useState<TripType | null>(trip?.tripType ?? null)
-  // Adding someone from Family picks Family, until you choose a type yourself.
+  // Tagging Family (or adding someone from it) picks Family, tagging Friends picks Friends, until
+  // you choose a type yourself.
   const [typeTouched, setTypeTouched] = useState(!!trip)
   const [description, setDescription] = useState(trip?.description ?? '')
   const [highlights, setHighlights] = useState(trip?.highlights ?? '')
@@ -111,9 +111,12 @@ export function TripForm({
     [mains, startDate],
   )
 
-  const setWho = (ids: string[]) => {
-    setCompanions(ids)
-    if (!typeTouched) setTripType(includesFamily(store.getState().data, ids) ? 'family' : null)
+  const setWho = (people: string[], groups: string[]) => {
+    setCompanions(people)
+    setCompanionGroupIds(groups)
+    if (typeTouched) return
+    const latest = store.getState().data
+    setTripType(includesFamily(latest, people, groups) ? 'family' : groups.includes(FRIENDS_GROUP_ID) ? 'friends' : null)
   }
 
   /** Destination edits; on a new trip whose dates you haven't set, the trip spans the destinations' dates. */
@@ -154,12 +157,6 @@ export function TripForm({
       return next
     })
 
-  const changeStart = (v: PartialDate) => {
-    setDatesTouched(true)
-    setStartDate(v)
-    if (!endTouched || compareLoose(endDate, v) < 0) setEndDate(v)
-  }
-
   const save = () => {
     if (destinations.length === 0) return setError('Add where the trip went.')
     if (compareLoose(endDate, startDate) < 0) return setError('The end date is before the start date.')
@@ -177,6 +174,7 @@ export function TripForm({
       approximate,
       destinations: destinations.map((d) => ({ place: d.place.ref, isMain: d.isMain, startDate: d.startDate, endDate: d.endDate, note: d.note })),
       companions,
+      companionGroupIds,
       tripType,
       travelMode,
       description,
@@ -307,10 +305,12 @@ export function TripForm({
                           I know when I was here
                         </label>
                         {d.startDate && (
-                          <>
-                            <DateField label="Arrived" value={d.startDate} onChange={(v) => v && patch(d.key, { startDate: v })} allowUnknown={false} />
-                            <DateField label="Left" value={d.endDate ?? d.startDate} onChange={(v) => v && patch(d.key, { endDate: v })} allowUnknown={false} />
-                          </>
+                          <DateRangeField
+                            label={`Dates at ${d.place.label}`}
+                            start={d.startDate}
+                            end={d.endDate ?? d.startDate}
+                            onChange={(startDate, endDate) => patch(d.key, { startDate, endDate })}
+                          />
                         )}
                         <label className="block">
                           <span className="mb-1 block text-sm font-bold">Note</span>
@@ -337,20 +337,16 @@ export function TripForm({
           />
         </section>
 
-        <div className="flex flex-col gap-4">
-          <DateField label="Start" value={startDate} onChange={(v) => v && changeStart(v)} allowUnknown={false} />
-          <DateField
-            label="End"
-            value={endDate}
-            onChange={(v) => {
-              if (!v) return
-              setDatesTouched(true)
-              setEndTouched(true)
-              setEndDate(v)
-            }}
-            allowUnknown={false}
-          />
-        </div>
+        <DateRangeField
+          label="Trip dates"
+          start={startDate}
+          end={endDate}
+          onChange={(s, e) => {
+            setDatesTouched(true)
+            setStartDate(s)
+            setEndDate(e)
+          }}
+        />
         <label className="-mt-2 flex min-h-9 items-center gap-2 text-sm">
           <input type="checkbox" checked={approximate} onChange={(e) => setApproximate(e.target.checked)} className="size-4" />
           Dates are approximate
@@ -384,7 +380,9 @@ export function TripForm({
         <PeoplePicker
           data={data}
           value={companions}
-          onChange={setWho}
+          onChange={(people) => setWho(people, companionGroupIds)}
+          groupIds={companionGroupIds}
+          onGroupsChange={(groups) => setWho(companions, groups)}
           onAddPerson={(name, inFamily) => {
             const id = newId()
             const ok = store.apply((d, c) => addPerson(d, c, id, { name, groupIds: inFamily ? [FAMILY_GROUP_ID] : [] }), `Added ${name}`)
@@ -412,7 +410,7 @@ export function TripForm({
               </button>
             ))}
           </div>
-          <p className="mt-1 text-xs text-muted">Family is picked for you when someone from Family is added.</p>
+          <p className="mt-1 text-xs text-muted">Picked for you when you add Family or Friends under Who went.</p>
         </fieldset>
 
         <details className="group rounded-lg border border-line" open={!!(trip && (description || highlights || rating || tags))}>
