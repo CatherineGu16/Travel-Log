@@ -1,6 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import type { CSSProperties, ReactNode } from 'react'
-import { useKeyboardInset } from '../ui/useKeyboardInset.ts'
+import { useKeyboardArea } from '../ui/useKeyboardInset.ts'
 
 /** Bottom sheet on phones, side panel from 640px up. Radix handles focus trap, Escape, and scroll lock. */
 export function Sheet({
@@ -21,9 +21,11 @@ export function Sheet({
   footer?: ReactNode
   children: ReactNode
 }) {
-  // Phones only: keep the sheet above the on-screen keyboard and sized to what's still visible.
+  // Phones only: while the on-screen keyboard is open, the sheet fills exactly the part of the
+  // screen you can still see and scrolls on its own, so its first field is never stranded above
+  // the screen. Its buttons hide until the keyboard closes.
   const phone = typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches
-  const keyboard = useKeyboardInset(open && phone)
+  const keyboard = useKeyboardArea(open && phone)
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -32,12 +34,12 @@ export function Sheet({
           style={
             {
               '--accent': accent ?? 'var(--line)',
-              ...(keyboard.height ? { bottom: keyboard.bottom, maxHeight: keyboard.height - 8 } : {}),
+              ...(keyboard ? { top: keyboard.top, bottom: 'auto', height: keyboard.height, maxHeight: 'none', borderRadius: 0 } : {}),
             } as CSSProperties
           }
           className="fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] flex-col rounded-t-2xl border-t-4 border-[var(--accent)] bg-surface [animation:sheet-up_220ms_cubic-bezier(.2,.8,.2,1)] sm:inset-y-0 sm:right-0 sm:left-auto sm:max-h-none sm:w-[28rem] sm:rounded-none sm:border-t-0 sm:border-l-4 sm:[animation:sheet-left_220ms_cubic-bezier(.2,.8,.2,1)]"
         >
-          <div className="flex items-start gap-2 px-4 pt-4 pb-3 sm:pt-[max(1rem,env(safe-area-inset-top))]">
+          <div className={`flex items-start gap-2 px-4 pb-3 sm:pt-[max(1rem,env(safe-area-inset-top))] ${keyboard ? 'pt-2' : 'pt-4'}`}>
             <div className="min-w-0 flex-1">
               <Dialog.Title className="font-display text-[1.75rem] leading-tight font-semibold">{title}</Dialog.Title>
               {description ? (
@@ -55,11 +57,12 @@ export function Sheet({
             </Dialog.Close>
           </div>
           <div
-            className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 ${footer ? 'pb-4' : 'pb-[max(1.5rem,env(safe-area-inset-bottom))]'}`}
+            data-sheet-body
+            className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 ${footer && !keyboard ? 'pb-4' : 'pb-[max(1.5rem,env(safe-area-inset-bottom))]'}`}
           >
             {children}
           </div>
-          {footer && (
+          {footer && !keyboard && (
             <div className="border-t border-line bg-surface px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">{footer}</div>
           )}
         </Dialog.Content>

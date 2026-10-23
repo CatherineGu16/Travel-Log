@@ -322,7 +322,7 @@ function GroupEditor({ id, onDone }: { id: string | null; onDone: () => void }) 
           className="h-11 w-full rounded-lg border border-line bg-bg px-3 text-base"
         />
       </label>
-      {existing?.isFamily && <p className="-mt-3 text-sm text-muted">Adding Family to a trip turns on its Family switch.</p>}
+      {existing?.isFamily && <p className="-mt-3 text-sm text-muted">Adding someone from Family to a trip makes it a Family trip.</p>}
       <fieldset>
         <legend className="mb-1.5 text-sm font-bold">Members</legend>
         {livePeople(data).length === 0 ? (

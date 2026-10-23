@@ -5,12 +5,9 @@ import type { TravelData } from '../lib/types.ts'
 import { Avatar } from './Avatar.tsx'
 import { Sheet } from './Sheet.tsx'
 import { TRAVEL_MODES } from '../lib/travelModes.ts'
+import { TRIP_TYPES } from '../lib/tripTypes.ts'
 
-const WHO: { id: TripFilter['who']; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'family', label: 'Family' },
-  { id: 'not-family', label: 'Not family' },
-]
+const TYPES: { id: TripFilter['type']; label: string }[] = [{ id: null, label: 'All' }, ...TRIP_TYPES]
 
 /** The filters shared by the map and the lists. Changes apply as you tap. */
 export function FilterSheet({
@@ -57,16 +54,16 @@ export function FilterSheet({
     >
       <div className="flex flex-col gap-6">
         <fieldset>
-          <legend className="mb-2 text-sm font-bold">Who</legend>
-          <div role="radiogroup" aria-label="Family" className="flex w-fit rounded-lg bg-bg p-0.5">
-            {WHO.map((w) => (
+          <legend className="mb-2 text-sm font-bold">Type of trip</legend>
+          <div role="radiogroup" aria-label="Type of trip" className="flex w-fit rounded-lg bg-bg p-0.5">
+            {TYPES.map((w) => (
               <button
-                key={w.id}
+                key={w.id ?? 'all'}
                 type="button"
                 role="radio"
-                aria-checked={filter.who === w.id}
-                onClick={() => set({ who: w.id })}
-                className={`min-h-10 rounded-md px-3 text-sm ${filter.who === w.id ? 'bg-raised font-bold text-fg' : 'text-muted hover:text-fg'}`}
+                aria-checked={filter.type === w.id}
+                onClick={() => set({ type: w.id })}
+                className={`min-h-10 rounded-md px-3 text-sm ${filter.type === w.id ? 'bg-raised font-bold text-fg' : 'text-muted hover:text-fg'}`}
               >
                 {w.label}
               </button>

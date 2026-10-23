@@ -9,6 +9,7 @@ import {
   type Place,
   type Destination,
   type TravelMode,
+  type TripType,
   type Synced,
   type TravelData,
   type Trip,
@@ -106,7 +107,7 @@ export interface TripInput {
   /** In visit order. If none is marked main, the first one is. */
   destinations: DestinationInput[]
   companions: string[]
-  isFamily: boolean
+  tripType: TripType | null
   travelMode?: TravelMode | null
   description: string
   highlights: string
@@ -142,7 +143,7 @@ export function saveTrip(data: TravelData, ctx: EditContext, input: TripInput, t
     approximate: input.approximate,
     destinations,
     companions: [...new Set(input.companions)],
-    isFamily: input.isFamily,
+    tripType: input.tripType,
     travelMode: input.travelMode ?? null,
     description: input.description.trim(),
     highlights: input.highlights.trim(),

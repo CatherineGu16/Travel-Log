@@ -20,11 +20,11 @@ test('log a multi-stop family trip, see it on the map, and it survives a reload'
   await choosePlace(page, DEST, 'Springdale, UT', /^Springdale\s*UT$/)
   await choosePlace(page, DEST, 'Las Vegas', /^Las Vegas\s*NV$/)
 
-  // A new person added to Family turns on the Family switch.
+  // A new person added to Family makes it a Family trip.
   await dialog.getByRole('searchbox', { name: 'Add a person' }).fill('Mom')
   await dialog.getByRole('checkbox', { name: 'Family' }).check()
   await dialog.getByRole('button', { name: 'Add “Mom”' }).click()
-  await expect(dialog.getByRole('switch')).toBeChecked()
+  await expect(dialog.getByRole('radiogroup', { name: 'Type of trip' }).getByRole('radio', { name: 'Family' })).toBeChecked()
 
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(dialog).toBeHidden()

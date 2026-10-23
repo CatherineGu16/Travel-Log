@@ -2,11 +2,13 @@ import { byNewest, tripPlaceIds } from './derive.ts'
 import { formatDateRange, yearOf } from './partialDate.ts'
 import { regionName } from './states.ts'
 import { live } from './travelActions.ts'
-import type { TravelData, TravelMode, Trip } from './types.ts'
+import { tripTypeLabel } from './tripTypes.ts'
+import type { TravelData, TravelMode, Trip, TripType } from './types.ts'
 
 /** Filters shared by the map and the lists, remembered per device. */
 export interface TripFilter {
-  who: 'all' | 'family' | 'not-family'
+  /** Family, friends or work trips; null for all. */
+  type: TripType | null
   /** Trips with any of these people on them. */
   personIds: string[]
   year: string | null
@@ -15,16 +17,17 @@ export interface TripFilter {
   mode: TravelMode | null
 }
 
-export const NO_FILTER: TripFilter = { who: 'all', personIds: [], year: null, tag: null, mode: null }
+export const NO_FILTER: TripFilter = { type: null, personIds: [], year: null, tag: null, mode: null }
 
 export const activeFilterCount = (f: TripFilter) =>
-  Number(f.who !== 'all') + Number(f.personIds.length > 0) + Number(f.year !== null) + Number(f.tag !== null) + Number(f.mode !== null)
+  Number(f.type !== null) + Number(f.personIds.length > 0) + Number(f.year !== null) + Number(f.tag !== null) + Number(f.mode !== null)
 
 /** Accepts whatever was stored (older versions, hand edits) and falls back to no filter. */
 export function reviveFilter(stored: unknown): TripFilter {
-  const s = (stored ?? {}) as Partial<TripFilter>
+  const s = (stored ?? {}) as Partial<TripFilter> & { who?: string }
+  const type = s.type === 'family' || s.type === 'friends' || s.type === 'work' ? s.type : s.who === 'family' ? 'family' : null
   return {
-    who: s.who === 'family' || s.who === 'not-family' ? s.who : 'all',
+    type,
     personIds: Array.isArray(s.personIds) ? s.personIds.filter((x): x is string => typeof x === 'string') : [],
     year: typeof s.year === 'string' ? s.year : null,
     tag: typeof s.tag === 'string' ? s.tag : null,
@@ -33,8 +36,7 @@ export function reviveFilter(stored: unknown): TripFilter {
 }
 
 export function matchesFilter(trip: Trip, f: TripFilter): boolean {
-  if (f.who === 'family' && !trip.isFamily) return false
-  if (f.who === 'not-family' && trip.isFamily) return false
+  if (f.type && trip.tripType !== f.type) return false
   if (f.personIds.length && !f.personIds.some((id) => trip.companions.includes(id))) return false
   if (f.year && yearOf(trip.startDate) !== f.year && !(trip.endDate && yearOf(trip.startDate) < f.year && yearOf(trip.endDate) >= f.year))
     return false
@@ -73,7 +75,7 @@ export function matchesSearch(trip: Trip, data: TravelData, query: string): bool
       ...people,
       ...groups,
       ...trip.tags,
-      trip.isFamily ? 'family' : '',
+      tripTypeLabel(trip.tripType) ?? '',
       trip.travelMode === 'road-trip' ? 'road trip' : (trip.travelMode ?? ''),
       formatDateRange(trip.startDate, trip.endDate),
     ]
@@ -83,7 +85,7 @@ export function matchesSearch(trip: Trip, data: TravelData, query: string): bool
   return words.every((w) => haystack.includes(w))
 }
 
-export type TripGrouping = 'year' | 'state' | 'family'
+export type TripGrouping = 'year' | 'state' | 'type'
 export type TripSort = 'newest' | 'oldest' | 'title' | 'rating'
 
 export interface TripGroup {
@@ -99,11 +101,14 @@ const SORTS: Record<TripSort, (a: Trip, b: Trip) => number> = {
   rating: (a, b) => (b.rating ?? 0) - (a.rating ?? 0) || byNewest(a, b),
 }
 
-/** Trips grouped (year, state of the first main destination, or Family / Not family) and sorted within each group. */
+/** Trips grouped (year, state of the first main destination, or trip type) and sorted within each group. */
 export function groupTrips(trips: Trip[], data: TravelData, grouping: TripGrouping, sort: TripSort): TripGroup[] {
   const keyOf = (t: Trip): [string, string] => {
     if (grouping === 'year') return [yearOf(t.startDate), yearOf(t.startDate)]
-    if (grouping === 'family') return t.isFamily ? ['0', 'Family'] : ['1', 'Not family']
+    if (grouping === 'type') {
+      const i = ['family', 'friends', 'work'].indexOf(t.tripType ?? '')
+      return i < 0 ? ['9', 'Other'] : [String(i), tripTypeLabel(t.tripType)!]
+    }
     const firstMain = t.destinations.find((d) => d.isMain)?.placeId
     const region = data.places.find((p) => p.id === firstMain)?.regionCode ?? null
     const name = regionName(region)

@@ -1,29 +1,43 @@
 import { useEffect, useState } from 'react'
 
+/** The part of the screen you can see while the on-screen keyboard is open. */
+export interface VisibleArea {
+  /** From the top of the page (iPhone Safari pans the page up when you tap a field). */
+  top: number
+  height: number
+}
+
+/** Smaller than this, a shrink of the visible area is browser chrome, not a keyboard. */
+const KEYBOARD_MIN_PX = 120
+
 /**
- * On phones the on-screen keyboard covers the bottom of the page without resizing it (iOS
- * Safari). This tracks the visible area, so a bottom sheet can sit just above the keyboard and fit
- * what's left, instead of the browser scrolling the whole page to show the field you tapped.
+ * On iPhones the on-screen keyboard covers the page without resizing it, and Safari pans the page
+ * up to show the field you tapped. A bottom sheet then ends up partly off the top of the screen,
+ * and since the page behind it can't scroll you can't get back to its first field. This tracks the
+ * visible area while the keyboard is open, so the sheet can fill exactly that and scroll on its
+ * own. Null while the keyboard is closed.
  */
-export function useKeyboardInset(active: boolean): { bottom: number; height: number | null } {
-  const [inset, setInset] = useState<{ bottom: number; height: number | null }>({ bottom: 0, height: null })
+export function useKeyboardArea(active: boolean, viewport: VisualViewport | null = typeof window !== 'undefined' ? window.visualViewport : null) {
+  const [area, setArea] = useState<VisibleArea | null>(null)
   useEffect(() => {
-    const vv = window.visualViewport
-    if (!active || !vv) return
+    if (!active || !viewport) return
+    let frame = 0
     const update = () => {
-      const bottom = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop))
-      setInset(bottom > 40 ? { bottom, height: Math.round(vv.height) } : { bottom: 0, height: null })
-      // iOS still scrolls the page behind the sheet to reveal a focused field; put it back.
-      if (bottom > 40 && (window.scrollY || document.documentElement.scrollTop)) window.scrollTo(0, 0)
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        const covered = window.innerHeight - viewport.height
+        setArea(covered > KEYBOARD_MIN_PX ? { top: Math.round(viewport.offsetTop), height: Math.round(viewport.height) } : null)
+      })
     }
     update()
-    vv.addEventListener('resize', update)
-    vv.addEventListener('scroll', update)
+    viewport.addEventListener('resize', update)
+    viewport.addEventListener('scroll', update)
     return () => {
-      vv.removeEventListener('resize', update)
-      vv.removeEventListener('scroll', update)
-      setInset({ bottom: 0, height: null })
+      cancelAnimationFrame(frame)
+      viewport.removeEventListener('resize', update)
+      viewport.removeEventListener('scroll', update)
+      setArea(null)
     }
-  }, [active])
-  return inset
+  }, [active, viewport])
+  return area
 }

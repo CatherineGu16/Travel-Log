@@ -5,7 +5,7 @@ import type { TravelData, Trip } from '../lib/types.ts'
 import { Avatar } from './Avatar.tsx'
 import { PinGlyph } from './PlacePicker.tsx'
 import { Sheet } from './Sheet.tsx'
-import { TravelModeBadge } from './TravelMode.tsx'
+import { TravelModeBadge, TripTypeBadge } from './TravelMode.tsx'
 
 /**
  * Everything about one trip: dates, who went, the route stop by stop (each with its own dates,
@@ -43,7 +43,7 @@ export function TripDetail({
       description={
         <span className="flex flex-wrap items-center gap-2">
           {formatDateRange(trip.startDate, trip.endDate, trip.approximate)}
-          {trip.isFamily && <span className="rounded-full bg-park/15 px-2 py-0.5 text-xs font-bold text-park">Family</span>}
+          <TripTypeBadge type={trip.tripType} />
           <TravelModeBadge mode={trip.travelMode} />
           {trip.rating && (
             <span className="text-[#e0a526]" aria-label={`${trip.rating} out of 5 stars`}>

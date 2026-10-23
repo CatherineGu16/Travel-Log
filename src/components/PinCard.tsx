@@ -7,7 +7,7 @@ import { useStore } from '../store/useTravel.ts'
 import { AvatarStack } from './Avatar.tsx'
 import { PinGlyph } from './PlacePicker.tsx'
 import { useToast } from './toastContext.ts'
-import { TravelModeBadge } from './TravelMode.tsx'
+import { TravelModeBadge, TripTypeBadge } from './TravelMode.tsx'
 
 /**
  * The preview card for a selected pin. A place visited more than once shows its dates stacked;
@@ -91,7 +91,7 @@ export function PinCard({
         <div className="px-4 py-3">
           <div className="flex items-baseline gap-2">
             <h3 className="min-w-0 flex-1 truncate font-bold">{trip.title}</h3>
-            {trip.isFamily && <span className="shrink-0 rounded-full bg-park/15 px-2 py-0.5 text-xs font-bold text-park">Family</span>}
+            <TripTypeBadge type={trip.tripType} />
             <TravelModeBadge mode={trip.travelMode} />
           </div>
           <p className="text-sm text-muted">{formatDateRange(trip.startDate, trip.endDate, trip.approximate)}</p>

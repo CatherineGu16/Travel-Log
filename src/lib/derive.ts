@@ -76,7 +76,7 @@ export function shadeLevel(trips: number): 0 | 1 | 2 | 3 | 4 {
 
 export const familyGroup = (data: TravelData): Group | undefined => data.groups.find((g) => g.id === FAMILY_GROUP_ID && !g.deleted)
 
-/** True when anyone on the list is in the Family group. Drives the Family switch's default. */
+/** True when anyone on the list is in the Family group. Picks the Family trip type by default. */
 export function includesFamily(data: TravelData, personIds: string[]): boolean {
   const family = new Set(familyGroup(data)?.memberIds ?? [])
   return personIds.some((id) => family.has(id))

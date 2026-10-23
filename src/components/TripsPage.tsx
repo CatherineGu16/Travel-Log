@@ -6,12 +6,12 @@ import type { TravelData, Trip } from '../lib/types.ts'
 import { usePersistentState } from '../ui/usePersistentState.ts'
 import { AvatarStack } from './Avatar.tsx'
 import { PinGlyph } from './PlacePicker.tsx'
-import { TravelModeBadge } from './TravelMode.tsx'
+import { TravelModeBadge, TripTypeBadge } from './TravelMode.tsx'
 
 const GROUPINGS: { id: TripGrouping; label: string }[] = [
   { id: 'year', label: 'Year' },
   { id: 'state', label: 'State' },
-  { id: 'family', label: 'Family / Not family' },
+  { id: 'type', label: 'Type of trip' },
 ]
 const SORTS: { id: TripSort; label: string }[] = [
   { id: 'newest', label: 'Newest' },
@@ -80,7 +80,7 @@ function TripRow({ trip, data, onOpen }: { trip: Trip; data: TravelData; onOpen:
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline gap-2">
             <span className="truncate font-bold">{trip.title}</span>
-            {trip.isFamily && <span className="shrink-0 rounded-full bg-park/15 px-2 py-0.5 text-xs font-bold text-park">Family</span>}
+            <TripTypeBadge type={trip.tripType} />
             <TravelModeBadge mode={trip.travelMode} />
           </span>
           <span className="block truncate text-sm text-muted">

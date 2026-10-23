@@ -151,7 +151,8 @@ export function parseTravelData(input: unknown): TravelData {
       hikes: (Array.isArray(x.hikes) ? x.hikes : [])
         .filter((h): h is Record<string, unknown> => isObject(h) && typeof h.parkId === 'string' && typeof h.name === 'string')
         .map((h) => ({ parkId: h.parkId as string, hikeId: typeof h.hikeId === 'string' ? h.hikeId : null, name: h.name as string, date: dateOrNull(h.date) })),
-      isFamily: x.isFamily === true,
+      // Trips saved with the earlier Family switch keep it as the Family type.
+      tripType: x.tripType === 'family' || x.tripType === 'friends' || x.tripType === 'work' ? x.tripType : x.isFamily === true ? 'family' : null,
       travelMode: x.travelMode === 'road-trip' || x.travelMode === 'flight' || x.travelMode === 'cruise' ? x.travelMode : null,
       description: str(x.description),
       highlights: str(x.highlights),

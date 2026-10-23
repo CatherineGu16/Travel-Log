@@ -3,7 +3,8 @@ import { describeRef, type ChosenPlace } from '../lib/chosenPlace.ts'
 import { includesFamily } from '../lib/derive.ts'
 import { comparePartialDates, formatDateRange, todayIso, yearOf } from '../lib/partialDate.ts'
 import { addPerson, saveTrip, type PlaceInput, type TripInput } from '../lib/travelActions.ts'
-import { FAMILY_GROUP_ID, type PartialDate, type TravelMode, type Trip, type TripHike } from '../lib/types.ts'
+import { FAMILY_GROUP_ID, type PartialDate, type TravelMode, type Trip, type TripHike, type TripType } from '../lib/types.ts'
+import { TRIP_TYPES } from '../lib/tripTypes.ts'
 import { newId, useStore, useTravelState } from '../store/useTravel.ts'
 import { DateField } from './DateField.tsx'
 import { HikesField } from './HikesField.tsx'
@@ -82,9 +83,9 @@ export function TripForm({
   })
   const [travelMode, setTravelMode] = useState<TravelMode | null>(trip?.travelMode ?? null)
   const [companions, setCompanions] = useState<string[]>(trip?.companions ?? [])
-  const [isFamily, setIsFamily] = useState(trip?.isFamily ?? false)
-  // Once you flip the switch yourself, adding people no longer changes it.
-  const [familyTouched, setFamilyTouched] = useState(!!trip)
+  const [tripType, setTripType] = useState<TripType | null>(trip?.tripType ?? null)
+  // Adding someone from Family picks Family, until you choose a type yourself.
+  const [typeTouched, setTypeTouched] = useState(!!trip)
   const [description, setDescription] = useState(trip?.description ?? '')
   const [highlights, setHighlights] = useState(trip?.highlights ?? '')
   const [rating, setRating] = useState<number | null>(trip?.rating ?? null)
@@ -112,7 +113,7 @@ export function TripForm({
 
   const setWho = (ids: string[]) => {
     setCompanions(ids)
-    if (!familyTouched) setIsFamily(includesFamily(store.getState().data, ids))
+    if (!typeTouched) setTripType(includesFamily(store.getState().data, ids) ? 'family' : null)
   }
 
   /** Destination edits; on a new trip whose dates you haven't set, the trip spans the destinations' dates. */
@@ -176,7 +177,7 @@ export function TripForm({
       approximate,
       destinations: destinations.map((d) => ({ place: d.place.ref, isMain: d.isMain, startDate: d.startDate, endDate: d.endDate, note: d.note })),
       companions,
-      isFamily,
+      tripType,
       travelMode,
       description,
       highlights,
@@ -391,22 +392,28 @@ export function TripForm({
           }}
         />
 
-        <label className="flex min-h-11 items-center justify-between gap-3 rounded-lg border border-line bg-bg px-3">
-          <span>
-            <span className="font-bold">Family trip</span>
-            <span className="block text-xs text-muted">Turns on when someone from Family is added.</span>
-          </span>
-          <input
-            type="checkbox"
-            role="switch"
-            checked={isFamily}
-            onChange={(e) => {
-              setIsFamily(e.target.checked)
-              setFamilyTouched(true)
-            }}
-            className="size-5 accent-[var(--park)]"
-          />
-        </label>
+        <fieldset>
+          <legend className="mb-1.5 text-sm font-bold">Type of trip</legend>
+          <div role="radiogroup" aria-label="Type of trip" className="flex w-fit rounded-lg bg-bg p-0.5">
+            {TRIP_TYPES.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                role="radio"
+                aria-checked={tripType === t.id}
+                onClick={() => {
+                  setTypeTouched(true)
+                  // Tap the chosen type again to clear it.
+                  setTripType(tripType === t.id ? null : t.id)
+                }}
+                className={`min-h-10 rounded-md px-4 text-sm ${tripType === t.id ? 'bg-primary font-bold text-on-primary' : 'text-muted hover:text-fg'}`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-muted">Family is picked for you when someone from Family is added.</p>
+        </fieldset>
 
         <details className="group rounded-lg border border-line" open={!!(trip && (description || highlights || rating || tags))}>
           <summary className="flex min-h-11 cursor-pointer items-center px-3 text-sm font-bold">Notes, rating and tags</summary>

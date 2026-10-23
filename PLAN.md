@@ -79,6 +79,8 @@ Same rules as Watchlist-Tracker, plus map rules:
   destinations**; the rest are stops along the way. Each destination can have its **own dates**
   ("3 days in Zion, then 3 in Las Vegas"), and a note.
 - **How you traveled**: Road trip, Flight or Cruise (optional), shown as a badge and filterable.
+- **Type of trip**: Family, Friends or Work (optional). Family is picked automatically when someone
+  from your Family group is on the trip. Trips marked with the earlier Family switch keep Family.
 - A **place** is a location you've been to: "Zion National Park", "Las Vegas". Places are shared
   between trips, so going back to the same place reuses it instead of creating a duplicate.
 - **One pin per major location**: a pin goes on each place that is a main destination of at least
@@ -178,7 +180,7 @@ units (monuments, seashores, historic sites — 400+ total) could be added later
                         hikeId | null,       // from park-hikes.json, or null for a custom hike
                         name,                // trail name (custom hikes type their own)
                         date | null } ],
-             isFamily,                       // Family trip or not (one switch)
+             tripType | null,                // "family" | "friends" | "work"
              description, highlights,        // short summary; favorite moments
              rating | null,                  // 1–5
              tags: [],
@@ -308,11 +310,13 @@ Same engine as Watchlist-Tracker (`src/sync/`).
     Tap a chip's × to drop anyone who didn't come.
   - Search people by name to add individuals, or **add a new person** (name, avatar, and which
     groups they belong to) without leaving the form.
-- **Family trip** switch, turned on automatically when anyone from the Family group is added.
+- **Type of trip**: Family / Friends / Work (tap again to clear); Family is picked automatically
+  when anyone from the Family group is added, until you choose yourself.
 - Optional: description, highlights, rating, tags.
 - Save, then the map flies to the new pin and shows its route.
-- **On phones**, the form's sheet stays above the on-screen keyboard and fits the visible area, so
-  the page doesn't jump around while you type.
+- **On phones**, while the on-screen keyboard is open the form fills exactly the visible part of the
+  screen (iPhone Safari pans the page when you tap a field) and scrolls on its own, so the title
+  and first field stay in view. The Add trip / Cancel buttons hide until the keyboard closes.
 
 ### Trips list (non-map)
 - Every trip in a plain, scrollable list: title, main destination, dates, stops count, who went,

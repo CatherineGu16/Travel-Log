@@ -11,8 +11,8 @@ const input = (over: Parameters<typeof tripInput>[0]): TripInput => tripInput({ 
 
 const data = (() => {
   let d = addPerson(emptyData('t'), ctx, 'mom', { name: 'Mom', groupIds: [FAMILY_GROUP_ID] })
-  d = saveTrip(d, ctx, input({ title: 'Moab with Mom', companions: ['mom'], isFamily: true, tags: ['camping'], rating: 4 }))
-  d = saveTrip(d, ctx, input({ title: 'Chicago work trip', startDate: '2019-05', main: place('Chicago', 41.88, -87.63, 'US-IL'), highlights: 'Deep dish' }))
+  d = saveTrip(d, ctx, input({ title: 'Moab with Mom', companions: ['mom'], tripType: 'family', tags: ['camping'], rating: 4 }))
+  d = saveTrip(d, ctx, input({ title: 'Chicago work trip', startDate: '2019-05', main: place('Chicago', 41.88, -87.63, 'US-IL'), highlights: 'Deep dish', tripType: 'work' }))
   d = saveTrip(d, ctx, input({ title: 'Denver', startDate: '2023-02', main: place('Denver', 39.74, -104.99, 'US-CO'), rating: 5, travelMode: 'road-trip' }))
   return d
 })()
@@ -20,9 +20,10 @@ const data = (() => {
 const titles = (d: typeof data) => d.trips.filter((t) => !t.deleted).map((t) => t.title)
 
 describe('filters', () => {
-  it('filters Family / Not family, by person, year and tag', () => {
-    expect(titles(filterData(data, { ...NO_FILTER, who: 'family' }))).toEqual(['Moab with Mom'])
-    expect(titles(filterData(data, { ...NO_FILTER, who: 'not-family' }))).toEqual(['Chicago work trip', 'Denver'])
+  it('filters by trip type, person, year, tag and how you traveled', () => {
+    expect(titles(filterData(data, { ...NO_FILTER, type: 'family' }))).toEqual(['Moab with Mom'])
+    expect(titles(filterData(data, { ...NO_FILTER, type: 'work' }))).toEqual(['Chicago work trip'])
+    expect(titles(filterData(data, { ...NO_FILTER, type: 'friends' }))).toEqual([])
     expect(titles(filterData(data, { ...NO_FILTER, personIds: ['mom'] }))).toEqual(['Moab with Mom'])
     expect(titles(filterData(data, { ...NO_FILTER, year: '2019' }))).toEqual(['Chicago work trip'])
     expect(titles(filterData(data, { ...NO_FILTER, tag: 'camping' }))).toEqual(['Moab with Mom'])
@@ -31,8 +32,10 @@ describe('filters', () => {
   })
 
   it('revives stored filters safely and counts active ones', () => {
-    expect(reviveFilter({ who: 'nonsense', personIds: [1, 'a'], year: 2019, mode: 'boat' })).toEqual({ ...NO_FILTER, personIds: ['a'] })
-    expect(activeFilterCount({ who: 'family', personIds: ['a'], year: '2020', tag: null, mode: 'cruise' })).toBe(4)
+    expect(reviveFilter({ type: 'nonsense', personIds: [1, 'a'], year: 2019, mode: 'boat' })).toEqual({ ...NO_FILTER, personIds: ['a'] })
+    // A filter saved by the earlier Family / Not family switch.
+    expect(reviveFilter({ who: 'family' })).toEqual({ ...NO_FILTER, type: 'family' })
+    expect(activeFilterCount({ type: 'family', personIds: ['a'], year: '2020', tag: null, mode: 'cruise' })).toBe(4)
   })
 })
 
@@ -56,9 +59,10 @@ describe('groupTrips', () => {
       ['2019', ['Chicago work trip']],
     ])
     expect(groupTrips(trips, data, 'state', 'title').map((g) => g.label)).toEqual(['Colorado', 'Illinois', 'Utah'])
-    expect(groupTrips(trips, data, 'family', 'rating').map((g) => [g.label, g.trips.map((t) => t.title)])).toEqual([
+    expect(groupTrips(trips, data, 'type', 'rating').map((g) => [g.label, g.trips.map((t) => t.title)])).toEqual([
       ['Family', ['Moab with Mom']],
-      ['Not family', ['Denver', 'Chicago work trip']],
+      ['Work', ['Chicago work trip']],
+      ['Other', ['Denver']],
     ])
   })
 })
