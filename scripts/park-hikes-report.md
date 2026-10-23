@@ -3,7 +3,7 @@
 Generated 2026-10-23 by `scripts/build-park-hikes.mjs` from NPS Things To Do.
 
 - **628 hikes** across 64 parks
-- Difficulty known for 476; distance for 547 (547 from NPS, 0 from OpenStreetMap); time for 520
+- Difficulty known for 476; distance for 563 (547 from NPS, 16 from OpenStreetMap); time for 520
 - Parks with no hikes listed by NPS (13): Biscayne, Canyonlands, Channel Islands, Congaree, Crater Lake, Dry Tortugas, Gateway Arch, Grand Canyon, Kobuk Valley, Mesa Verde, North Cascades, Saguaro, Yosemite
 
 | Park | Hikes |
@@ -86,7 +86,7 @@ Generated 2026-10-23 by `scripts/build-park-hikes.mjs` from NPS Things To Do.
 - [Bubbles Nubble Loop](https://www.nps.gov/thingstodo/hike-bubbles-nubble-loop.htm) — Moderate · 2.6 mi · 1–2 hours
 - [Cadillac North Ridge Trail](https://www.nps.gov/thingstodo/hike-cadillac-north-ridge-trail.htm) — Moderate · 4.4 mi · 2–4 hours
 - [Cadillac South Ridge Trail](https://www.nps.gov/thingstodo/hike-cadillac-south-ridge-trail.htm) — 7.1 mi · 2–4 hours
-- [Cadillac Summit Loop](https://www.nps.gov/thingstodo/acad_cadillac-summit-loop.htm) — Easy · 1–3 hours
+- [Cadillac Summit Loop](https://www.nps.gov/thingstodo/acad_cadillac-summit-loop.htm) — Easy · ≈0.4 mi · 1–3 hours
 - [Carriage Roads](https://www.nps.gov/thingstodo/hike-carriage-roads.htm)
 - [Compass Harbor Trail](https://www.nps.gov/thingstodo/hike-compass-harbor-trail.htm) — Easy · 0.8 mi · 30–45 minutes
 - [Dorr Mountain South Ridge Loop](https://www.nps.gov/thingstodo/hike-dorr-south-ridge-loop.htm) — Strenuous · 3.2 mi · 1–2 hours
@@ -150,7 +150,7 @@ Skipped overview pages: Hiking at Arches
 
 ## Big Bend (3)
 
-- [Into Santa Elena Canyon](https://www.nps.gov/thingstodo/hike-into-santa-elena-canyon.htm)
+- [Into Santa Elena Canyon](https://www.nps.gov/thingstodo/hike-into-santa-elena-canyon.htm) — ≈1 mi
 - [See the Rio Grande](https://www.nps.gov/thingstodo/see-the-rio-grande.htm) — Easy
 - [The Lost Mine Trail](https://www.nps.gov/thingstodo/hike-the-lost-mine-trail.htm) — 4.8 mi
 
@@ -370,7 +370,7 @@ Skipped overview pages: Day Hiking
 ## Great Sand Dunes (4)
 
 - [Explore the Dunes](https://www.nps.gov/thingstodo/explore-the-dunes.htm) — Strenuous
-- [Medano Lake and Mount Herard](https://www.nps.gov/thingstodo/hike-medano-lake-and-mount-herard.htm) — 8–12 hours
+- [Medano Lake and Mount Herard](https://www.nps.gov/thingstodo/hike-medano-lake-and-mount-herard.htm) — ≈3.4 mi · 8–12 hours
 - [Montville Nature Trail or Mosca Pass Trail](https://www.nps.gov/thingstodo/hike-montville-and-mosca-pass-trails.htm) — Easy · 0.5 mi · 30–240 minutes
 - [Sand Creek Lakes](https://www.nps.gov/thingstodo/hike-sand-creek-lakes.htm) — 2.5 mi · 10–15 hours
 
@@ -570,7 +570,7 @@ Skipped overview pages: Day Hiking
 - [Panoramic Point](https://www.nps.gov/thingstodo/panoramic-point.htm) — Strenuous · 2.6 mi
 - [Road's End](https://www.nps.gov/thingstodo/road-s-end.htm) — Easy
 - [Roaring River Falls](https://www.nps.gov/thingstodo/roaring-river-falls.htm) — Easy · 3.9 mi
-- [Take a Short Hike to Buena Vista Peak](https://www.nps.gov/thingstodo/buena-vista-trail.htm) — 1–2 hours
+- [Take a Short Hike to Buena Vista Peak](https://www.nps.gov/thingstodo/buena-vista-trail.htm) — ≈1 mi · 1–2 hours
 - [Zumwalt Meadow](https://www.nps.gov/thingstodo/zumwalt-meadow.htm) — 3 mi
 
 ## Kobuk Valley (0)
@@ -578,7 +578,7 @@ Skipped overview pages: Day Hiking
 
 ## Lake Clark (1)
 
-- [Tanalian Mountain](https://www.nps.gov/thingstodo/take-a-day-hike-up-tanalian-mountain.htm) — 1–12 hours
+- [Tanalian Mountain](https://www.nps.gov/thingstodo/take-a-day-hike-up-tanalian-mountain.htm) — ≈4.2 mi · 1–12 hours
 
 ## Lassen Volcanic (5)
 
@@ -637,7 +637,7 @@ Skipped overview pages: Day Hiking in North Cascades
 ## Olympic (5)
 
 - [Go to the Beach](https://www.nps.gov/thingstodo/olympicbeaches.htm) — Easy · 9 mi
-- [See Madison Falls](https://www.nps.gov/thingstodo/madisonfalls.htm) — Easy · 5–15 minutes
+- [See Madison Falls](https://www.nps.gov/thingstodo/madisonfalls.htm) — Easy · ≈0.1 mi · 5–15 minutes
 - [Take a Pet-Friendly Hike](https://www.nps.gov/thingstodo/olympethike.htm)
 - [Take a Short Hike Near the Visitor Center](https://www.nps.gov/thingstodo/olymvcdayhike.htm) — Easy · 0.5 mi · 15–30 minutes
 - [The Moments in Time Trail](https://www.nps.gov/thingstodo/momentsintime.htm) — Easy · 0.8 mi · 15–30 minutes
@@ -646,7 +646,7 @@ Skipped overview pages: Day Hiking in North Cascades
 
 - [Become a BARK Ranger!](https://www.nps.gov/thingstodo/become-a-bark-ranger.htm)
 - [Blue Mesa Trail](https://www.nps.gov/thingstodo/walk-blue-mesa-trail.htm) — Easy · 1 mi · 30–120 minutes
-- [Crystal Forest Trail](https://www.nps.gov/thingstodo/walk-crystal-forest-trail.htm) — 20–120 minutes
+- [Crystal Forest Trail](https://www.nps.gov/thingstodo/walk-crystal-forest-trail.htm) — ≈0.8 mi · 20–120 minutes
 - [Long Logs Trail](https://www.nps.gov/thingstodo/walk-long-logs-trail.htm) — 0.5 mi · 60–120 minutes
 - [Puerco Pueblo Trail](https://www.nps.gov/thingstodo/walk-puerco-pueblo-trail.htm) — 4 mi · 10–60 minutes
 - [Take a Self-Guided Tour of Giant Logs](https://www.nps.gov/thingstodo/self-guided-tour-of-giant-logs.htm) — Strenuous · 0.4 mi · 30–60 minutes
@@ -665,10 +665,10 @@ Skipped overview pages: Day Hiking in North Cascades
 - [Condor Gulch Trail to High Peaks Trail Loop](https://www.nps.gov/thingstodo/pinnacles-hike-condor-gulch-trail-high-peaks-trail.htm) — Strenuous · 5.3 mi · 3–5 hours
 - [High Peaks to Balconies Cave Loop](https://www.nps.gov/thingstodo/pinnacles-hike-high-peaks-to-balconies-cave-loop.htm) — Strenuous · 4–5 hours
 - [High Peaks to Bear Gulch Loop](https://www.nps.gov/thingstodo/pinnacles-hike-high-peaks-to-bear-gulch-loop.htm) — Strenuous · 4–5 hours
-- [Jawbone Trail](https://www.nps.gov/thingstodo/pinnacles-hike-jawbone-trail.htm) — Easy · 30–60 minutes
-- [Juniper Canyon Trail Loop](https://www.nps.gov/thingstodo/pinnacles-hike-juniper-canyon-trail-high-peaks-trail.htm) — Strenuous · 2–3 hours
+- [Jawbone Trail](https://www.nps.gov/thingstodo/pinnacles-hike-jawbone-trail.htm) — Easy · ≈1.2 mi · 30–60 minutes
+- [Juniper Canyon Trail Loop](https://www.nps.gov/thingstodo/pinnacles-hike-juniper-canyon-trail-high-peaks-trail.htm) — Strenuous · ≈1.9 mi · 2–3 hours
 - [Moses Spring Trail to Rim Trail Loop](https://www.nps.gov/thingstodo/pinnacles-hike-moses-spring-trail-rim-trail.htm) — Moderate · 1–2 hours
-- [North Wilderness Trail Loop](https://www.nps.gov/thingstodo/pinnacles-hike-north-wilderness-trail.htm) — Strenuous · 5–8 hours
+- [North Wilderness Trail Loop](https://www.nps.gov/thingstodo/pinnacles-hike-north-wilderness-trail.htm) — Strenuous · ≈6.5 mi · 5–8 hours
 - [Old Pinnacles Trail to Balconies Cave](https://www.nps.gov/thingstodo/pinnacles-hike-old-pinnacles-trail-to-balconies-cave.htm) — Easy · 3–4 hours
 - [Prewett Point Trail](https://www.nps.gov/thingstodo/pinnacles-hike-prewett-point-trail.htm) — Easy · 30–60 minutes
 
@@ -769,14 +769,14 @@ Skipped overview pages: Day Hiking in North Cascades
 ## Theodore Roosevelt (10)
 
 - [Boicourt Trail](https://www.nps.gov/thingstodo/hike-boicourt-trail.htm) — Easy · 0.2 mi · 15–30 minutes
-- [Buck Hill](https://www.nps.gov/thingstodo/hike-up-buck-hill.htm) — 5–30 minutes
+- [Buck Hill](https://www.nps.gov/thingstodo/hike-up-buck-hill.htm) — ≈0.3 mi · 5–30 minutes
 - [Coal Vein Trail](https://www.nps.gov/thingstodo/hike-coal-vein-trail.htm) — 0.8 mi · 30–45 minutes
 - [Explore the Cannonball Concretions](https://www.nps.gov/thingstodo/explore-the-cannonball-concretions.htm) — 11.4 mi · 5–15 minutes
 - [Skyline Vista Trail](https://www.nps.gov/thingstodo/hike-skyline-vista-trail.htm) — Easy · 0.1 mi · 5–15 minutes
 - [The Little Mo Nature Trail](https://www.nps.gov/thingstodo/hike-the-little-mo-nature-trail.htm) — 0.7 mi · 30–45 minutes
 - [The Painted Canyon Nature Trail](https://www.nps.gov/thingstodo/hike-the-painted-canyon-nature-trail.htm) — Moderate · 1 mi · 30–80 minutes
 - [The Petrified Forest](https://www.nps.gov/thingstodo/hike-the-petrified-forest.htm) — 10.4 mi · 2–10 hours
-- [Visit the Elkhorn Ranch Unit](https://www.nps.gov/thingstodo/visit-the-elkhorn-ranch-unit.htm) — 3–6 hours
+- [Visit the Elkhorn Ranch Unit](https://www.nps.gov/thingstodo/visit-the-elkhorn-ranch-unit.htm) — ≈0.6 mi · 3–6 hours
 - [Wind Canyon Trail](https://www.nps.gov/thingstodo/hike-wind-canyon-trail.htm) — Moderate · 0.3 mi · 5–30 minutes
 
 Skipped overview pages: Hiking in the South Unit; Hiking in the North Unit
@@ -790,7 +790,7 @@ Skipped overview pages: Hiking in the South Unit; Hiking in the North Unit
 - [L'Esperance Trail](https://www.nps.gov/thingstodo/l-esperance-trail.htm) — 5.2 mi · 2–4 hours
 - [Salt Pond Bay and Ram Head Trails](https://www.nps.gov/thingstodo/salt-pond-and-ram-head-trails.htm) — 0.3 mi · 5–20 minutes
 - [Tektite Trail](https://www.nps.gov/thingstodo/tektite-trail.htm) — Moderate · 0.7 mi · 20–60 minutes
-- [The Lind Point Trails](https://www.nps.gov/thingstodo/hike-the-lind-point-trails.htm) — 20–40 minutes
+- [The Lind Point Trails](https://www.nps.gov/thingstodo/hike-the-lind-point-trails.htm) — ≈1.5 mi · 20–40 minutes
 - [Yawzi Point Trail](https://www.nps.gov/thingstodo/yawzi-point-trail.htm) — Easy · 0.3 mi · 30–50 minutes
 
 ## Voyageurs (14)
@@ -903,11 +903,11 @@ Skipped overview pages: Hiking in Yosemite
 - [Lower Emerald Pool Trail](https://www.nps.gov/thingstodo/hike-lower-emerald-pool-trail.htm) — Easy · 1–2 hours
 - [Middle Emerald Pools Trail](https://www.nps.gov/thingstodo/hike-middle-emerald-pools-trail.htm) — Moderate · 2.2 mi · 1–2 hours
 - [Pa'rus Trail](https://www.nps.gov/thingstodo/hike-pa-rus-trail.htm) — Easy · 3.5 mi · 30–120 minutes
-- [Riverside Walk](https://www.nps.gov/thingstodo/hike-riverside-walk.htm) — Easy · 1–2 hours
-- [Sand Bench](https://www.nps.gov/thingstodo/hike-sand-bench.htm) — 1–4 hours
+- [Riverside Walk](https://www.nps.gov/thingstodo/hike-riverside-walk.htm) — Easy · ≈1 mi · 1–2 hours
+- [Sand Bench](https://www.nps.gov/thingstodo/hike-sand-bench.htm) — ≈4.4 mi · 1–4 hours
 - [Taylor Creek Trail](https://www.nps.gov/thingstodo/taylor-creek-trail.htm) — Moderate · 3–4 hours
 - [The Narrows](https://www.nps.gov/thingstodo/hike-the-narrows.htm) — Strenuous · 1–8 hours
-- [Timber Creek Overlook](https://www.nps.gov/thingstodo/timber-creek-overlook.htm) — Easy · 30–60 minutes
+- [Timber Creek Overlook](https://www.nps.gov/thingstodo/timber-creek-overlook.htm) — Easy · ≈0.6 mi · 30–60 minutes
 - [Upper Emerald Pools Trail](https://www.nps.gov/thingstodo/hike-upper-emerald-pools.htm) — Moderate · 1 mi · 1–2 hours
 - [Watchman Trail](https://www.nps.gov/thingstodo/hike-watchman-trail.htm) — Moderate · 3.3 mi · 1–2 hours
 - [Weeping Rock](https://www.nps.gov/thingstodo/weeping-rock.htm) — Easy · 15–45 minutes
