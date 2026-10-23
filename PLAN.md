@@ -276,7 +276,8 @@ Same engine as Watchlist-Tracker (`src/sync/`).
   newest visit is selected and its **dotted route** is drawn. Tapping another date switches the
   card (title, who went, stops, hikes) and redraws the route for that trip.
 - **Filter button**:
-  - **Who**: All · Family · Not family, plus filter by person or group.
+  - **Type of trip**: All · Family · Friends · Work, plus filter by person, year, tag and how you
+    traveled.
   - **National parks layer** (the Parks button on the map, remembered per device): Off · All ·
     Visited · Not visited. All 64 parks show as small tree badges (so they don't look like trip
     pins). Visited parks are filled green (with a shaded boundary when zoomed in); not-yet-visited
@@ -321,9 +322,9 @@ Same engine as Watchlist-Tracker (`src/sync/`).
 ### Trips list (non-map)
 - Every trip in a plain, scrollable list: title, main destination, dates, stops count, who went,
   a Family badge on family trips.
-- **Group by**: Year (default, newest first) · State · Family / Not family.
+- **Group by**: Year (default, newest first) · State · Type of trip.
 - **Sort**: Newest · Oldest · Title · Rating.
-- **Family filter**: All · Family · Not family, same as the map. Filters are shared with the map
+- **Trip-type filter**: All · Family · Friends · Work, same as the map. Filters are shared with the map
   and remembered per device, as in Watchlist.
 - **Search** across title, places, description, people, groups and tags.
 - Tapping a row opens the trip detail and highlights its route on the map.
@@ -465,4 +466,4 @@ None right now.
   Family group shortcut.
 - **State shading**: darker with more trips (1 · 2–3 · 4–6 · 7+).
 - **Parks scope**: the 64 national parks only for now.
-- **Trip type**: a single Family / Not family switch. Groups cover the rest of "who went".
+- **Trip type**: Family / Friends / Work (changed from an earlier single Family switch).
