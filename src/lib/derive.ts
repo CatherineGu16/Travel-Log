@@ -88,3 +88,23 @@ export function visitsPerPlace(data: TravelData): Map<string, number> {
   for (const trip of live(data.trips)) for (const id of new Set(tripPlaceIds(trip))) counts.set(id, (counts.get(id) ?? 0) + 1)
   return counts
 }
+
+export interface Visit {
+  trip: Trip
+  /** The stop's own dates when it has them, otherwise the trip's. */
+  startDate: string
+  endDate: string | null
+  approximate: boolean
+}
+
+/** Every visit to a place, as a main destination or a stop: its stacked dates, newest first. */
+export function visitsTo(data: TravelData, placeId: string): Visit[] {
+  const visits: Visit[] = []
+  for (const trip of live(data.trips)) {
+    const stop = trip.stops.find((s) => s.placeId === placeId)
+    if (trip.mainPlaceId !== placeId && !stop) continue
+    const own = stop?.startDate ? { startDate: stop.startDate, endDate: stop.endDate } : null
+    visits.push({ trip, startDate: own?.startDate ?? trip.startDate, endDate: own ? own.endDate : trip.endDate, approximate: trip.approximate })
+  }
+  return visits.sort((a, b) => comparePartialDates(b.startDate, a.startDate) || byNewest(a.trip, b.trip))
+}

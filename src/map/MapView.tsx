@@ -1,7 +1,8 @@
-import { Map as MapLibreMap, setWorkerUrl, type GeoJSONSource, type MapMouseEvent } from 'maplibre-gl'
+import { LngLatBounds, Map as MapLibreMap, setWorkerUrl, type GeoJSONSource, type MapMouseEvent } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { useEffect, useRef, useState } from 'react'
 import { shadeLevel, type Pin } from '../lib/derive.ts'
+import type { RoutePoint } from '../lib/route.ts'
 import { resolvedTheme } from '../ui/theme.ts'
 import { loadOutlineData } from './mapData.ts'
 import { outlineStyle, PALETTES, themedPaint } from './outlineStyle.ts'
@@ -17,10 +18,19 @@ const glyphsUrl = () => `${location.origin}${import.meta.env.BASE_URL}fonts/{fon
 const fitPadding = () => (window.innerWidth < 640 ? 24 : 56)
 const LONG_PRESS_MS = 550
 
+/** Room around a fitted route for the header and the pin card (left panel on desktop, bottom sheet on phones). */
+const routePadding = () =>
+  window.innerWidth < 640
+    ? { top: 90, bottom: Math.round(window.innerHeight * 0.5), left: 40, right: 40 }
+    : { top: 90, bottom: 60, left: 440, right: 80 }
+
 export interface MapViewProps {
   pins: Pin[]
   tripsPerRegion: Map<string, number>
   selectedPlaceId: string | null
+  /** The selected trip's route (empty when it has no stops), and which trip it is. */
+  route: RoutePoint[]
+  routeTripId: string | null
   onSelectPin: (placeId: string | null) => void
   /** Long-press (touch) or right-click (desktop): add a trip at that spot. */
   onAddAt: (lng: number, lat: number) => void
@@ -91,11 +101,48 @@ export function MapView(props: MapViewProps) {
           isPark: pin.isPark,
           count: pin.trips.length,
           selected: pin.place.id === selectedPlaceId,
+          dim: selectedPlaceId !== null && pin.place.id !== selectedPlaceId,
         },
         geometry: { type: 'Point', coordinates: [pin.place.lng, pin.place.lat] },
       })),
     })
   }, [map, pins, selectedPlaceId])
+
+  // The selected trip's route, fitted into view (around the pin card) when the trip changes.
+  const { route, routeTripId } = props
+  useEffect(() => {
+    if (!map) return
+    map.getSource<GeoJSONSource>('route')?.setData({
+      type: 'FeatureCollection',
+      features: [
+        ...(route.length > 1
+          ? [
+              {
+                type: 'Feature' as const,
+                properties: {},
+                geometry: { type: 'LineString' as const, coordinates: route.map((r) => [r.place.lng, r.place.lat]) },
+              },
+            ]
+          : []),
+        ...route
+          .filter((r) => r.number !== null)
+          .map((r) => ({
+            type: 'Feature' as const,
+            properties: { number: r.number, name: r.place.name },
+            geometry: { type: 'Point' as const, coordinates: [r.place.lng, r.place.lat] },
+          })),
+      ],
+    })
+  }, [map, route])
+
+  // Only when a different trip is shown, not on every edit, so it reads the route from the ref.
+  useEffect(() => {
+    const current = latest.current.route
+    if (!map || !routeTripId || current.length < 2) return
+    const bounds = new LngLatBounds()
+    for (const r of current) bounds.extend([r.place.lng, r.place.lat])
+    map.fitBounds(bounds, { padding: routePadding(), maxZoom: 10, duration: 800 })
+  }, [map, routeTripId])
 
   // States shaded by how many trips visited them.
   const { tripsPerRegion } = props

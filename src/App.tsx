@@ -2,10 +2,12 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { PeopleSheet } from './components/PeopleSheet.tsx'
 import { PinCard } from './components/PinCard.tsx'
 import { ToastProvider } from './components/Toast.tsx'
+import { TripDetail } from './components/TripDetail.tsx'
 import { TripForm } from './components/TripForm.tsx'
 import parks from './data/national-parks.json'
 import { parksVisited, pinsOf, statesVisited, tripsPerRegion } from './lib/derive.ts'
 import { placeAt } from './lib/gazetteer.ts'
+import { routeOf } from './lib/route.ts'
 import type { PlaceInput } from './lib/travelActions.ts'
 import type { Trip } from './lib/types.ts'
 import { loadStore, StoreContext, useStore, useTravelState } from './store/useTravel.ts'
@@ -40,6 +42,8 @@ function Shell() {
   const parkCount = useMemo(() => parksVisited(data).size, [data])
 
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null)
+  const [selectedTripId, setSelectedTripId] = useState<string | null>(null)
+  const [detailTripId, setDetailTripId] = useState<string | null>(null)
   const [form, setForm] = useState<FormState | null>(null)
   const [pick, setPick] = useState<PickRequest | null>(null)
   const [peopleOpen, setPeopleOpen] = useState(false)
@@ -47,6 +51,19 @@ function Shell() {
   const focusToken = useRef(0)
 
   const selectedPin = pins.find((p) => p.place.id === selectedPlaceId) ?? null
+  // The visit shown on the pin card: the one you picked, else the newest.
+  const selectedTrip = selectedPin ? (selectedPin.trips.find((t) => t.id === selectedTripId) ?? selectedPin.trips[0]) : null
+  const route = useMemo(() => (selectedTrip ? routeOf(selectedTrip, data.places) : []), [selectedTrip, data.places])
+  const detailTrip = data.trips.find((t) => t.id === detailTripId && !t.deleted) ?? null
+
+  const selectPin = (placeId: string | null, tripId: string | null = null) => {
+    setSelectedPlaceId(placeId)
+    setSelectedTripId(tripId ?? pins.find((p) => p.place.id === placeId)?.trips[0]?.id ?? null)
+  }
+  const openTrip = (trip: Trip) => {
+    selectPin(trip.mainPlaceId, trip.id)
+    setDetailTripId(trip.id)
+  }
 
   const requestPick = useCallback(
     (label: string) =>
@@ -66,11 +83,13 @@ function Shell() {
         <MapView
           pins={pins}
           tripsPerRegion={perRegion}
-          selectedPlaceId={selectedPlaceId}
-          onSelectPin={setSelectedPlaceId}
+          selectedPlaceId={selectedPin ? selectedPlaceId : null}
+          route={route}
+          routeTripId={selectedTrip?.id ?? null}
+          onSelectPin={(placeId) => selectPin(placeId)}
           onAddAt={(lng, lat) => {
             void placeAt(lng, lat).then((initialMain) => {
-              setSelectedPlaceId(null)
+              selectPin(null)
               setForm({ trip: null, initialMain })
             })
           }}
@@ -134,22 +153,39 @@ function Shell() {
 
       {!pick && <ShadeLegend show={perRegion.size > 0 || pins.length > 0} />}
 
-      {selectedPin && !form && !pick && (
+      {selectedPin && selectedTrip && !form && !pick && (
         <div className="pointer-events-none absolute inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-20 flex sm:inset-x-auto sm:top-20 sm:bottom-auto sm:left-3">
           <PinCard
             pin={selectedPin}
+            trip={selectedTrip}
+            route={route}
             data={data}
+            onSelectTrip={setSelectedTripId}
+            onDetails={(trip) => setDetailTripId(trip.id)}
             onEdit={(trip) => setForm({ trip, initialMain: null })}
-            onClose={() => setSelectedPlaceId(null)}
+            onClose={() => selectPin(null)}
           />
         </div>
+      )}
+
+      {detailTrip && !form && (
+        <TripDetail
+          trip={detailTrip}
+          data={data}
+          onOpenTrip={openTrip}
+          onEdit={(trip) => {
+            setDetailTripId(null)
+            setForm({ trip, initialMain: null })
+          }}
+          onClose={() => setDetailTripId(null)}
+        />
       )}
 
       {/* On phones the pin card covers the bottom, so the button waits until it closes; from 640px both fit. */}
       {!pick && (
         <button
           onClick={() => {
-            setSelectedPlaceId(null)
+            selectPin(null)
             setForm({ trip: null, initialMain: null })
           }}
           className={`absolute bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.75rem)] left-1/2 z-10 ${selectedPin ? 'hidden sm:flex' : 'flex'} min-h-12 -translate-x-1/2 items-center gap-2 rounded-full bg-primary px-5 font-bold text-on-primary shadow-lg sm:right-3 sm:bottom-auto sm:left-auto sm:top-[max(0.75rem,env(safe-area-inset-top))] sm:translate-x-0`}
@@ -169,11 +205,15 @@ function Shell() {
             cancelPick()
             setForm(null)
           }}
-          onSaved={(mainPlaceId) => {
+          onSaved={(mainPlaceId, tripId) => {
             setForm(null)
             setSelectedPlaceId(mainPlaceId)
-            const place = store.getState().data.places.find((p) => p.id === mainPlaceId)
-            if (place) setFocus({ lng: place.lng, lat: place.lat, token: ++focusToken.current })
+            setSelectedTripId(tripId)
+            const saved = store.getState().data
+            const place = saved.places.find((p) => p.id === mainPlaceId)
+            // A trip with stops is fitted to its route instead.
+            const hasRoute = (saved.trips.find((t) => t.id === tripId)?.stops.length ?? 0) > 0
+            if (place && !hasRoute) setFocus({ lng: place.lng, lat: place.lat, token: ++focusToken.current })
           }}
         />
       )}

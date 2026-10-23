@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { pinsOf, tripsPerRegion, statesVisited, parksVisited, shadeLevel, includesFamily } from './derive.ts'
+import { pinsOf, tripsPerRegion, statesVisited, parksVisited, shadeLevel, includesFamily, visitsTo } from './derive.ts'
 import {
   addGroup,
   addPerson,
@@ -153,5 +153,21 @@ describe('revertTo', () => {
     const reverted = revertTo(after, before, ctx('2026-12-01T00:00:00.000Z'))
     expect(reverted.trips.find((t) => t.title === 'Second')?.deleted).toBe(true)
     expect(reverted.trips.find((t) => t.id === before.trips[0].id)).toMatchObject({ title: 'Utah 2023', updatedAt: '2026-12-01T00:00:00.000Z' })
+  })
+})
+
+describe('visitsTo', () => {
+  it('stacks every visit to a place, as main destination or stop, newest first, using stop dates when given', () => {
+    let data = saveTrip(emptyData('t0'), ctx(), trip({ main: { place: vegas }, stops: [], startDate: '2019' }))
+    data = saveTrip(
+      data,
+      ctx(),
+      trip({ stops: [{ place: { place: vegas }, startDate: '2023-07-03', endDate: null, note: '' }] }),
+    )
+    const vegasId = data.places.find((p) => p.name === 'Las Vegas')!.id
+    expect(visitsTo(data, vegasId).map((v) => [v.trip.title, v.startDate])).toEqual([
+      ['Utah 2023', '2023-07-03'],
+      ['Utah 2023', '2019'],
+    ])
   })
 })

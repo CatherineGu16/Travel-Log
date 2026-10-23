@@ -83,7 +83,9 @@ Same rules as Watchlist-Tracker, plus map rules:
 - **Pin colors**: **national park pins are green** (the main destination is linked to a park).
   All other pins use the standard accent color.
 - **Dotted route**: selecting a pin shows the trip's stops as small numbered dots joined by a
-  dashed line, in visit order. Other pins fade back while one is selected.
+  dashed line, in visit order. The main destination (the pin) is slotted into the route where it
+  adds the least distance, since the form doesn't ask where it falls in the order. Other pins fade
+  back while one is selected, and the map fits the route around the pin card.
 - **Stacked dates**: if you've been to a major location more than once (Chicago 2018, Chicago
   2022), it stays **one pin with a ×2 badge**. Its preview card stacks each visit's dates, newest
   first, with the newest selected. **Picking a different date redraws the route for that trip.**
@@ -267,7 +269,7 @@ Same engine as Watchlist-Tracker (`src/sync/`).
   places list. Picking a place you've been to before reuses it, so the new dates stack onto it.
 - **Dates**: start and end (exact / month / year / approximate, as in Watchlist).
 - **Key destinations**: add stops in order, each with optional dates and a note. Drag to reorder.
-  The mini-map in the form previews the dotted route as you add them.
+  The route is drawn on the main map once the trip is saved.
 - **Hikes**: shown when the main destination or any stop is a national park. Check off trails
   from that park's list, or add a custom hike by name. An optional date per hike.
 - **Who went**: shown as avatar chips.
@@ -305,8 +307,8 @@ Same engine as Watchlist-Tracker (`src/sync/`).
   destination.
 
 ### Trip detail
-- Title, dates, who went, Family badge, a mini-map with the dotted route, the ordered stops (each
-  linking to its place and stacked dates), hikes, description, highlights, and Edit and Delete with Undo.
+- Title, dates, who went, Family badge, the route stop by stop (each with its own dates and note,
+  and "Also here" chips for every other visit to that place, which open those trips), hikes, description, highlights, and Edit and Delete with Undo.
 
 ### Header, navigation, settings
 - **Header**: states n/50 and parks n/64 progress, trips this year, and the sync status chip.
@@ -389,7 +391,7 @@ apps independent.
 |---|---|---|
 | M1 ✅ | Scaffold (Vite/React/TS/Tailwind/PWA), copy Watchlist tooling, MapLibre **outline map** fitted to the US (states, lakes, city labels), build all map data | The map zooms and pans smoothly on a laptop and a phone. The parks count is verified (64) |
 | M2 ✅ | Local store (IndexedDB) + **Add trip** form (destination, dates, stops, who went, Family switch) + **people & groups** (avatars, Family group shortcut) + location pins (green for parks) + preview card + state shading by trip count | You can log a multi-stop trip end to end, and it survives a reload |
-| M3 | **Dotted routes** + stacked pins (×N) with date picker + place reuse and stacked visit dates + trip detail | Selecting a pin shows its route; a second trip to the same place stacks onto its pin, and picking either date shows the right route |
+| M3 ✅ | **Dotted routes** + stacked pins (×N) with date picker + place reuse and stacked visit dates + trip detail | Selecting a pin shows its route; a second trip to the same place stacks onto its pin, and picking either date shows the right route |
 | M4 | **Trips list** + **Places tab**: grouping, sorting, search, Family / Not family filter shared with the map | Every trip can be found without the map, and family trips filter correctly |
 | M5 | **National parks**: `park-hikes.json` (names from NPS Things To Do), map layer, All / Visited / Not visited, checklist with stacked dates, "Log a visit", auto-suggest a park link, **hikes checklist** (in the trip form and per park) | Parks show the correct visited state on the map and in the checklist, and hikes can be checked off per park |
 | M6 | GitHub sync: Settings form, `travel.json` fetch/merge/save, **photo avatar** upload + download cache, status chip, `docs/ACCESS_KEY.md` | A trip and a new photo avatar added on phone appear on PC after refresh. Two-device conflict test passes |

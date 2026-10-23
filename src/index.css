@@ -22,6 +22,8 @@
   --ok: #2f7d4f;
   --toast: #22261f;
   --toast-action: #f7a48f;
+  --route: #2b6f8f;
+  --route-text: #ffffff;
   --shade-1: #f6ebc4;
   --shade-2: #efd995;
   --shade-3: #e5c262;
@@ -45,7 +47,9 @@
     --ok: #5cbf84;
     --toast: #2c3846;
     --toast-action: #f7a48f;
-    --shade-1: #4a4730;
+    --route: #7cc4e4;
+    --route-text: #0f1b24;
+  --shade-1: #4a4730;
     --shade-2: #625a33;
     --shade-3: #7f6f37;
     --shade-4: #a28a3c;
@@ -68,6 +72,8 @@
   --ok: #5cbf84;
   --toast: #2c3846;
   --toast-action: #f7a48f;
+  --route: #7cc4e4;
+  --route-text: #0f1b24;
   --shade-1: #4a4730;
   --shade-2: #625a33;
   --shade-3: #7f6f37;

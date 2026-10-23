@@ -18,6 +18,9 @@ export type MapPalette = {
   pinCenter: string
   badge: string
   badgeText: string
+  /** The selected trip's dashed route and numbered stops. */
+  route: string
+  routeText: string
 }
 
 export const PALETTES: Record<'light' | 'dark', MapPalette> = {
@@ -36,6 +39,8 @@ export const PALETTES: Record<'light' | 'dark', MapPalette> = {
     pinCenter: '#ffffff',
     badge: '#22261f',
     badgeText: '#ffffff',
+    route: '#2b6f8f',
+    routeText: '#ffffff',
   },
   dark: {
     water: '#0f1b24',
@@ -52,6 +57,8 @@ export const PALETTES: Record<'light' | 'dark', MapPalette> = {
     pinCenter: '#141a20',
     badge: '#e9eef2',
     badgeText: '#141a20',
+    route: '#7cc4e4',
+    routeText: '#0f1b24',
   },
 }
 
@@ -96,6 +103,12 @@ export function themedPaint(p: MapPalette): { layer: string; prop: PaintProp; va
     { layer: 'pin-badge-count', prop: 'text-color', value: p.badgeText },
     { layer: 'pin-labels', prop: 'text-color', value: p.label },
     { layer: 'pin-labels', prop: 'text-halo-color', value: p.labelHalo },
+    { layer: 'route-line', prop: 'line-color', value: p.route },
+    { layer: 'route-stops', prop: 'circle-color', value: p.route },
+    { layer: 'route-stops', prop: 'circle-stroke-color', value: p.pinCenter },
+    { layer: 'route-stop-numbers', prop: 'text-color', value: p.routeText },
+    { layer: 'route-labels', prop: 'text-color', value: p.label },
+    { layer: 'route-labels', prop: 'text-halo-color', value: p.labelHalo },
   ]
 }
 
@@ -124,6 +137,8 @@ const cityLayer = (
 const EMPTY = { type: 'FeatureCollection' as const, features: [] }
 /** Pin size grows a little when selected. */
 const pinSize: ExpressionSpecification = ['case', ['boolean', ['get', 'selected'], false], 1.3, 1]
+/** Other pins fade while one is selected. */
+const pinOpacity: ExpressionSpecification = ['case', ['boolean', ['get', 'dim'], false], 0.35, 1]
 
 /**
  * The bundled outline map (water, neighboring countries, states, lakes, city labels) plus your
@@ -143,6 +158,7 @@ export function outlineStyle(data: OutlineData, palette: MapPalette, glyphsUrl: 
       lakes: { type: 'geojson', data: data.lakes },
       cities: { type: 'geojson', data: data.cities },
       pins: { type: 'geojson', data: EMPTY, cluster: true, clusterRadius: 36, clusterMaxZoom: 5 },
+      route: { type: 'geojson', data: EMPTY },
     },
     layers: [
       { id: 'water', type: 'background', paint: { 'background-color': p.water } },
@@ -162,6 +178,52 @@ export function outlineStyle(data: OutlineData, palette: MapPalette, glyphsUrl: 
       cityLayer('cities-major', 3, [0, 2], [11, 14], p),
       cityLayer('cities-mid', 5, [3, 5], [11, 13], p),
       cityLayer('cities-minor', 7, [6, 10], [10, 12], p),
+
+      // The selected trip's route: a dashed line through its stops in visit order.
+      {
+        id: 'route-line',
+        type: 'line',
+        source: 'route',
+        filter: ['==', ['geometry-type'], 'LineString'],
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': p.route, 'line-width': 3, 'line-dasharray': [0.1, 2.2] },
+      },
+      {
+        id: 'route-stops',
+        type: 'circle',
+        source: 'route',
+        filter: ['all', ['==', ['geometry-type'], 'Point'], ['has', 'number']],
+        paint: { 'circle-radius': 10, 'circle-color': p.route, 'circle-stroke-width': 2, 'circle-stroke-color': p.pinCenter },
+      },
+      {
+        id: 'route-stop-numbers',
+        type: 'symbol',
+        source: 'route',
+        filter: ['all', ['==', ['geometry-type'], 'Point'], ['has', 'number']],
+        layout: {
+          'text-field': ['to-string', ['get', 'number']],
+          'text-font': ['Noto Sans Bold'],
+          'text-size': 11,
+          'text-allow-overlap': true,
+          'text-ignore-placement': true,
+        },
+        paint: { 'text-color': p.routeText },
+      },
+      {
+        id: 'route-labels',
+        type: 'symbol',
+        source: 'route',
+        filter: ['all', ['==', ['geometry-type'], 'Point'], ['has', 'number']],
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-font': ['Noto Sans Bold'],
+          'text-size': 12,
+          'text-anchor': 'left',
+          'text-offset': [1.1, 0],
+          'text-optional': true,
+        },
+        paint: { 'text-color': p.label, 'text-halo-color': p.labelHalo, 'text-halo-width': 1.6 },
+      },
 
       // Clusters of pins when zoomed out.
       {
@@ -197,6 +259,7 @@ export function outlineStyle(data: OutlineData, palette: MapPalette, glyphsUrl: 
           'icon-allow-overlap': true,
           'symbol-sort-key': ['case', ['boolean', ['get', 'selected'], false], 1, 0],
         },
+        paint: { 'icon-opacity': pinOpacity },
       },
       // Stacked dates: a small ×N badge on pins visited more than once.
       {
@@ -209,7 +272,9 @@ export function outlineStyle(data: OutlineData, palette: MapPalette, glyphsUrl: 
           'circle-color': p.badge,
           'circle-stroke-width': 1.5,
           'circle-stroke-color': p.pinCenter,
-          'circle-translate': [11, -34],
+          'circle-translate': [14, -40],
+          'circle-opacity': pinOpacity,
+          'circle-stroke-opacity': pinOpacity,
         },
       },
       {
@@ -224,7 +289,7 @@ export function outlineStyle(data: OutlineData, palette: MapPalette, glyphsUrl: 
           'text-allow-overlap': true,
           'text-ignore-placement': true,
         },
-        paint: { 'text-color': p.badgeText, 'text-translate': [11, -34] },
+        paint: { 'text-color': p.badgeText, 'text-translate': [14, -40], 'text-opacity': pinOpacity },
       },
       {
         id: 'pin-labels',
