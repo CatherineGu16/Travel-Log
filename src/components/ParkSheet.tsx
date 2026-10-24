@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { hikesDone, parkVisits, type HikeDone } from '../lib/derive.ts'
-import { loadParkHikes, PARKS, type NpsHike } from '../lib/gazetteer.ts'
+import { loadParkHikes, matchesHike, PARKS, type NpsHike } from '../lib/gazetteer.ts'
 import { formatDateRange, formatPartialDate } from '../lib/partialDate.ts'
 import type { ParkInfo } from '../lib/placeSearch.ts'
 import { addHike, hikeKey, removeHike } from '../lib/travelActions.ts'
@@ -8,6 +8,7 @@ import type { TravelData, Trip, TripHike } from '../lib/types.ts'
 import { useStore } from '../store/useTravel.ts'
 import parksJson from '../data/national-parks.json'
 import { HikeFacts } from './HikeFacts.tsx'
+import { HikeFilter } from './HikeFilter.tsx'
 import { Sheet } from './Sheet.tsx'
 import { useToast } from './toastContext.ts'
 
@@ -38,6 +39,7 @@ export function ParkSheet({
   const [choosing, setChoosing] = useState<TripHike | null>(null)
   const [custom, setCustom] = useState('')
   const [needVisit, setNeedVisit] = useState(false)
+  const [query, setQuery] = useState('')
 
   useEffect(() => {
     void loadParkHikes().then((all) => setNpsHikes(all[parkId] ?? []))
@@ -141,8 +143,9 @@ export function ParkSheet({
           )}
           {npsHikes.length === 0 && <p className="mb-3 text-sm text-muted">NPS doesn't list hikes for this park yet. Add the ones you did below.</p>}
 
+          {rows.length > 10 && <HikeFilter value={query} onChange={setQuery} />}
           <ul className="divide-y divide-line rounded-xl border border-line">
-            {rows.map((h) => {
+            {rows.filter((h) => matchesHike(h.name, query)).map((h) => {
                 const key = h.key
                 const entry = done.get(key)
                 const hike: TripHike = { parkId, hikeId: h.hikeId, name: h.name, date: null }

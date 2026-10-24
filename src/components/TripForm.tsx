@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { describeRef, type ChosenPlace } from '../lib/chosenPlace.ts'
 import { comparePartialDates, formatDateRange, todayIso, yearOf } from '../lib/partialDate.ts'
 import { addPerson, saveTrip, type PlaceInput, type TripInput } from '../lib/travelActions.ts'
-import { FAMILY_GROUP_ID, type PartialDate, type TravelMode, type Trip, type TripHike } from '../lib/types.ts'
+import { FAMILY_GROUP_ID, type LngLat, type PartialDate, type TravelData, type TravelMode, type Trip, type TripHike } from '../lib/types.ts'
 import { newId, useStore, useTravelState } from '../store/useTravel.ts'
 import { DateRangeField } from './DateRangeField.tsx'
 import { HikesField } from './HikesField.tsx'
@@ -20,11 +20,28 @@ interface DestinationDraft {
   startDate: PartialDate | null
   endDate: PartialDate | null
   note: string
+  /** Bends in the route from the previous destination. */
+  via: LngLat[]
   open: boolean
 }
 
-/** Asks the app to let you tap the map; resolves with the place you tapped, or null if cancelled. */
-export type RequestPick = (label: string) => Promise<PlaceInput | null>
+/** One end of a route leg being shaped on the map. */
+export interface RouteEnd {
+  name: string
+  lng: number
+  lat: number
+}
+
+/** Asks the app to let you shape a leg on the map; resolves with its bends, or null if cancelled. */
+export type RequestShape = (from: RouteEnd, to: RouteEnd, via: LngLat[]) => Promise<LngLat[] | null>
+
+/** Where a chosen place is on the map. */
+function endOf(place: ChosenPlace, data: TravelData): RouteEnd | null {
+  const ref = place.ref
+  if ('place' in ref) return { name: place.label, lng: ref.place.lng, lat: ref.place.lat }
+  const p = data.places.find((x) => x.id === ref.placeId)
+  return p ? { name: place.label, lng: p.lng, lat: p.lat } : null
+}
 
 /** Compares partial dates at the coarser of the two precisions ("2024-05" contains "2024-05-03"). */
 const compareLoose = (a: PartialDate, b: PartialDate) => {
@@ -34,21 +51,21 @@ const compareLoose = (a: PartialDate, b: PartialDate) => {
 
 /**
  * Add or edit a trip: where it went (destinations in order, any of them main, each with its own
- * dates), the trip's dates, how you traveled, who went, and the Family switch. The sheet hides
- * (keeping everything you've entered) while you pick a place on the map.
+ * dates, and the way the route went between them), the trip's dates, how you traveled, and who
+ * went. The sheet hides (keeping everything you've entered) while you shape a route on the map.
  */
 export function TripForm({
   trip,
   initialMain,
   hidden,
-  requestPick,
+  requestShape,
   onClose,
   onSaved,
 }: {
   trip: Trip | null
   initialMain: PlaceInput | null
   hidden: boolean
-  requestPick: RequestPick
+  requestShape: RequestShape
   onClose: () => void
   onSaved: (mainPlaceId: string, tripId: string) => void
 }) {
@@ -71,10 +88,11 @@ export function TripForm({
         startDate: d.startDate,
         endDate: d.endDate,
         note: d.note,
+        via: d.via,
         open: false,
       }))
     if (initialMain)
-      return [{ key: newId(), place: describeRef({ place: initialMain }, data), isMain: true, startDate: null, endDate: null, note: '', open: false }]
+      return [{ key: newId(), place: describeRef({ place: initialMain }, data), isMain: true, startDate: null, endDate: null, note: '', via: [], open: false }]
     return []
   })
   const [travelMode, setTravelMode] = useState<TravelMode | null>(trip?.travelMode ?? null)
@@ -105,10 +123,15 @@ export function TripForm({
     [mains, startDate],
   )
 
-  /** Destination edits; on a new trip whose dates you haven't set, the trip spans the destinations' dates. */
+  /**
+   * Destination edits. A route's bends are dropped when the place before it changes (reordered or
+   * removed), since they were for a different leg. On a new trip whose dates you haven't set, the
+   * trip spans the destinations' dates.
+   */
   const updateDestinations = (fn: (d: DestinationDraft[]) => DestinationDraft[]) =>
     setDestinations((current) => {
-      const next = fn(current)
+      const before = new Map(current.map((d, i) => [d.key, current[i - 1]?.key]))
+      const next = fn(current).map((d, i, all) => (d.via.length && before.get(d.key) !== all[i - 1]?.key ? { ...d, via: [] } : d))
       if (!datesTouched) {
         const starts = next.map((d) => d.startDate).filter((d): d is string => !!d)
         const ends = next.map((d) => d.endDate ?? d.startDate).filter((d): d is string => !!d)
@@ -121,11 +144,17 @@ export function TripForm({
     })
 
   const addDestination = (place: ChosenPlace) =>
-    updateDestinations((d) => [...d, { key: newId(), place, isMain: d.length === 0, startDate: null, endDate: null, note: '', open: false }])
+    updateDestinations((d) => [...d, { key: newId(), place, isMain: d.length === 0, startDate: null, endDate: null, note: '', via: [], open: false }])
 
-  const pick = async (label: string, then: (p: ChosenPlace) => void) => {
-    const place = await requestPick(label)
-    if (place) then(describeRef({ place }, store.getState().data))
+  /** Hides the form while you tap out the way you went from the previous destination to this one. */
+  const shapeLeg = async (i: number) => {
+    const latest = store.getState().data
+    const from = endOf(destinations[i - 1].place, latest)
+    const to = endOf(destinations[i].place, latest)
+    if (!from || !to) return
+    const key = destinations[i].key
+    const via = await requestShape(from, to, destinations[i].via)
+    if (via) patch(key, { via })
   }
 
   const move = (i: number, by: -1 | 1) =>
@@ -150,15 +179,14 @@ export function TripForm({
       if (!d.startDate) continue
       const end = d.endDate ?? d.startDate
       if (compareLoose(end, d.startDate) < 0) return setError(`${d.place.label}: you left before you arrived.`)
-      if (compareLoose(d.startDate, startDate) < 0 || compareLoose(end, endDate) > 0)
-        return setError(`${d.place.label}'s dates are outside the trip's dates.`)
+      if (compareLoose(d.startDate, startDate) < 0 || compareLoose(end, endDate) > 0) return setError(`${d.place.label}'s dates are outside the trip's dates.`)
     }
     const input: TripInput = {
       title: title.trim() || suggestedTitle,
       startDate,
       endDate,
       approximate,
-      destinations: destinations.map((d) => ({ place: d.place.ref, isMain: d.isMain, startDate: d.startDate, endDate: d.endDate, note: d.note })),
+      destinations: destinations.map((d) => ({ place: d.place.ref, isMain: d.isMain, startDate: d.startDate, endDate: d.endDate, note: d.note, via: d.via })),
       companions,
       companionGroupIds,
       travelMode,
@@ -210,99 +238,135 @@ export function TripForm({
       >
         <section aria-label="Where you went">
           <h3 className="text-sm font-bold">Where you went</h3>
-          <p className="mb-2 text-xs text-muted">In order. Tap a pin to make that place a main destination; each main destination gets a pin on the map.</p>
+          <p className="mb-2 text-xs text-muted">
+            In order. Tap a pin to make that place a main destination; each main destination gets a pin on the map. Between two places, shape the dotted route
+            to follow the way you went.
+          </p>
           {destinations.length > 0 && (
-            <ol className="mb-2 flex flex-col gap-1.5">
+            <ol className="mb-2 flex flex-col">
               {destinations.map((d, i) => {
                 const number = d.isMain ? null : ++stopNumber
                 const onlyMain = d.isMain && mains.length === 1
                 return (
-                  <li key={d.key} className="rounded-lg border border-line bg-bg" aria-label={d.place.label}>
-                    <div className="flex items-center gap-1 py-1 pr-1 pl-1">
-                      <button
-                        type="button"
-                        aria-label={d.isMain ? `${d.place.label} is a main destination` : `Make ${d.place.label} a main destination`}
-                        aria-pressed={d.isMain}
-                        disabled={onlyMain}
-                        title={onlyMain ? 'A trip needs at least one main destination' : d.isMain ? 'Main destination: tap to make it a stop' : 'Stop: tap to make it a main destination'}
-                        onClick={() => patch(d.key, { isMain: !d.isMain })}
-                        className="grid size-10 shrink-0 place-items-center rounded-md hover:bg-raised disabled:cursor-default disabled:hover:bg-transparent"
-                      >
-                        {d.isMain ? (
-                          <PinGlyph park={d.place.isPark} className="size-6" />
-                        ) : (
-                          <span className="grid size-6 place-items-center rounded-full bg-[var(--route)] text-xs font-bold text-[var(--route-text)]">{number}</span>
+                  <li key={d.key} aria-label={d.place.label}>
+                    {i > 0 && (
+                      <div className="flex min-h-9 items-center gap-2 pl-[1.15rem] text-xs text-muted">
+                        <span aria-hidden className="h-7 border-l-2 border-dotted border-[var(--route)]" />
+                        <button
+                          type="button"
+                          onClick={() => void shapeLeg(i)}
+                          aria-label={`Shape the route from ${destinations[i - 1].place.label} to ${d.place.label} on the map`}
+                          className="min-h-9 rounded-md px-1.5 font-bold text-[var(--route)] hover:bg-raised"
+                        >
+                          {d.via.length ? `Route bends ${d.via.length === 1 ? 'once' : `${d.via.length} times`} · Edit` : 'Shape the route on the map'}
+                        </button>
+                        {d.via.length > 0 && (
+                          <button type="button" onClick={() => patch(d.key, { via: [] })} className="min-h-9 rounded-md px-1.5 hover:bg-raised hover:text-fg">
+                            Straighten
+                          </button>
                         )}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => patch(d.key, { open: !d.open })}
-                        aria-expanded={d.open}
-                        className="min-h-10 min-w-0 flex-1 px-1 text-left"
-                      >
-                        <span className="block truncate">
-                          <span className={d.isMain ? 'font-bold' : ''}>{d.place.label}</span>
-                          {d.place.detail && <span className="ml-1.5 text-xs text-muted">{d.place.detail}</span>}
-                        </span>
-                        <span className="block text-xs text-muted">
-                          {d.startDate ? formatDateRange(d.startDate, d.endDate) : 'Add dates'}
-                          {d.note && ` · ${d.note}`}
-                        </span>
-                      </button>
-                      <IconButton label={`Move ${d.place.label} up`} disabled={i === 0} onClick={() => move(i, -1)} d="M6 12l4-4 4 4" />
-                      <IconButton label={`Move ${d.place.label} down`} disabled={i === destinations.length - 1} onClick={() => move(i, 1)} d="M6 8l4 4 4-4" />
-                      <IconButton label={`Remove ${d.place.label}`} onClick={() => remove(d.key)} d="M6 6l8 8M14 6l-8 8" />
-                    </div>
-                    <div className="px-2 empty:hidden">
-                      <ParkSuggestion
-                        value={d.place}
-                        onLink={(park) =>
-                          'place' in d.place.ref &&
-                          patch(d.key, { place: describeRef({ place: { ...d.place.ref.place, parkId: park.id, name: park.fullName } }, data) })
-                        }
-                      />
-                    </div>
-                    {d.open && (
-                      <div className="flex flex-col gap-3 border-t border-line p-3">
-                        {'place' in d.place.ref && !d.place.ref.place.parkId && (
-                          <label className="block">
-                            <span className="mb-1 block text-sm font-bold">Name</span>
-                            <input
-                              aria-label={`${d.place.label} name`}
-                              value={d.place.label}
-                              onChange={(e) =>
-                                'place' in d.place.ref &&
-                                patch(d.key, { place: { ...d.place, label: e.target.value, ref: { place: { ...d.place.ref.place, name: e.target.value } } } })
-                              }
-                              className={`${input} h-10`}
-                            />
-                          </label>
-                        )}
-                        <label className="flex min-h-9 items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={!!d.startDate}
-                            onChange={(e) =>
-                              patch(d.key, e.target.checked ? { startDate: startDate, endDate: endDate === startDate ? null : endDate } : { startDate: null, endDate: null })
-                            }
-                            className="size-4"
-                          />
-                          I know when I was here
-                        </label>
-                        {d.startDate && (
-                          <DateRangeField
-                            label={`Dates at ${d.place.label}`}
-                            start={d.startDate}
-                            end={d.endDate ?? d.startDate}
-                            onChange={(startDate, endDate) => patch(d.key, { startDate, endDate })}
-                          />
-                        )}
-                        <label className="block">
-                          <span className="mb-1 block text-sm font-bold">Note</span>
-                          <input value={d.note} onChange={(e) => patch(d.key, { note: e.target.value })} className={`${input} h-10`} />
-                        </label>
                       </div>
                     )}
+                    <div className="rounded-lg border border-line bg-bg">
+                      <div className="flex items-center gap-1 py-1 pr-1 pl-1">
+                        <button
+                          type="button"
+                          aria-label={d.isMain ? `${d.place.label} is a main destination` : `Make ${d.place.label} a main destination`}
+                          aria-pressed={d.isMain}
+                          disabled={onlyMain}
+                          title={
+                            onlyMain
+                              ? 'A trip needs at least one main destination'
+                              : d.isMain
+                                ? 'Main destination: tap to make it a stop'
+                                : 'Stop: tap to make it a main destination'
+                          }
+                          onClick={() => patch(d.key, { isMain: !d.isMain })}
+                          className="grid size-10 shrink-0 place-items-center rounded-md hover:bg-raised disabled:cursor-default disabled:hover:bg-transparent"
+                        >
+                          {d.isMain ? (
+                            <PinGlyph park={d.place.isPark} className="size-6" />
+                          ) : (
+                            <span className="grid size-6 place-items-center rounded-full bg-[var(--route)] text-xs font-bold text-[var(--route-text)]">
+                              {number}
+                            </span>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => patch(d.key, { open: !d.open })}
+                          aria-expanded={d.open}
+                          className="min-h-10 min-w-0 flex-1 px-1 text-left"
+                        >
+                          <span className="block truncate">
+                            <span className={d.isMain ? 'font-bold' : ''}>{d.place.label}</span>
+                            {d.place.detail && <span className="ml-1.5 text-xs text-muted">{d.place.detail}</span>}
+                          </span>
+                          <span className="block text-xs text-muted">
+                            {d.startDate ? formatDateRange(d.startDate, d.endDate) : 'Add dates'}
+                            {d.note && ` · ${d.note}`}
+                          </span>
+                        </button>
+                        <IconButton label={`Move ${d.place.label} up`} disabled={i === 0} onClick={() => move(i, -1)} d="M6 12l4-4 4 4" />
+                        <IconButton label={`Move ${d.place.label} down`} disabled={i === destinations.length - 1} onClick={() => move(i, 1)} d="M6 8l4 4 4-4" />
+                        <IconButton label={`Remove ${d.place.label}`} onClick={() => remove(d.key)} d="M6 6l8 8M14 6l-8 8" />
+                      </div>
+                      <div className="px-2 empty:hidden">
+                        <ParkSuggestion
+                          value={d.place}
+                          onLink={(park) =>
+                            'place' in d.place.ref &&
+                            patch(d.key, { place: describeRef({ place: { ...d.place.ref.place, parkId: park.id, name: park.fullName } }, data) })
+                          }
+                        />
+                      </div>
+                      {d.open && (
+                        <div className="flex flex-col gap-3 border-t border-line p-3">
+                          {'place' in d.place.ref && !d.place.ref.place.parkId && (
+                            <label className="block">
+                              <span className="mb-1 block text-sm font-bold">Name</span>
+                              <input
+                                aria-label={`${d.place.label} name`}
+                                value={d.place.label}
+                                onChange={(e) =>
+                                  'place' in d.place.ref &&
+                                  patch(d.key, { place: { ...d.place, label: e.target.value, ref: { place: { ...d.place.ref.place, name: e.target.value } } } })
+                                }
+                                className={`${input} h-10`}
+                              />
+                            </label>
+                          )}
+                          <label className="flex min-h-9 items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={!!d.startDate}
+                              onChange={(e) =>
+                                patch(
+                                  d.key,
+                                  e.target.checked
+                                    ? { startDate: startDate, endDate: endDate === startDate ? null : endDate }
+                                    : { startDate: null, endDate: null },
+                                )
+                              }
+                              className="size-4"
+                            />
+                            I know when I was here
+                          </label>
+                          {d.startDate && (
+                            <DateRangeField
+                              label={`Dates at ${d.place.label}`}
+                              start={d.startDate}
+                              end={d.endDate ?? d.startDate}
+                              onChange={(startDate, endDate) => patch(d.key, { startDate, endDate })}
+                            />
+                          )}
+                          <label className="block">
+                            <span className="mb-1 block text-sm font-bold">Note</span>
+                            <input value={d.note} onChange={(e) => patch(d.key, { note: e.target.value })} className={`${input} h-10`} />
+                          </label>
+                        </div>
+                      )}
+                    </div>
                   </li>
                 )
               })}
@@ -317,7 +381,6 @@ export function TripForm({
               if (p) addDestination(p)
               setError(null)
             }}
-            onPickOnMap={() => void pick('Tap the map to add a destination', addDestination)}
             autoFocus={!trip && !initialMain && !matchMedia('(pointer: coarse)').matches}
           />
         </section>

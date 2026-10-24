@@ -3,7 +3,7 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { useEffect, useRef, useState } from 'react'
 import { shadeLevel, type Pin } from '../lib/derive.ts'
 import { loadParkBoundaries, PARKS } from '../lib/gazetteer.ts'
-import type { RoutePoint } from '../lib/route.ts'
+import { routeLine, type RoutePoint } from '../lib/route.ts'
 import { resolvedTheme } from '../ui/theme.ts'
 import { loadOutlineData } from './mapData.ts'
 import { outlineStyle, PALETTES, themedPaint } from './outlineStyle.ts'
@@ -23,11 +23,16 @@ const LONG_PRESS_MS = 550
 export type ParksMode = 'off' | 'all' | 'visited' | 'not-visited'
 const PARK_LAYERS = ['park-areas', 'park-outlines', 'park-icons', 'park-labels']
 
-/** Room around a fitted route for the header and the pin card (left panel on desktop, bottom sheet on phones). */
-const routePadding = () =>
-  window.innerWidth < 640
-    ? { top: 90, bottom: Math.round(window.innerHeight * 0.5), left: 40, right: 40 }
-    : { top: 90, bottom: 60, left: 440, right: 80 }
+/**
+ * Room around a fitted route for the header and the pin card (left panel on desktop, bottom sheet
+ * on phones), or, while you shape a route, for the instructions across the top.
+ */
+const routePadding = (shaping: boolean) =>
+  shaping
+    ? { top: 200, bottom: 120, left: 50, right: 150 }
+    : window.innerWidth < 640
+      ? { top: 90, bottom: Math.round(window.innerHeight * 0.5), left: 40, right: 40 }
+      : { top: 90, bottom: 60, left: 440, right: 80 }
 
 export interface MapViewProps {
   pins: Pin[]
@@ -39,7 +44,9 @@ export interface MapViewProps {
   onSelectPin: (placeId: string | null) => void
   /** Long-press (touch) or right-click (desktop): add a trip at that spot. */
   onAddAt: (lng: number, lat: number) => void
-  /** While set, the next tap on the map picks a place instead of selecting pins. */
+  /** Dots on the route's bends (while shaping it). */
+  showBends?: boolean
+  /** While set, taps on the map pick a point instead of selecting pins. */
   picking: boolean
   onPick: (lng: number, lat: number) => void
   /** National parks layer: which parks to show, which you've visited, and what tapping one does. */
@@ -133,28 +140,34 @@ export function MapView(props: MapViewProps) {
               {
                 type: 'Feature' as const,
                 properties: {},
-                geometry: { type: 'LineString' as const, coordinates: route.map((r) => [r.place.lng, r.place.lat]) },
+                geometry: { type: 'LineString' as const, coordinates: routeLine(route) },
               },
             ]
           : []),
         ...route
-          .filter((r) => r.number !== null)
+          .filter((r) => r.number !== null || r.marker)
           .map((r) => ({
             type: 'Feature' as const,
-            properties: { number: r.number, name: r.place.name },
+            properties: { number: r.marker ?? r.number, name: r.place.name },
             geometry: { type: 'Point' as const, coordinates: [r.place.lng, r.place.lat] },
           })),
+        // Bends: small dots while you're shaping the route, so you can see what you tapped.
+        ...(props.showBends ? route.flatMap((r) => r.via) : []).map((coordinates) => ({
+          type: 'Feature' as const,
+          properties: { bend: true },
+          geometry: { type: 'Point' as const, coordinates },
+        })),
       ],
     })
-  }, [map, route])
+  }, [map, route, props.showBends])
 
   // Only when a different trip is shown, not on every edit, so it reads the route from the ref.
   useEffect(() => {
     const current = latest.current.route
     if (!map || !routeTripId || current.length < 2) return
     const bounds = new LngLatBounds()
-    for (const r of current) bounds.extend([r.place.lng, r.place.lat])
-    map.fitBounds(bounds, { padding: routePadding(), maxZoom: 10, duration: 800 })
+    for (const p of routeLine(current)) bounds.extend(p)
+    map.fitBounds(bounds, { padding: routePadding(!!latest.current.showBends), maxZoom: 10, duration: 800 })
   }, [map, routeTripId])
 
   // National parks: badges for all 64, boundaries loaded the first time the layer is shown.

@@ -5,6 +5,7 @@ import {
   type Avatar,
   type EditContext,
   type Group,
+  type LngLat,
   type PartialDate,
   type Person,
   type Place,
@@ -104,6 +105,8 @@ export interface DestinationInput {
   startDate: PartialDate | null
   endDate: PartialDate | null
   note: string
+  /** Bends in the route from the previous destination (see Destination.via). */
+  via?: LngLat[]
 }
 
 export interface TripInput {
@@ -141,6 +144,8 @@ export function saveTrip(data: TravelData, ctx: EditContext, input: TripInput, t
       startDate: d.startDate,
       endDate: d.endDate && d.endDate !== d.startDate ? d.endDate : null,
       note: d.note.trim(),
+      // A destination that's now first has no route leading to it.
+      via: destinations.length ? (d.via ?? []) : [],
     })
   }
   if (!destinations.some((d) => d.isMain)) destinations[0].isMain = true

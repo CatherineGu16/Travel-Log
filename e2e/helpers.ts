@@ -1,11 +1,32 @@
 import type { Locator } from '@playwright/test'
 
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+/** A date range picker, found by its label ("Trip dates", "Dates at Zion National Park"). */
+export const dateRange = (scope: Locator, label: string) => scope.getByRole('group', { name: new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`) })
+
+/** Picks a range of days ("2024-05-01" to "2024-05-03") by tapping the first day, then the last. */
+export async function pickDays(scope: Locator, label: string, from: string, to: string) {
+  const picker = dateRange(scope, label)
+  for (const date of [from, to]) {
+    const [y, m, d] = date.split('-').map(Number)
+    await picker.getByRole('combobox', { name: `${label} calendar year` }).selectOption(String(y))
+    await picker.getByRole('combobox', { name: `${label} calendar month` }).selectOption(String(m))
+    await picker.getByRole('button', { name: `${MONTHS[m - 1]} ${d}, ${y}`, exact: true }).click()
+  }
+}
+
 /** Sets the trip's dates to one whole year, using the range picker's year mode. */
 export async function setTripYear(dialog: Locator, year: string) {
-  await dialog.getByRole('radiogroup', { name: 'Trip dates precision' }).getByRole('radio', { name: 'Year' }).click()
-  for (const which of ['start', 'end']) {
-    const input = dialog.getByRole('textbox', { name: `Trip dates ${which}` })
-    await input.fill(year)
-    await input.press('Enter')
+  const picker = dateRange(dialog, 'Trip dates')
+  await picker.getByRole('radiogroup', { name: 'Trip dates precision' }).getByRole('radio', { name: 'Year' }).click()
+  const button = picker.getByRole('button', { name: year, exact: true })
+  // The grid shows twelve years at a time.
+  for (let i = 0; i < 10 && !(await button.count()); i++) {
+    const first = Number((await picker.getByRole('button', { name: /^\d{4}$/ }).first().textContent()) ?? 0)
+    await picker.getByRole('button', { name: Number(year) < first ? 'Previous years' : 'Next years' }).click()
   }
+  // Tapped twice: the first and the last year.
+  await button.click()
+  await button.click()
 }

@@ -19,7 +19,7 @@ const ordered = (a: PartialDate, b: PartialDate): [PartialDate, PartialDate] => 
 
 /**
  * A date range: tap the first day, then the last. Date, month or year precision, for trips you
- * only half remember. The typed fields underneath jump straight to any date.
+ * only half remember. The month and year menus above the grid jump straight to any date.
  */
 export function DateRangeField({
   label,
@@ -39,7 +39,7 @@ export function DateRangeField({
   // The month, year or decade the grid is showing.
   const viewOf = (d: PartialDate) => ({ year: Number(d.slice(0, 4)), month: d.length >= 7 ? Number(d.slice(5, 7)) : 1 })
   const [view, setView] = useState(() => viewOf(start))
-  // When the start changes from outside (typed, or filled in from destinations), show it.
+  // When the start changes from outside (filled in from destinations), show it.
   const [shownStart, setShownStart] = useState(start)
   if (shownStart !== start) {
     setShownStart(start)
@@ -165,39 +165,6 @@ export function DateRangeField({
     )
   }
 
-  const input = 'h-10 w-full min-w-0 flex-1 rounded-lg border border-line bg-bg px-2 text-base leading-10'
-  const typed = (which: 'start' | 'end') => {
-    const value = which === 'start' ? start : end
-    const set = (v: PartialDate) => onChange(...(which === 'start' ? ordered(v, end) : ordered(start, v)))
-    const name = `${label} ${which}`
-    if (precision === 'day')
-      return <input type="date" aria-label={name} value={value} max="2100-12-31" onChange={(e) => e.target.value && set(e.target.value)} className={input} />
-    if (precision === 'month')
-      return (
-        <input
-          type="month"
-          aria-label={name}
-          value={value}
-          onChange={(e) => /^\d{4}-\d{2}$/.test(e.target.value) && set(e.target.value)}
-          className={input}
-        />
-      )
-    return (
-      <input
-        type="text"
-        inputMode="numeric"
-        maxLength={4}
-        aria-label={name}
-        key={value}
-        defaultValue={value}
-        // Committed on blur so typing isn't interrupted.
-        onBlur={(e) => (/^(19|20)\d{2}$/.test(e.target.value) ? set(e.target.value) : (e.target.value = value))}
-        onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-        className={`${input} tabular-nums`}
-      />
-    )
-  }
-
   return (
     <fieldset className="min-w-0">
       <legend className="mb-1.5 flex w-full items-baseline gap-2 text-sm font-bold">
@@ -231,17 +198,6 @@ export function DateRangeField({
         <p className="mt-1 px-1 text-xs text-muted">
           {picking === 'start' ? `Tap the first ${UNIT[precision]}.` : `Now tap the last ${UNIT[precision]} (or the same one again).`}
         </p>
-      </div>
-      {/* Stacked, because phone date fields won't shrink to fit side by side. */}
-      <div className="mt-2 flex flex-col gap-2">
-        <label className="flex items-center gap-2 text-sm">
-          <span className="w-10 shrink-0 text-muted">From</span>
-          {typed('start')}
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <span className="w-10 shrink-0 text-muted">To</span>
-          {typed('end')}
-        </label>
       </div>
     </fieldset>
   )

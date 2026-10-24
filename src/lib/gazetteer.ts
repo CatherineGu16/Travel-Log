@@ -63,7 +63,8 @@ export async function placeAt(lng: number, lat: number): Promise<PlaceInput> {
 export interface NpsHike {
   id: string
   name: string
-  npsUrl: string
+  /** The hike's nps.gov page; null for trails that are on the NPS trails map but have no page. */
+  npsUrl: string | null
   difficulty: 'Easy' | 'Moderate' | 'Strenuous' | null
   distanceMi: number | null
   /** "nps" = stated by the park; "osm" = length of the mapped trail, so approximate. */
@@ -72,8 +73,17 @@ export interface NpsHike {
   duration: string | null
 }
 
+/** Whether a hike's name has every word typed so far ("sky lo" finds "Skyline Loop"). */
+export const matchesHike = (name: string, query: string) => {
+  const n = name.toLowerCase()
+  return query
+    .toLowerCase()
+    .split(/\s+/)
+    .every((w) => n.includes(w))
+}
+
 let hikes: Promise<Record<string, NpsHike[]>> | null = null
-/** The hikes each park lists on nps.gov (names and links only). */
+/** Each park's hiking trails, from the NPS trails map and nps.gov (built by scripts/build-park-hikes.mjs). */
 export const loadParkHikes = () => (hikes ??= import('../data/park-hikes.json').then((m) => m.default as Record<string, NpsHike[]>))
 
 /** The national park a point falls in, if any (for "Is this Yosemite National Park?"). */

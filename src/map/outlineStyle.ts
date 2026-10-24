@@ -114,6 +114,8 @@ export function themedPaint(p: MapPalette): { layer: string; prop: PaintProp; va
     { layer: 'pin-labels', prop: 'text-color', value: p.label },
     { layer: 'pin-labels', prop: 'text-halo-color', value: p.labelHalo },
     { layer: 'route-line', prop: 'line-color', value: p.route },
+    { layer: 'route-bends', prop: 'circle-color', value: p.pinCenter },
+    { layer: 'route-bends', prop: 'circle-stroke-color', value: p.route },
     { layer: 'route-stops', prop: 'circle-color', value: p.route },
     { layer: 'route-stops', prop: 'circle-stroke-color', value: p.pinCenter },
     { layer: 'route-stop-numbers', prop: 'text-color', value: p.routeText },
@@ -252,6 +254,13 @@ export function outlineStyle(data: OutlineData, palette: MapPalette, glyphsUrl: 
         filter: ['==', ['geometry-type'], 'LineString'],
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: { 'line-color': p.route, 'line-width': 3, 'line-dasharray': [0.1, 2.2] },
+      },
+      {
+        id: 'route-bends',
+        type: 'circle',
+        source: 'route',
+        filter: ['all', ['==', ['geometry-type'], 'Point'], ['has', 'bend']],
+        paint: { 'circle-radius': 5, 'circle-color': p.pinCenter, 'circle-stroke-width': 2.5, 'circle-stroke-color': p.route },
       },
       {
         id: 'route-stops',

@@ -92,6 +92,11 @@ Same rules as Watchlist-Tracker, plus map rules:
 - **Dotted route**: selecting a pin shows the trip's route through all its destinations in the
   order you entered them: main destinations as pins, stops as numbered dots, joined by a dashed
   line. Other pins fade back while one is selected, and the map fits the route around the pin card.
+- **Shaping a route**: the line between two destinations is straight unless you shape it. In Add
+  / Edit trip, "Shape the route on the map" between two places opens the map with just that leg
+  (A to B); each tap adds a bend where it fits along the leg, with Undo, Straighten, Cancel and
+  Done. Bends aren't places: no pins, no search, no dates. Reordering or removing destinations
+  drops the bends of any leg that changed.
 - **Stacked dates**: if you've been to a major location more than once (Chicago 2018, Chicago
   2022), it stays **one pin with a ×2 badge**. Its preview card stacks each visit's dates (that
   place's own dates when you gave them), newest first, with the newest selected. **Picking a
@@ -121,8 +126,9 @@ us-cities.json        ~700 US cities with population and rank (Natural Earth), f
 us-lakes.json         large lakes in and around the US (Natural Earth 50m)
 park-hikes.json       parkId → [ { id, name, npsUrl, difficulty, distanceMi, distanceSource,
                                    duration } ]
-                      the hikes each park lists in its nps.gov "Things To Do": difficulty
-                      (Easy / Moderate / Strenuous), distance and time where known
+                      each park's hiking trails from the NPS trails map, with the nps.gov
+                      "Things To Do" page, difficulty (Easy / Moderate / Strenuous), distance
+                      and time where NPS has them
 public/fonts/         Noto Sans label glyphs (SIL OFL), so labels render with no outside request
 ```
 
@@ -133,20 +139,29 @@ are plain facts) and stops if the two disagree.
 **How `park-hikes.json` is built** (`scripts/build-park-hikes.mjs`, run on a laptop, never by the
 app):
 
-1. Read every park's entries from the official NPS **Things To Do** feed, the same entries shown
-   on nps.gov/thingstodo pages, and keep the ones tagged as hiking. The feed is read with the
-   public `DEMO_KEY`, which needs no NPS account (about 10 requests an hour, so all parks are
-   fetched in a few batched requests and cached). NPS content is US-government public domain.
-2. Drop general overview pages ("Hiking in Yosemite", "Day Hikes") and tidy names ("Hike Beehive
-   Loop" → "Beehive Loop").
+1. **The list** is every named, open hiking trail on the official **NPS trails map** (the national
+   `NPS_Public_Trails` dataset on mapservices.nps.gov, the trails drawn on nps.gov park maps).
+   This is what brings in trails with no Things To Do page, such as Skyline Trail at Mount
+   Rainier. Campsite spurs, connectors, roads, walkways, bridges and stubs under 0.1 mi are left
+   out, and the map's abbreviations are spelled out ("Burroughs Mtn" → "Burroughs Mountain").
+2. **Details** come from the NPS **Things To Do** feed, the entries shown on nps.gov/thingstodo
+   pages, tagged as hiking. Each one is matched to its trail by name and adds its nps.gov link.
+   A page that names a hike but matches no mapped trail is kept on its own. Overview and theme
+   pages ("Hiking in Yosemite", "Day Hikes", "A Day In Paradise", "Spring Recreation",
+   "Kid-Friendly Hikes…") are dropped, and names are tidied ("Hike Beehive Loop" → "Beehive Loop").
+   The feed is read with the public `DEMO_KEY`, which needs no NPS account (about 10 requests an
+   hour, so all parks are fetched in a few batched requests and cached). NPS content is
+   US-government public domain.
 3. Sequoia and Kings Canyon share one NPS code; their hikes are split by park boundary.
 4. **Difficulty** comes from the NPS tags, then the description; **time** from NPS's duration
    field ("1–2 hours"); **distance** from the description when it states one, skipping distances
    that describe only part of the hike ("After 1 mile on the Riverside Walk…") or a drive. When NPS
-   gives no usable distance, the matching named trail near the hike's NPS location in
-   **OpenStreetMap** (Overpass, free, no key) gives its length, shown with "≈" because it's the
-   mapped trail rather than a stated hike distance.
-5. Write the list, plus `scripts/park-hikes-report.md` with every park's hikes and counts, and
+   gives no usable distance, the same-named trail in the park in **OpenStreetMap** (Overpass, free,
+   no key, one query per park) gives its length, shown with "≈" because it's the mapped trail
+   rather than a stated hike distance. Lengths from the NPS trails map aren't used, because many
+   parks have only parts of their trails drawn (Wonderland Trail comes out at 52 of its 93 miles).
+5. Hikes with an nps.gov page are listed first, then the rest A–Z.
+6. Write the list, plus `scripts/park-hikes-report.md` with every park's hikes and counts, and
    commit both to the public repo. Re-run it whenever you want a fresh list.
 
 Hikes aren't drawn on the map; drawing the OpenStreetMap trail lines is a possible later
@@ -174,7 +189,8 @@ units (monuments, seashores, historic sites — 400+ total) could be added later
              destinations: [ { placeId,      // in visit order
                                isMain,       // main destinations get pins; at least one per trip
                                startDate | null, endDate | null,   // this place's own dates
-                               note } ],
+                               note,
+                               via: [[lng, lat]] } ],   // bends in the route from the previous destination
              travelMode | null,              // "road-trip" | "flight" | "cruise"
              companions: [personId],         // people who went, one by one
              companionGroupIds: [groupId],   // groups tagged as a whole ("Friends")
@@ -290,9 +306,11 @@ Same engine as Watchlist-Tracker (`src/sync/`).
 ### Add / edit trip
 - **Where you went**: add destinations in order: search a place (your places and parks first, then
   cities and towns, **biggest first**; towns near the trip's main destination come first; plus
-  landmarks and addresses when the detailed map is on), or tap/long-press the map. Picking a place
-  you've been to before reuses it, so the new dates stack onto it. A dropped pin gets its state from
-  the bundled outlines and its nearest town from the bundled places list, and can be renamed.
+  landmarks and addresses when the detailed map is on). Long-press (or right-click) the map to
+  start a trip at that spot. Picking a place you've been to before reuses it, so the new dates
+  stack onto it. A dropped pin gets its state from the bundled outlines and its nearest town from
+  the bundled places list, and can be renamed. (There's no "Pick on map" in the form: a tap can't
+  place a spot exactly, so tapping the map is used to shape routes instead.)
   - The first destination is the **main** one; tap any destination's pin/number to make it a main
     destination too (each gets a pin), or back to a stop.
   - Each destination can have **its own dates** ("I know when I was here", as a date range) and a
@@ -300,13 +318,15 @@ Same engine as Watchlist-Tracker (`src/sync/`).
   - A place inside a national park offers to be linked to the park ("This is inside Zion National
     Park. Count it as a visit?").
   - Move up / down, remove.
+  - Between two destinations, **"Shape the route on the map"** (see Shaping a route).
 - **Trip dates**: a **date range picker**: tap the first day, then the last, on a calendar (Date),
-  a month grid (Month) or a year grid (Year). Typed From / To fields underneath (stacked, so they
-  fit any phone) jump to any date. Plus "Dates are approximate".
+  a month grid (Month) or a year grid (Year). The month and year menus above the calendar jump to
+  any date. Plus "Dates are approximate".
 - **How you traveled**: Road trip / Flight / Cruise.
 - **Title** (suggested from the main destinations and year, e.g. "Zion & Las Vegas 2024").
 - **Hikes**: for every national park on the trip. Check off trails from that park's list (with
-  difficulty, distance and time), or add a custom hike by name. An optional date per hike.
+  difficulty, distance and time), or add a custom hike by name. Long lists have a "Find a hike"
+  box.
 - **Who went**:
   - **Group tags**: **+ Family**, **+ Friends** (both built in) or any group you create adds the
     group as a tag **plus each of its members** (so "+ Family" tags Family and adds your family,
@@ -339,7 +359,8 @@ Same engine as Watchlist-Tracker (`src/sync/`).
 - All 64 national parks as a checklist, A–Z or by state, with Visited / Not visited / All and a
   "14 / 64" progress bar.
 - Visited parks show every visit date stacked (newest first) with links to the trips.
-- **Hikes**: each park row shows "Hikes 3 / 12". Opening a park lists its trails as a checklist.
+- **Hikes**: each park row shows "Hikes 3 / 12". Opening a park lists its trails as a checklist,
+  with "Find a hike" for long lists.
   Trails you've done show their dates (stacked if done more than once) and the trip. Checking
   off a trail asks which trip it belongs to (or starts a new one). You can also add a custom hike
   that isn't on the list.

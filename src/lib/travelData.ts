@@ -1,7 +1,7 @@
 import { isPartialDate } from './partialDate.ts'
 import { insertCheapest } from './route.ts'
 import { builtInGroups } from './travelActions.ts'
-import { FAMILY_GROUP_ID, FRIENDS_GROUP_ID, type Avatar, type Destination, type Group, type Person, type Place, type Synced, type TravelData, type Trip } from './types.ts'
+import { FAMILY_GROUP_ID, FRIENDS_GROUP_ID, type Avatar, type Destination, type Group, type LngLat, type Person, type Place, type Synced, type TravelData, type Trip } from './types.ts'
 
 /**
  * Combines two copies of your data record by record: the newer updatedAt wins, and deletes travel
@@ -47,6 +47,9 @@ export function sameContent(a: TravelData, b: TravelData): boolean {
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
+/** A [lng, lat] pair that is on the map. */
+const isLngLat = (v: unknown): v is LngLat =>
+  Array.isArray(v) && v.length === 2 && v.every((n) => typeof n === 'number' && Number.isFinite(n)) && Math.abs(v[0]) <= 180 && Math.abs(v[1]) <= 90
 const str = (v: unknown, fallback = '') => (typeof v === 'string' ? v : fallback)
 const dateOrNull = (v: unknown) => (typeof v === 'string' && isPartialDate(v) ? v : null)
 const strings = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [])
@@ -108,6 +111,7 @@ export function parseTravelData(input: unknown): TravelData {
     startDate: dateOrNull(d.startDate),
     endDate: dateOrNull(d.endDate),
     note: str(d.note),
+    via: Array.isArray(d.via) ? d.via.filter(isLngLat).map(([lng, lat]) => [lng, lat] as LngLat) : [],
   })
 
   /**
@@ -124,7 +128,7 @@ export function parseTravelData(input: unknown): TravelData {
       listed.isMain = true
       return stops
     }
-    const main: Destination = { placeId: x.mainPlaceId, isMain: true, startDate: null, endDate: null, note: '' }
+    const main: Destination = { placeId: x.mainPlaceId, isMain: true, startDate: null, endDate: null, note: '', via: [] }
     const at = (d: Destination) => placeById.get(d.placeId) ?? { lat: 0, lng: 0 }
     const located = stops.map((d) => ({ ...at(d), d }))
     return insertCheapest(located, { ...at(main), d: main }).map((l) => l.d)

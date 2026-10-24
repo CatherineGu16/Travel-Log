@@ -34,7 +34,14 @@ export interface Destination {
   startDate: PartialDate | null
   endDate: PartialDate | null
   note: string
+  /**
+   * Bends in the route from the previous destination to this one, [lng, lat] in order: points you
+   * tapped so the dotted line follows the way you went. Not places, so no pins.
+   */
+  via: LngLat[]
 }
+
+export type LngLat = [number, number]
 
 export interface TripHike {
   parkId: string

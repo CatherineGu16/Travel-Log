@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { setTripYear } from './helpers.ts'
+import { dateRange, pickDays, setTripYear } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -114,11 +114,9 @@ test('a trip with two main destinations, each with its own dates', async ({ page
     const row = dialog.getByRole('listitem', { name })
     await row.getByRole('button', { name: /Add dates/ }).click()
     await row.getByRole('checkbox', { name: 'I know when I was here' }).check()
-    await row.getByLabel(`Dates at ${name} start`, { exact: true }).fill(from)
-    await row.getByLabel(`Dates at ${name} end`, { exact: true }).fill(to)
+    await pickDays(row, `Dates at ${name}`, from, to)
   }
-  await expect(dialog.getByLabel('Trip dates start', { exact: true })).toHaveValue('2024-05-01')
-  await expect(dialog.getByLabel('Trip dates end', { exact: true })).toHaveValue('2024-05-06')
+  await expect(dateRange(dialog, 'Trip dates')).toContainText('May 1 – 6, 2024')
 
   await dialog.getByRole('button', { name: /Road trip/ }).click()
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
@@ -193,4 +191,36 @@ test('+ Family tags Family and adds each family member; removing the tag removes
   // Removing the tag removes the family members it added.
   await who.getByRole('button', { name: 'Remove Family' }).click()
   await expect(who).toBeHidden()
+})
+
+test('shaping the route between two places bends the dotted line through your taps', async ({ page }) => {
+  await page.goto('./')
+  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
+  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await choosePlace(page, DEST, 'zion', /Zion National Park/)
+  await choosePlace(page, DEST, 'Las Vegas', /^Las Vegas\s*NV$/)
+  await expect(dialog.getByRole('button', { name: 'Pick on map' })).toHaveCount(0)
+
+  await dialog.getByRole('button', { name: 'Shape the route from Zion National Park to Las Vegas on the map' }).click()
+  await expect(dialog).toBeHidden()
+  const banner = page.getByRole('region', { name: 'Shape the route' })
+  await expect(banner).toContainText('Zion National Park')
+  const map = page.locator('[data-testid="map"] canvas')
+  const box = (await map.boundingBox())!
+  await map.click({ position: { x: box.width / 2, y: box.height * 0.6 } })
+  await map.click({ position: { x: box.width / 2 + 30, y: box.height * 0.65 } })
+  await banner.getByRole('button', { name: 'Undo' }).click()
+  await banner.getByRole('button', { name: 'Done' }).click()
+
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByRole('button', { name: /^Shape the route from Zion/ })).toHaveText('Route bends once · Edit')
+  await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+  await expect(dialog).toBeHidden()
+
+  // Saved with the trip.
+  await page.getByRole('region', { name: 'Zion National Park trips' }).getByRole('button', { name: /^Edit/ }).click()
+  const edit = page.getByRole('dialog', { name: 'Edit trip' })
+  await expect(edit.getByRole('button', { name: /^Shape the route from Zion/ })).toHaveText('Route bends once · Edit')
+  await edit.getByRole('button', { name: 'Straighten' }).click()
+  await expect(edit.getByRole('button', { name: /^Shape the route from Zion/ })).toHaveText('Shape the route on the map')
 })

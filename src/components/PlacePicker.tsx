@@ -12,15 +12,14 @@ import type { TravelData } from '../lib/types.ts'
 const NO_RESULTS: SearchResult[] = []
 
 /**
- * Pick a place: type to search (your places, national parks, US towns, all offline), or tap
- * "Pick on map". A chosen place shows as a chip; a dropped pin can be renamed.
+ * Pick a place: type to search your places, national parks and US towns (all offline). A chosen
+ * place shows as a chip; a dropped pin can be renamed.
  */
 export function PlacePicker({
   label,
   data,
   value,
   onChange,
-  onPickOnMap,
   autoFocus = false,
   near = null,
 }: {
@@ -28,7 +27,6 @@ export function PlacePicker({
   data: TravelData
   value: ChosenPlace | null
   onChange: (place: ChosenPlace | null) => void
-  onPickOnMap: () => void
   autoFocus?: boolean
   /** Prefer towns near here (the trip's main destination) when names repeat. */
   near?: { lat: number; lng: number } | null
@@ -142,9 +140,6 @@ export function PlacePicker({
           }}
           className="h-11 min-w-0 flex-1 rounded-lg border border-line bg-bg px-3 text-base"
         />
-        <button type="button" onClick={onPickOnMap} className="h-11 shrink-0 rounded-lg border border-line px-3 text-sm font-bold hover:bg-raised">
-          Pick on map
-        </button>
       </div>
       {results.length > 0 && (
         <ul id={`${id}-results`} role="listbox" aria-label={`${label} results`} className="mt-1 overflow-hidden rounded-lg border border-line bg-surface shadow-md">

@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react'
-import { loadParkHikes, PARKS, type NpsHike } from '../lib/gazetteer.ts'
+import { loadParkHikes, matchesHike, PARKS, type NpsHike } from '../lib/gazetteer.ts'
+import { HikeFilter } from './HikeFilter.tsx'
 import { hikeKey } from '../lib/travelActions.ts'
 import { HikeFacts } from './HikeFacts.tsx'
 import type { TripHike } from '../lib/types.ts'
 
 /**
  * "Hikes" in the trip form, shown when the trip includes a national park: check off that park's
- * hikes from nps.gov, add your own, and optionally date each one.
+ * hikes from nps.gov, or add your own.
  */
 export function HikesField({ parkIds, value, onChange }: { parkIds: string[]; value: TripHike[]; onChange: (hikes: TripHike[]) => void }) {
   const [all, setAll] = useState<Record<string, NpsHike[]>>({})
+  const [query, setQuery] = useState<Record<string, string>>({})
   useEffect(() => {
     void loadParkHikes().then(setAll)
   }, [])
@@ -17,9 +19,7 @@ export function HikesField({ parkIds, value, onChange }: { parkIds: string[]; va
 
   const keyOf = (h: TripHike) => hikeKey(h.parkId, h.hikeId, h.name)
   const has = (parkId: string, hikeId: string | null, name: string) => value.some((h) => keyOf(h) === hikeKey(parkId, hikeId, name))
-  const toggle = (hike: TripHike) =>
-    onChange(has(hike.parkId, hike.hikeId, hike.name) ? value.filter((h) => keyOf(h) !== keyOf(hike)) : [...value, hike])
-  const setDate = (hike: TripHike, date: string | null) => onChange(value.map((h) => (keyOf(h) === keyOf(hike) ? { ...h, date } : h)))
+  const toggle = (hike: TripHike) => onChange(has(hike.parkId, hike.hikeId, hike.name) ? value.filter((h) => keyOf(h) !== keyOf(hike)) : [...value, hike])
 
   return (
     <section aria-label="Hikes" className="flex flex-col gap-4">
@@ -36,35 +36,47 @@ export function HikesField({ parkIds, value, onChange }: { parkIds: string[]; va
             </summary>
             <div className="border-t border-line p-2">
               {listed.length === 0 && <p className="px-1 pb-2 text-sm text-muted">NPS doesn't list hikes for this park yet. Add yours below.</p>}
+              {listed.length > 10 && <HikeFilter value={query[parkId] ?? ''} onChange={(q) => setQuery({ ...query, [parkId]: q })} />}
               <ul className="max-h-72 overflow-y-auto">
-                {[...listed.map((l) => ({ hikeId: l.id as string | null, name: l.name, nps: l as NpsHike | null })), ...custom.map((c) => ({ hikeId: c.hikeId, name: c.name, nps: null }))].map((l) => {
-                  const hike = value.find((h) => keyOf(h) === hikeKey(parkId, l.hikeId, l.name))
-                  return (
-                    <li key={hikeKey(parkId, l.hikeId, l.name)} className="flex min-h-10 items-center gap-2 px-1">
-                      <label className="flex min-h-10 min-w-0 flex-1 items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={!!hike}
-                          onChange={() => toggle({ parkId, hikeId: l.hikeId, name: l.name, date: null })}
-                          className="size-4 shrink-0 accent-[var(--park)]"
-                        />
-                        <span className="min-w-0">
-                          <span className={`block truncate text-sm ${hike ? 'font-bold' : ''}`}>{l.name}</span>
-                          {l.nps && <HikeFacts hike={l.nps} />}
-                        </span>
-                      </label>
-                      {hike && (
-                        <input
-                          type="date"
-                          aria-label={`${l.name} date`}
-                          value={hike.date ?? ''}
-                          onChange={(e) => setDate(hike, e.target.value || null)}
-                          className="h-9 shrink-0 rounded-md border border-line bg-bg px-2 text-sm leading-9"
-                        />
-                      )}
-                    </li>
-                  )
-                })}
+                {[
+                  ...listed.map((l) => ({
+                    hikeId: l.id as string | null,
+                    name: l.name,
+                    nps: l as NpsHike | null,
+                  })),
+                  ...custom.map((c) => ({
+                    hikeId: c.hikeId,
+                    name: c.name,
+                    nps: null,
+                  })),
+                ]
+                  .filter((l) => matchesHike(l.name, query[parkId] ?? ''))
+                  .map((l) => {
+                    const hike = value.find((h) => keyOf(h) === hikeKey(parkId, l.hikeId, l.name))
+                    return (
+                      <li key={hikeKey(parkId, l.hikeId, l.name)} className="flex min-h-10 items-center gap-2 px-1">
+                        <label className="flex min-h-10 min-w-0 flex-1 items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={!!hike}
+                            onChange={() =>
+                              toggle({
+                                parkId,
+                                hikeId: l.hikeId,
+                                name: l.name,
+                                date: null,
+                              })
+                            }
+                            className="size-4 shrink-0 accent-[var(--park)]"
+                          />
+                          <span className="min-w-0">
+                            <span className={`block truncate text-sm ${hike ? 'font-bold' : ''}`}>{l.name}</span>
+                            {l.nps && <HikeFacts hike={l.nps} />}
+                          </span>
+                        </label>
+                      </li>
+                    )
+                  })}
               </ul>
               <AddCustomHike onAdd={(name) => !has(parkId, null, name) && onChange([...value, { parkId, hikeId: null, name, date: null }])} />
             </div>

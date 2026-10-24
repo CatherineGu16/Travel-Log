@@ -100,3 +100,29 @@ describe('earlier trip types', () => {
     expect(parsed.trips.map((t) => t.companionGroupIds)).toEqual([['family'], ['friends'], []])
   })
 })
+
+describe('route bends', () => {
+  it('keeps valid [lng, lat] bends and drops anything else', () => {
+    const parsed = parseTravelData({
+      schemaVersion: 1,
+      places: [
+        { id: 'p', name: 'Moab', lat: 38.5, lng: -109.5, updatedAt: 't' },
+        { id: 'q', name: 'Zion', lat: 37.3, lng: -113, updatedAt: 't' },
+      ],
+      people: [],
+      groups: [],
+      trips: [
+        {
+          id: 'a',
+          updatedAt: 't',
+          startDate: '2020',
+          destinations: [
+            { placeId: 'p', isMain: true },
+            { placeId: 'q', isMain: false, via: [[-112, 37], [999, 0], 'x', [1]] },
+          ],
+        },
+      ],
+    })
+    expect(parsed.trips[0].destinations.map((d) => d.via)).toEqual([[], [[-112, 37]]])
+  })
+})

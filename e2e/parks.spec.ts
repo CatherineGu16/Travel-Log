@@ -1,5 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
+import { readFileSync } from 'node:fs'
 import { setTripYear } from './helpers.ts'
+
+const zionHikes = (JSON.parse(readFileSync(new URL('../src/data/park-hikes.json', import.meta.url), 'utf8')) as Record<string, unknown[]>).zion.length
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -29,20 +32,24 @@ test('parks checklist: log a visit with hikes, then check off more hikes', async
   await expect(page.getByText('1 / 64 visited')).toBeVisible()
   const zion = page.getByRole('listitem', { name: 'Zion' })
   await expect(zion.getByLabel('Visited')).toBeVisible()
-  await expect(zion).toContainText('Hikes 1 / 17')
+  await expect(zion).toContainText(`Hikes 1 / ${zionHikes}`)
 
   // In the park sheet, checking a hike adds it to your (only) visit; custom hikes work too.
   await zion.getByRole('button', { name: /Zion/ }).click()
   const sheet = page.getByRole('dialog', { name: 'Zion National Park' })
   await expect(sheet.getByRole('checkbox', { name: 'Angels Landing' })).toBeChecked()
+  // A long list can be narrowed down.
+  await sheet.getByRole('searchbox', { name: 'Find a hike' }).fill('narr')
+  await expect(sheet.getByRole('checkbox', { name: 'Angels Landing' })).toHaveCount(0)
   await sheet.getByRole('checkbox', { name: 'The Narrows' }).check()
   await expect(sheet.getByRole('checkbox', { name: 'The Narrows' })).toBeChecked()
+  await sheet.getByRole('searchbox', { name: 'Find a hike' }).fill('')
   await sheet.getByRole('textbox', { name: "Add a hike that isn't listed" }).fill('Secret slot canyon')
   await sheet.getByRole('button', { name: 'Add', exact: true }).click()
   await expect(sheet.getByRole('checkbox', { name: 'Secret slot canyon' })).toBeChecked()
-  await expect(sheet.getByText('2 / 17')).toBeVisible()
+  await expect(sheet.getByText(`2 / ${zionHikes}`)).toBeVisible()
   await sheet.getByRole('button', { name: 'Close' }).click()
-  await expect(zion).toContainText('Hikes 2 / 17 +1')
+  await expect(zion).toContainText(`Hikes 2 / ${zionHikes} +1`)
 
   // The map's parks layer shows your progress.
   await nav(page, 'Map')

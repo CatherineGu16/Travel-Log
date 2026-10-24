@@ -12,17 +12,17 @@ import { PlacesPage } from './components/PlacesPage.tsx'
 import { ToastProvider } from './components/Toast.tsx'
 import { useToast } from './components/toastContext.ts'
 import { TripDetail } from './components/TripDetail.tsx'
-import { TripForm } from './components/TripForm.tsx'
+import { TripForm, type RequestShape, type RouteEnd } from './components/TripForm.tsx'
 import { TripsPage } from './components/TripsPage.tsx'
 import parks from './data/national-parks.json'
 import { mainPlaceIds, parksVisited, pinsOf, statesVisited, tripsPerRegion } from './lib/derive.ts'
 import { filterData, NO_FILTER, reviveFilter, type TripFilter } from './lib/filters.ts'
 import { placeAt } from './lib/gazetteer.ts'
 import { parkInput, type ParkInfo } from './lib/placeSearch.ts'
-import { routeOf } from './lib/route.ts'
+import { addBend, routeOf, type RoutePoint } from './lib/route.ts'
 import { live, type PlaceInput } from './lib/travelActions.ts'
 import { todayIso, yearOf } from './lib/partialDate.ts'
-import type { Trip } from './lib/types.ts'
+import type { LngLat, Place, Trip } from './lib/types.ts'
 import { loadServices, ServicesContext, useStore, useTravelState, type AppServices } from './store/useTravel.ts'
 import type { ParksMode } from './map/MapView.tsx'
 import { useMapDetail } from './ui/mapDetail.ts'
@@ -48,7 +48,8 @@ export default function App() {
 }
 
 type FormState = { trip: Trip | null; initialMain: PlaceInput | null }
-type PickRequest = { label: string; resolve: (p: PlaceInput | null) => void }
+/** Shaping one leg of a route on the map: the bends tapped so far, and earlier versions for Undo. */
+type ShapeRequest = { from: RouteEnd; to: RouteEnd; via: LngLat[]; history: LngLat[][]; resolve: (via: LngLat[] | null) => void }
 
 function Shell() {
   const store = useStore()
@@ -84,7 +85,7 @@ function Shell() {
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null)
   const [detailTripId, setDetailTripId] = useState<string | null>(null)
   const [form, setForm] = useState<FormState | null>(null)
-  const [pick, setPick] = useState<PickRequest | null>(null)
+  const [shape, setShape] = useState<ShapeRequest | null>(null)
   const [peopleOpen, setPeopleOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [focus, setFocus] = useState<{ lng: number; lat: number; token: number } | null>(null)
@@ -94,7 +95,17 @@ function Shell() {
   const selectedPin = pins.find((p) => p.place.id === selectedPlaceId) ?? null
   // The visit shown on the pin card: the one you picked, else the newest.
   const selectedTrip = selectedPin ? (selectedPin.trips.find((t) => t.id === selectedTripId) ?? selectedPin.trips[0]) : null
-  const route = useMemo(() => (selectedTrip ? routeOf(selectedTrip, data.places) : []), [selectedTrip, data.places])
+  const tripRoute = useMemo(() => (selectedTrip ? routeOf(selectedTrip, data.places) : []), [selectedTrip, data.places])
+  // While you shape a leg, the map shows just that leg, from A to B.
+  const shapeRoute = useMemo<RoutePoint[]>(() => {
+    if (!shape) return []
+    const end = (e: RouteEnd, id: string) => ({ id, name: e.name, lat: e.lat, lng: e.lng }) as Place
+    return [
+      { place: end(shape.from, 'shape-from'), role: 'stop', number: null, marker: 'A', via: [] },
+      { place: end(shape.to, 'shape-to'), role: 'stop', number: null, marker: 'B', via: shape.via },
+    ]
+  }, [shape])
+  const route = shape ? shapeRoute : tripRoute
   const detailTrip = data.trips.find((t) => t.id === detailTripId && !t.deleted) ?? null
 
   const selectPin = (placeId: string | null, tripId: string | null = null) => {
@@ -119,6 +130,7 @@ function Shell() {
     setDetailTripId(trip.id)
   }
   const addTrip = () => {
+    finishShape(null)
     selectPin(null)
     setForm({ trip: null, initialMain: null })
   }
@@ -129,18 +141,19 @@ function Shell() {
     setForm({ trip: null, initialMain: parkInput(park) })
   }
 
-  const requestPick = useCallback(
-    (label: string) =>
-      new Promise<PlaceInput | null>((resolve) => {
+  const requestShape = useCallback<RequestShape>(
+    (from, to, via) =>
+      new Promise((resolve) => {
         goTo('map')
-        setPick({ label, resolve })
+        setShape({ from, to, via, history: [], resolve })
       }),
     [goTo],
   )
-  const cancelPick = () => {
-    pick?.resolve(null)
-    setPick(null)
+  const finishShape = (via: LngLat[] | null) => {
+    shape?.resolve(via)
+    setShape(null)
   }
+  const changeShape = (via: LngLat[]) => setShape((s) => s && { ...s, via, history: [...s.history, s.via] })
 
   const filterButton = <FilterButton filter={filter} onClick={() => setFilterOpen(true)} />
 
@@ -153,7 +166,8 @@ function Shell() {
             tripsPerRegion={perRegion}
             selectedPlaceId={selectedPin ? selectedPlaceId : null}
             route={route}
-            routeTripId={selectedTrip?.id ?? null}
+            routeTripId={shape ? 'shaping' : (selectedTrip?.id ?? null)}
+            showBends={shape !== null}
             onSelectPin={(placeId) => selectPin(placeId)}
             onAddAt={(lng, lat) => {
               void placeAt(lng, lat).then((initialMain) => {
@@ -161,12 +175,8 @@ function Shell() {
                 setForm({ trip: null, initialMain })
               })
             }}
-            picking={pick !== null}
-            onPick={(lng, lat) => {
-              const request = pick
-              setPick(null)
-              void placeAt(lng, lat).then((p) => request?.resolve(p))
-            }}
+            picking={shape !== null}
+            onPick={(lng, lat) => shape && changeShape(addBend([shape.from.lng, shape.from.lat], shape.via, [shape.to.lng, shape.to.lat], [lng, lat]))}
             parksMode={parksMode}
             visitedParks={visitedParks}
             onSelectPark={setParkSheetId}
@@ -252,16 +262,41 @@ function Shell() {
           </p>
         )}
 
-        {pick && (
-          <div className="absolute inset-x-3 top-20 z-30 mx-auto flex max-w-md items-center gap-2 rounded-xl bg-toast py-2 pr-2 pl-4 text-sm text-white shadow-lg">
-            <span className="mr-auto">{pick.label}</span>
-            <button onClick={cancelPick} className="min-h-10 rounded-lg px-3 font-bold text-[var(--toast-action)] hover:bg-white/10">
-              Cancel
-            </button>
+        {shape && (
+          <div
+            role="region"
+            aria-label="Shape the route"
+            className="absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-30 mx-auto flex max-w-md flex-col gap-2 rounded-xl bg-toast p-3 text-sm text-white shadow-lg"
+          >
+            <p>
+              Tap the map along the way you went from <b>{shape.from.name}</b> (A) to <b>{shape.to.name}</b> (B). The dotted line bends through your taps.
+            </p>
+            <div className="flex flex-wrap items-center gap-1">
+              <button
+                onClick={() => setShape((s) => s && { ...s, via: s.history.at(-1) ?? [], history: s.history.slice(0, -1) })}
+                disabled={shape.history.length === 0}
+                className="min-h-10 rounded-lg px-3 font-bold hover:bg-white/10 disabled:opacity-40"
+              >
+                Undo
+              </button>
+              <button
+                onClick={() => changeShape([])}
+                disabled={shape.via.length === 0}
+                className="min-h-10 rounded-lg px-3 font-bold hover:bg-white/10 disabled:opacity-40"
+              >
+                Straighten
+              </button>
+              <button onClick={() => finishShape(null)} className="ml-auto min-h-10 rounded-lg px-3 font-bold hover:bg-white/10">
+                Cancel
+              </button>
+              <button onClick={() => finishShape(shape.via)} className="min-h-10 rounded-lg bg-white px-4 font-bold text-toast">
+                Done
+              </button>
+            </div>
           </div>
         )}
 
-        {onMap && !pick && (
+        {onMap && !shape && (
           <>
             <ShadeLegend show={perRegion.size > 0 || pins.length > 0} />
             <div className="absolute top-[calc(max(0.75rem,env(safe-area-inset-top))+4.25rem)] left-3 z-10 flex gap-2 sm:top-20 sm:right-3 sm:left-auto">
@@ -271,7 +306,7 @@ function Shell() {
           </>
         )}
 
-        {onMap && selectedPin && selectedTrip && !form && !pick && (
+        {onMap && selectedPin && selectedTrip && !form && !shape && (
           <div className="pointer-events-none absolute inset-x-3 bottom-[0.75rem] z-20 flex sm:inset-x-auto sm:top-20 sm:bottom-auto sm:left-3">
             <PinCard
               pin={selectedPin}
@@ -285,7 +320,6 @@ function Shell() {
             />
           </div>
         )}
-
       </main>
 
       <TabBar page={page} onAdd={addTrip} />
@@ -321,10 +355,10 @@ function Shell() {
           key={form.trip?.id ?? 'new'}
           trip={form.trip}
           initialMain={form.initialMain}
-          hidden={pick !== null}
-          requestPick={requestPick}
+          hidden={shape !== null}
+          requestShape={requestShape}
           onClose={() => {
-            cancelPick()
+            finishShape(null)
             setForm(null)
           }}
           onSaved={(mainPlaceId, tripId) => {
