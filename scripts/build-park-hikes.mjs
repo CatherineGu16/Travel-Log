@@ -1,15 +1,24 @@
 #!/usr/bin/env node
-// Builds src/data/park-hikes.json: the hikes each national park lists in its nps.gov "Things To
-// Do", with a link to each hike's page, its difficulty, distance and time where known.
+// Builds src/data/park-hikes.json: each national park's hiking trails, from two NPS sources:
 //
-// Difficulty and time come from NPS (tags, descriptions, its duration field). Distance comes from
-// the NPS description when it states one; otherwise from the matching named trail in
-// OpenStreetMap near the hike's NPS location (Overpass API, free, no key), marked "osm" because
-// it's the mapped trail's length rather than a stated hike distance.
+//  - The NPS trails map (the national NPS_Public_Trails dataset on mapservices.nps.gov): every
+//    named, open, public hiking trail in the park. This is the list, so trails that have no
+//    "Things To Do" page (Skyline Trail at Mount Rainier) still show up.
+//  - NPS "Things To Do" (the pages behind nps.gov/thingstodo): a link, difficulty, distance and
+//    time for the hikes that have a page. Matched to trails by name; a page that names a specific
+//    hike but no mapped trail ("Hike to Delicate Arch" in a park with patchy trail data) is kept
+//    too. Pages that aren't about one hike ("A Day In Paradise", "Spring Recreation") are not.
+//
+// Distance: the one NPS states on the hike's page; else the length of the same-named trail in
+// OpenStreetMap (Overpass API, free, no key, one query per park), marked approximate. The length of the
+// trail on the NPS map isn't used, since many parks have only parts of their trails drawn.
 //
 //   node scripts/build-park-hikes.mjs            uses cached downloads when present
 //   node scripts/build-park-hikes.mjs --refresh  re-downloads everything
 //   node scripts/build-park-hikes.mjs --no-osm   skips the OpenStreetMap distance lookups
+//
+// Sequoia, Kings Canyon and Gates of the Arctic have no trails in the NPS dataset, so they list
+// their Things To Do hikes only.
 //
 // Data comes from the official NPS Things To Do feed, the entries behind nps.gov/thingstodo pages
 // (developer.nps.gov). Without NPS_API_KEY it uses the public DEMO_KEY, which needs no account
@@ -217,29 +226,42 @@ async function overpass(query) {
   return null
 }
 
-/** Length in miles of the named trail matching this hike within a few km of its NPS location. */
-async function osmDistance(hike, osmCache) {
-  if (hike.lat == null) return null
-  if (hike.npsId in osmCache) return osmCache[hike.npsId]
+/**
+ * Lengths in miles of the park's named trails in OpenStreetMap: { "skyline": 5.5, ... } keyed by
+ * the name's words (see tokens), one query per park. A hiking route relation is measured whole;
+ * otherwise the ways sharing a name inside the park are added up.
+ */
+async function osmParkLengths(park) {
+  const g = boundaryById.get(park.id)
+  if (!g) return {}
+  const pts = (g.type === 'Polygon' ? [g.coordinates] : g.coordinates).flat(2)
+  const [w, s, e, n] = pts.reduce(([w, s, e, n], [x, y]) => [Math.min(w, x), Math.min(s, y), Math.max(e, x), Math.max(n, y)], [180, 90, -180, -90])
   await sleep(1100)
-  const data = await overpass(`[out:json][timeout:60];
+  const data = await overpass(`[out:json][timeout:180][bbox:${s},${w},${n},${e}];
 (
-  way["highway"~"^(path|footway|track|bridleway|steps)$"]["name"](around:4000,${hike.lat},${hike.lng});
-  relation["route"~"^(hiking|foot)$"]["name"](around:4000,${hike.lat},${hike.lng});
+  way["highway"~"^(path|footway|track|bridleway|steps)$"]["name"];
+  relation["route"~"^(hiking|foot)$"]["name"];
 );
 out tags geom;`)
   if (!data) return null // not cached, so a later run retries
-  const matches = data.elements.filter((e) => sameName(hike.name, e.tags.name))
-  let miles = null
-  const relation = matches.find((e) => e.type === 'relation')
-  if (relation) miles = (relation.members ?? []).filter((m) => m.geometry).reduce((sum, m) => sum + lineLength(m.geometry), 0) / 1609.344
-  else if (matches.length) {
-    // OSM splits a trail into many ways; add up the ones sharing the matched name.
-    const name = matches[0].tags.name
-    miles = data.elements.filter((e) => e.type === 'way' && e.tags.name === name).reduce((sum, e) => sum + lineLength(e.geometry), 0) / 1609.344
+  const ways = new Map()
+  const routes = new Map()
+  for (const el of data.elements) {
+    const key = [...tokens(el.tags.name)].sort().join(' ')
+    if (!key) continue
+    if (el.type === 'relation') {
+      const m = (el.members ?? []).filter((x) => x.geometry).reduce((sum, x) => sum + lineLength(x.geometry), 0)
+      routes.set(key, Math.max(routes.get(key) ?? 0, m))
+    } else if (el.geometry?.length && inPark(park.id, el.geometry[0].lon, el.geometry[0].lat)) {
+      ways.set(key, (ways.get(key) ?? 0) + lineLength(el.geometry))
+    }
   }
-  osmCache[hike.npsId] = miles && miles > 0.05 && miles < 60 ? Math.round(miles * 10) / 10 : null
-  return osmCache[hike.npsId]
+  const out = {}
+  for (const [key, m] of [...ways, ...routes]) {
+    const miles = Math.round((m / 1609.344) * 10) / 10
+    if (miles > 0.05 && miles < 250) out[key] = miles
+  }
+  return out
 }
 
 // ---------- Sequoia / Kings Canyon split ----------
@@ -275,6 +297,115 @@ function sekiPark(t) {
   return /kings canyon|grant grove|cedar grove|redwood canyon|big stump|zumwalt|roaring river/i.test(text) ? 'kings-canyon' : 'sequoia'
 }
 
+// ---------- NPS trails map ----------
+
+const TRAILS = 'https://mapservices.nps.gov/arcgis/rest/services/NationalDatasets/NPS_Public_Trails/FeatureServer/0/query'
+
+// Mapped ways that aren't a hike someone would check off.
+const NOT_A_HIKE =
+  /\b(campsite|campground|spur|connector|access|cutoff|cut-off|road|street|parking|bike path|bicycle|walkways?|sidewalk|pathways?|bridge|crossing|stairs?|service|social|unnamed|unknown|reroute|climbing|developed area|picnic|utility|maintenance|tram station|gaging|boardwalk to|portage|ski|snowmobile)\b|^(trail|path|loop|route)( \d+)?$|^\W*$|^\d/i
+
+// The map's abbreviations: "Burroughs Mtn Trail", "Chinook Pass To Tipsoo Lk Trail".
+const ABBREVIATIONS = [
+  [/\bMtn\b\.?/g, 'Mountain'],
+  [/\bMt\b\.?/g, 'Mount'],
+  [/\bLk\b\.?/g, 'Lake'],
+  [/\bPt\b\.?/g, 'Point'],
+  [/\bCk\b\.?|\bCr\b\.?/g, 'Creek'],
+  [/\bJct\b\.?/g, 'Junction'],
+]
+export const tidyTrailName = (raw) => {
+  let name = raw.replace(/\s+/g, ' ').trim()
+  for (const [re, word] of ABBREVIATIONS) name = name.replace(re, word)
+  // "Chinook Pass To Tipsoo Lake Trail" → "Chinook Pass to Tipsoo Lake Trail".
+  return name.replace(/ (To|And|Of|The|At|On|Via)(?= )/g, (m) => m.toLowerCase()).replace(/\bMc([a-z])/g, (_, c) => `Mc${c.toUpperCase()}`)
+}
+
+/** Whether a name on the trails map is a hike (not a spur, road, walkway or campsite path). */
+export const isTrailHike = (name) => !NOT_A_HIKE.test(name)
+
+/** One park's mapped trails, grouped by name: [{ name, miles, lat, lng }], miles summed over segments. */
+async function fetchParkTrails(unitCode) {
+  const segments = []
+  for (let offset = 0; ; ) {
+    const q = new URLSearchParams({
+      where: `UNITCODE='${unitCode}'`,
+      outFields: 'TRLNAME,MAPLABEL,TRLSTATUS,TRLTYPE,TRLFEATTYPE',
+      returnGeometry: 'true',
+      outSR: '4326',
+      geometryPrecision: '5',
+      f: 'json',
+      resultOffset: String(offset),
+      resultRecordCount: '2000',
+    })
+    const res = await fetch(`${TRAILS}?${q}`, { signal: AbortSignal.timeout(180_000) })
+    const body = await res.json()
+    if (body.error) throw new Error(`NPS trails ${unitCode}: ${JSON.stringify(body.error)}`)
+    segments.push(...body.features)
+    offset += body.features.length
+    if (!body.exceededTransferLimit || body.features.length === 0) break
+  }
+  const byName = new Map()
+  for (const { attributes: a, geometry } of segments) {
+    if (a.TRLSTATUS !== 'Existing') continue
+    if (/water|snow/i.test(a.TRLTYPE ?? '') || /non-nps|unofficial/i.test(a.TRLFEATTYPE ?? '')) continue
+    const raw = (a.TRLNAME ?? '').trim() || (a.MAPLABEL ?? '').trim()
+    if (!raw || !isTrailHike(raw)) continue
+    const name = tidyTrailName(raw)
+    const key = name.toLowerCase()
+    const t = byName.get(key) ?? { name, m: 0, lat: 0, lng: 0, n: 0 }
+    for (const path of geometry?.paths ?? []) {
+      const pts = path.map(([lon, lat]) => ({ lon, lat }))
+      t.m += lineLength(pts)
+      for (const p of pts) [t.lat, t.lng, t.n] = [t.lat + p.lat, t.lng + p.lon, t.n + 1]
+    }
+    byName.set(key, t)
+  }
+  return [...byName.values()].map((t) => ({
+    name: t.name,
+    miles: Math.round((t.m / 1609.344) * 10) / 10,
+    lat: t.n ? t.lat / t.n : null,
+    lng: t.n ? t.lng / t.n : null,
+  }))
+}
+
+/** Every park's mapped trails, cached (the raw segments are large; only the totals are kept). */
+async function fetchTrails() {
+  const path = join(CACHE, 'nps-trails.json')
+  const cache = !REFRESH && existsSync(path) ? JSON.parse(await readFile(path, 'utf8')) : {}
+  for (const p of PARKS) {
+    const code = p.npsCode.toUpperCase()
+    if (code in cache) continue
+    cache[code] = await fetchParkTrails(code)
+    console.log(`NPS trails: ${code} ${cache[code].length}`)
+    await writeFile(path, JSON.stringify(cache))
+  }
+  return cache
+}
+
+// A Things To Do page that isn't on the trails map is kept only if its title names a hike.
+const NAMES_A_HIKE =
+  /\b(trail|trails|loop|path|walk|hike|route|trek|nature|falls?|lakes?|peak|point|overlook|vista|ridge|arch|arches|mountain|mount|mt|creek|canyon|gorge|pass|summit|dome|rim|meadows?|basin|spring|springs|cove|beach|knob|butte|bluff|hill|cave|grove|glacier|notch|gap|island|garden|wash|narrows|bald|top|view|cliffs?|rock|tower|window|bridge|river|dunes?|crater|geyser|pools?|ruins?|cabin|mine|tunnel|tree|trees|forest|marsh|swamp|bay|harbor|head|hollow|valley|landing)\b/i
+// "A Day In Paradise", "Spring Recreation", "Explore …": a theme, not a hike.
+const THEME =
+  /^(a |an )?(half-)?(day|days|weekend|morning|afternoon|evening|night)\b|\brecreation\b|^(explore|discover|experience|visit|enjoy|see|find|plan|learn|spend)\b|\b(things to do|activities|safety|tips|guide|itinerary|ideas|hikes|walks|off the beaten path)\b|:/i
+export const isTheme = (name) => THEME.test(name)
+export const namesAHike = (name) => NAMES_A_HIKE.test(name) && !isTheme(name)
+
+/** The mapped trail a Things To Do hike is about: the same words first, then one name inside the other. */
+function matchTrail(hike, trails) {
+  const H = tokens(hike.name)
+  if (!H.size) return null
+  const same = trails.filter((t) => {
+    const T = tokens(t.name)
+    return T.size === H.size && [...H].every((w) => T.has(w))
+  })
+  if (same.length) return same[0]
+  const near = (t) => (hike.lat === null || t.lat === null ? 0 : haversine({ lat: hike.lat, lon: hike.lng }, { lat: t.lat, lon: t.lng }))
+  const loose = trails.filter((t) => sameName(hike.name, t.name)).sort((a, b) => near(a) - near(b))
+  return loose[0] ?? null
+}
+
 // ---------- Build ----------
 
 const slug = (s) =>
@@ -284,10 +415,11 @@ async function main() {
   await mkdir(CACHE, { recursive: true })
   const items = await fetchThingsToDo()
   console.log(`NPS Things To Do entries: ${items.length}`)
+  const trails = await fetchTrails()
 
   const codeToParks = new Map()
   for (const p of PARKS) codeToParks.set(ttdCode(p), [...(codeToParks.get(ttdCode(p)) || []), p.id])
-  const byPark = new Map(PARKS.map((p) => [p.id, { hikes: new Map(), overview: [] }]))
+  const byPark = new Map(PARKS.map((p) => [p.id, { hikes: new Map(), overview: [], themes: [] }]))
 
   for (const t of items) {
     if (!isHike(t)) continue
@@ -321,29 +453,70 @@ async function main() {
     }
   }
 
-  // Distances NPS doesn't state: the matching trail's length in OpenStreetMap.
-  const osmPath = join(CACHE, 'osm-hike-lengths.json')
-  const osmCache = existsSync(osmPath) && !REFRESH ? JSON.parse(await readFile(osmPath, 'utf8')) : {}
+  // The trails map is the list; Things To Do pages add their details to the trail they're about.
+  for (const park of PARKS) {
+    const bucket = byPark.get(park.id)
+    const mapped = trails[park.npsCode.toUpperCase()] ?? []
+    const used = new Set()
+    for (const [id, h] of bucket.hikes) {
+      const trail = mapped.length ? matchTrail(h, mapped) : null
+      if (isTheme(h.name)) {
+        bucket.hikes.delete(id)
+        bucket.themes.push(h.name)
+      } else if (trail) {
+        used.add(trail)
+      } else if (!namesAHike(h.name)) {
+        bucket.hikes.delete(id)
+        bucket.themes.push(h.name)
+      }
+    }
+    for (const t of mapped) {
+      // Too short to be a hike of its own: a stub of a longer trail, or a few yards of path.
+      if (used.has(t) || t.miles < 0.1 || bucket.hikes.has(slug(t.name))) continue
+      bucket.hikes.set(slug(t.name), {
+        id: slug(t.name),
+        name: t.name,
+        npsUrl: null,
+        difficulty: null,
+        distanceMi: null,
+        distanceSource: null,
+        duration: null,
+        npsId: null,
+        lat: null,
+        lng: null,
+      })
+    }
+  }
+
+  // Distances NPS doesn't state: the same-named trail's length in OpenStreetMap. (The NPS trails
+  // map's own lengths aren't used: many parks have only parts of their trails drawn.)
   const all = PARKS.flatMap((p) => [...byPark.get(p.id).hikes.values()])
   for (const h of all) if (h.distanceMi !== null) h.distanceSource = 'nps'
   if (USE_OSM) {
-    const missing = all.filter((h) => h.distanceMi === null && h.lat !== null)
-    console.log(`OpenStreetMap: looking up ${missing.length} trail lengths`)
-    for (const [i, h] of missing.entries()) {
-      const miles = await osmDistance(h, osmCache)
-      if (miles !== null) Object.assign(h, { distanceMi: miles, distanceSource: 'osm' })
-      if (i % 5 === 4) {
+    const osmPath = join(CACHE, 'osm-park-trails.json')
+    const osmCache = existsSync(osmPath) && !REFRESH ? JSON.parse(await readFile(osmPath, 'utf8')) : {}
+    for (const park of PARKS) {
+      const hikes = [...byPark.get(park.id).hikes.values()].filter((h) => h.distanceMi === null)
+      if (!hikes.length) continue
+      if (!(park.id in osmCache)) {
+        const lengths = await osmParkLengths(park)
+        if (lengths === null) continue
+        osmCache[park.id] = lengths
         await writeFile(osmPath, JSON.stringify(osmCache))
-        console.log(`  ${i + 1} / ${missing.length}`)
+        console.log(`OpenStreetMap: ${park.name} ${Object.keys(lengths).length} named trails`)
+      }
+      for (const h of hikes) {
+        const miles = osmCache[park.id][[...tokens(h.name)].sort().join(' ')]
+        if (miles) Object.assign(h, { distanceMi: miles, distanceSource: 'osm' })
       }
     }
-    await writeFile(osmPath, JSON.stringify(osmCache))
   }
 
   const out = {}
   for (const park of PARKS)
     out[park.id] = [...byPark.get(park.id).hikes.values()]
-      .sort((a, b) => a.name.localeCompare(b.name))
+      // Hikes with an nps.gov page first: those are the ones the park features.
+      .sort((a, b) => Number(!a.npsUrl) - Number(!b.npsUrl) || a.name.localeCompare(b.name))
       .map(({ npsId: _npsId, lat: _lat, lng: _lng, ...h }) => h)
   await writeFile(OUT, JSON.stringify(out, null, 1) + '\n')
 
@@ -352,9 +525,9 @@ async function main() {
   const lines = [
     '# Park hikes build report',
     '',
-    `Generated ${new Date().toISOString().slice(0, 10)} by \`scripts/build-park-hikes.mjs\` from NPS Things To Do.`,
+    `Generated ${new Date().toISOString().slice(0, 10)} by \`scripts/build-park-hikes.mjs\` from the NPS trails map and NPS Things To Do.`,
     '',
-    `- **${total} hikes** across ${PARKS.length} parks`,
+    `- **${total} hikes** across ${PARKS.length} parks; ${all.filter((h) => h.npsUrl).length} have an nps.gov page`,
     `- Difficulty known for ${all.filter((h) => h.difficulty).length}; distance for ${all.filter((h) => h.distanceMi !== null).length} (${all.filter((h) => h.distanceSource === 'nps').length} from NPS, ${all.filter((h) => h.distanceSource === 'osm').length} from OpenStreetMap); time for ${all.filter((h) => h.duration).length}`,
     `- Parks with no hikes listed by NPS (${empty.length}): ${empty.join(', ') || 'none'}`,
     '',
@@ -364,13 +537,14 @@ async function main() {
     '',
   ]
   for (const park of PARKS) {
-    const { overview } = byPark.get(park.id)
+    const { overview, themes } = byPark.get(park.id)
     lines.push(`## ${park.name} (${out[park.id].length})`, '')
     for (const h of out[park.id]) {
-      const facts = [h.difficulty, h.distanceMi !== null && `${h.distanceSource === 'osm' ? '≈' : ''}${h.distanceMi} mi`, h.duration].filter(Boolean).join(' · ')
-      lines.push(`- [${h.name}](${h.npsUrl})${facts ? ` — ${facts}` : ''}`)
+      const facts = [h.difficulty, h.distanceMi !== null && `${h.distanceSource === 'nps' ? '' : '≈'}${h.distanceMi} mi`, h.duration].filter(Boolean).join(' · ')
+      lines.push(`- ${h.npsUrl ? `[${h.name}](${h.npsUrl})` : h.name}${facts ? ` — ${facts}` : ''}`)
     }
     if (overview.length) lines.push('', `Skipped overview pages: ${overview.join('; ')}`)
+    if (themes.length) lines.push('', `Skipped pages that aren't one hike: ${themes.join('; ')}`)
     lines.push('')
   }
   await writeFile(REPORT, lines.join('\n'))

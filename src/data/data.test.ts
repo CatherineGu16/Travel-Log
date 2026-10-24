@@ -54,19 +54,28 @@ describe('us-places.json', () => {
 })
 
 describe('park-hikes.json', () => {
-  const hikes = parkHikes as Record<string, { id: string; name: string; npsUrl: string }[]>
+  const hikes = parkHikes as Record<string, { id: string; name: string; npsUrl: string | null; distanceSource: string | null }[]>
 
   it('has an entry (possibly empty) for every park, and nothing else', () => {
     expect(Object.keys(hikes).sort()).toEqual(parks.map((p) => p.id).sort())
   })
 
-  it('lists named hikes with unique ids and nps.gov links', () => {
+  it('lists named hikes with unique ids, nps.gov links where they have a page', () => {
     for (const [parkId, list] of Object.entries(hikes)) {
       expect(new Set(list.map((h) => h.id)).size, parkId).toBe(list.length)
       for (const h of list) {
         expect(h.name, parkId).not.toMatch(/^hike /i)
-        expect(h.npsUrl, h.name).toMatch(/^https:\/\/www\.nps\.gov\//)
+        if (h.npsUrl !== null) expect(h.npsUrl, h.name).toMatch(/^https:\/\/www\.nps\.gov\//)
+        expect([null, 'nps', 'osm'], h.name).toContain(h.distanceSource)
       }
     }
+  })
+
+  it('has the trails NPS maps but has no page for, and not themed pages', () => {
+    const rainier = hikes['mount-rainier'].map((h) => h.name)
+    expect(rainier).toContain('Skyline Trail')
+    expect(rainier).toContain('Wonderland Trail')
+    expect(rainier).not.toContain('A Day In Paradise')
+    expect(rainier).not.toContain('Spring Recreation')
   })
 })

@@ -167,10 +167,11 @@ app):
 Hikes aren't drawn on the map; drawing the OpenStreetMap trail lines is a possible later
 addition.
 
-**Coverage is uneven.** The current list has **628 hikes**. How many a park has depends on how
-much that park has put into NPS Things To Do: Yellowstone has 55 and Acadia 51, while 13 parks
-list none yet (including Grand Canyon, Yosemite, Canyonlands and Crater Lake). Custom hikes cover
-the gaps, and re-running the script picks up anything parks add later.
+**Coverage.** The current list has **3,066 hikes** across the 64 parks; 540 have an nps.gov page,
+and about two-thirds have a distance (484 stated by NPS, 1,626 from OpenStreetMap). Sequoia, Kings
+Canyon and Gates of the Arctic have no trails in the NPS trails map, so they list only their Things
+To Do hikes (Gates of the Arctic and Dry Tortugas list none). Custom hikes cover the gaps, and
+re-running the script picks up anything NPS adds later.
 
 There are **64 national parks**. Chiricahua (Arizona) became the 64th on October 20, 2026; the
 NPS boundary service still files it as a monument, so the build script adds it by code. Other NPS
