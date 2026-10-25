@@ -71,10 +71,10 @@ describe('park-hikes.json', () => {
     }
   })
 
-  it('has the trails NPS maps but has no page for, and not themed pages', () => {
+  it("uses the park's own day-hike list: day hikes only, no themed pages", () => {
     const rainier = hikes['mount-rainier'].map((h) => h.name)
     expect(rainier).toContain('Skyline Trail')
-    expect(rainier).toContain('Wonderland Trail')
+    expect(rainier).not.toContain('Wonderland Trail') // 93 miles: a backpacking trip
     expect(rainier).not.toContain('A Day In Paradise')
     expect(rainier).not.toContain('Spring Recreation')
   })

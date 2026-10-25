@@ -303,7 +303,7 @@ const TRAILS = 'https://mapservices.nps.gov/arcgis/rest/services/NationalDataset
 
 // Mapped ways that aren't a hike someone would check off.
 const NOT_A_HIKE =
-  /\b(campsite|campground|spur|connector|access|cutoff|cut-off|road|street|parking|bike path|bicycle|walkways?|sidewalk|pathways?|bridge|crossing|stairs?|service|social|unnamed|unknown|reroute|climbing|developed area|picnic|utility|maintenance|tram station|gaging|boardwalk to|portage|ski|snowmobile)\b|^(trail|path|loop|route)( \d+)?$|^\W*$|^\d/i
+  /\b(campsite|campground|camp( \d+)?$|spur|connector|access|cutoff|cut-off|road|street|parking|bike path|bicycle|walkways?|sidewalk|pathways?|bridge|crossing|stairs?|service|social|unnamed|unknown|reroute|climbing|developed area|picnic|utility|maintenance|tram station|gaging|boardwalk to|portage|ski|snowmobile)\b|^(trail|path|loop|route)( \d+)?$|^\W*$|^\d/i
 
 // The map's abbreviations: "Burroughs Mtn Trail", "Chinook Pass To Tipsoo Lk Trail".
 const ABBREVIATIONS = [
@@ -392,18 +392,68 @@ const THEME =
 export const isTheme = (name) => THEME.test(name)
 export const namesAHike = (name) => NAMES_A_HIKE.test(name) && !isTheme(name)
 
+// "Lakes" and "Lake" are the same word when matching names.
+const stems = (s) => new Set([...tokens(s)].map((w) => (w.length > 3 ? w.replace(/s$/, '') : w)))
+
 /** The mapped trail a Things To Do hike is about: the same words first, then one name inside the other. */
 function matchTrail(hike, trails) {
-  const H = tokens(hike.name)
+  const H = stems(hike.name)
   if (!H.size) return null
   const same = trails.filter((t) => {
-    const T = tokens(t.name)
+    const T = stems(t.name)
     return T.size === H.size && [...H].every((w) => T.has(w))
   })
   if (same.length) return same[0]
   const near = (t) => (hike.lat === null || t.lat === null ? 0 : haversine({ lat: hike.lat, lon: hike.lng }, { lat: t.lat, lon: t.lng }))
   const loose = trails.filter((t) => sameName(hike.name, t.name)).sort((a, b) => near(a) - near(b))
   return loose[0] ?? null
+}
+
+// ---------- The parks' own day-hike lists ----------
+
+// scripts/nps-day-hikes.json: each park's day hikes as listed on its nps.gov hiking pages ("Day
+// Hikes", "Suggested Hikes", per-area trail pages), with the distance, time and difficulty those
+// pages state, and the page each came from. Compiled by reading those pages; see its "sources".
+const DAY_HIKES_PATH = join(ROOT, 'scripts', 'nps-day-hikes.json')
+const DAY_HIKES = existsSync(DAY_HIKES_PATH) ? JSON.parse(readFileSync(DAY_HIKES_PATH, 'utf8')) : {}
+const OSM_MIN_MI = 0.3
+
+/**
+ * Replaces a park's hikes with its day-hike list. A Things To Do page about the same hike adds its
+ * link and fills in what the list leaves out (its id is kept, so hikes you checked off stay
+ * checked). Things To Do hikes that aren't on the list are left out: the park's list is the list.
+ */
+function applyDayHikes(bucket, dayHikes) {
+  const pages = []
+  for (const h of bucket.hikes.values()) {
+    if (isTheme(h.name) || !namesAHike(h.name)) bucket.themes.push(h.name)
+    else pages.push(h)
+  }
+  bucket.hikes.clear()
+  const unused = new Set(pages)
+  for (const d of dayHikes) {
+    const name = cleanName(d.name.replace(/\s+/g, ' '))
+    const page = matchTrail({ name, lat: null, lng: null }, [...unused])
+    if (page) unused.delete(page)
+    // Shown as the whole hike: a one-way distance is doubled for the walk back.
+    const stated = typeof d.distanceMi === 'number' ? Math.round(d.distanceMi * (d.distanceKind === 'one way' ? 2 : 1) * 10) / 10 : null
+    let id = page?.id ?? slug(name)
+    if (bucket.hikes.has(id)) id = slug(name)
+    if (bucket.hikes.has(id)) continue
+    bucket.hikes.set(id, {
+      id,
+      name,
+      npsUrl: d.url ?? page?.npsUrl ?? null,
+      difficulty: d.difficulty ?? page?.difficulty ?? null,
+      distanceMi: stated ?? page?.distanceMi ?? null,
+      distanceSource: null,
+      duration: d.duration ?? page?.duration ?? null,
+      npsId: page?.npsId ?? null,
+      lat: page?.lat ?? null,
+      lng: page?.lng ?? null,
+    })
+  }
+  bucket.notListed = [...unused].map((h) => h.name)
 }
 
 // ---------- Build ----------
@@ -453,9 +503,14 @@ async function main() {
     }
   }
 
-  // The trails map is the list; Things To Do pages add their details to the trail they're about.
+  // A park's own day-hike list is the list where there is one; otherwise the trails map is. Either
+  // way, Things To Do pages add their details to the hike they're about.
   for (const park of PARKS) {
     const bucket = byPark.get(park.id)
+    if (DAY_HIKES[park.id]) {
+      applyDayHikes(bucket, DAY_HIKES[park.id].hikes)
+      continue
+    }
     const mapped = trails[park.npsCode.toUpperCase()] ?? []
     const used = new Set()
     for (const [id, h] of bucket.hikes) {
@@ -496,6 +551,9 @@ async function main() {
     const osmPath = join(CACHE, 'osm-park-trails.json')
     const osmCache = existsSync(osmPath) && !REFRESH ? JSON.parse(await readFile(osmPath, 'utf8')) : {}
     for (const park of PARKS) {
+      // A park's own day-hike list gives NPS's distances or none; a mapped trail's length would
+      // often be a different route (Angels Landing's 0.4 mi of mapped trail is not the hike).
+      if (DAY_HIKES[park.id]) continue
       const hikes = [...byPark.get(park.id).hikes.values()].filter((h) => h.distanceMi === null)
       if (!hikes.length) continue
       if (!(park.id in osmCache)) {
@@ -507,7 +565,8 @@ async function main() {
       }
       for (const h of hikes) {
         const miles = osmCache[park.id][[...tokens(h.name)].sort().join(' ')]
-        if (miles) Object.assign(h, { distanceMi: miles, distanceSource: 'osm' })
+        // Shorter than this, the match is usually a stub of the trail, not the hike.
+        if (miles >= OSM_MIN_MI) Object.assign(h, { distanceMi: miles, distanceSource: 'osm' })
       }
     }
   }
@@ -525,11 +584,12 @@ async function main() {
   const lines = [
     '# Park hikes build report',
     '',
-    `Generated ${new Date().toISOString().slice(0, 10)} by \`scripts/build-park-hikes.mjs\` from the NPS trails map and NPS Things To Do.`,
+    `Generated ${new Date().toISOString().slice(0, 10)} by \`scripts/build-park-hikes.mjs\` from the parks' nps.gov day-hike pages, NPS Things To Do and the NPS trails map.`,
     '',
     `- **${total} hikes** across ${PARKS.length} parks; ${all.filter((h) => h.npsUrl).length} have an nps.gov page`,
     `- Difficulty known for ${all.filter((h) => h.difficulty).length}; distance for ${all.filter((h) => h.distanceMi !== null).length} (${all.filter((h) => h.distanceSource === 'nps').length} from NPS, ${all.filter((h) => h.distanceSource === 'osm').length} from OpenStreetMap); time for ${all.filter((h) => h.duration).length}`,
     `- Parks with no hikes listed by NPS (${empty.length}): ${empty.join(', ') || 'none'}`,
+    `- From the park's own day-hike list (${PARKS.filter((p) => DAY_HIKES[p.id]).length} parks); the rest from the NPS trails map`,
     '',
     '| Park | Hikes |',
     '|---|---|',
@@ -539,12 +599,16 @@ async function main() {
   for (const park of PARKS) {
     const { overview, themes } = byPark.get(park.id)
     lines.push(`## ${park.name} (${out[park.id].length})`, '')
+    const day = DAY_HIKES[park.id]
+    lines.push(day ? (day.hikes.length ? `From the park's day-hike list: ${day.sources.join(', ')}` : `No day hikes: ${day.note}`) : 'From the NPS trails map', '')
     for (const h of out[park.id]) {
       const facts = [h.difficulty, h.distanceMi !== null && `${h.distanceSource === 'nps' ? '' : '≈'}${h.distanceMi} mi`, h.duration].filter(Boolean).join(' · ')
       lines.push(`- ${h.npsUrl ? `[${h.name}](${h.npsUrl})` : h.name}${facts ? ` — ${facts}` : ''}`)
     }
     if (overview.length) lines.push('', `Skipped overview pages: ${overview.join('; ')}`)
     if (themes.length) lines.push('', `Skipped pages that aren't one hike: ${themes.join('; ')}`)
+    const { notListed } = byPark.get(park.id)
+    if (notListed?.length) lines.push('', `Things To Do hikes not on the park's day-hike list (left out): ${notListed.join('; ')}`)
     lines.push('')
   }
   await writeFile(REPORT, lines.join('\n'))

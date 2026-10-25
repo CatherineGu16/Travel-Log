@@ -126,9 +126,9 @@ us-cities.json        ~700 US cities with population and rank (Natural Earth), f
 us-lakes.json         large lakes in and around the US (Natural Earth 50m)
 park-hikes.json       parkId → [ { id, name, npsUrl, difficulty, distanceMi, distanceSource,
                                    duration } ]
-                      each park's hiking trails from the NPS trails map, with the nps.gov
-                      "Things To Do" page, difficulty (Easy / Moderate / Strenuous), distance
-                      and time where NPS has them
+                      each park's day hikes from its nps.gov hiking pages, with the nps.gov
+                      link, difficulty (Easy / Moderate / Strenuous), distance and time where
+                      NPS states them
 public/fonts/         Noto Sans label glyphs (SIL OFL), so labels render with no outside request
 ```
 
@@ -139,39 +139,36 @@ are plain facts) and stops if the two disagree.
 **How `park-hikes.json` is built** (`scripts/build-park-hikes.mjs`, run on a laptop, never by the
 app):
 
-1. **The list** is every named, open hiking trail on the official **NPS trails map** (the national
-   `NPS_Public_Trails` dataset on mapservices.nps.gov, the trails drawn on nps.gov park maps).
-   This is what brings in trails with no Things To Do page, such as Skyline Trail at Mount
-   Rainier. Campsite spurs, connectors, roads, walkways, bridges and stubs under 0.1 mi are left
-   out, and the map's abbreviations are spelled out ("Burroughs Mtn" → "Burroughs Mountain").
-2. **Details** come from the NPS **Things To Do** feed, the entries shown on nps.gov/thingstodo
-   pages, tagged as hiking. Each one is matched to its trail by name and adds its nps.gov link.
-   A page that names a hike but matches no mapped trail is kept on its own. Overview and theme
-   pages ("Hiking in Yosemite", "Day Hikes", "A Day In Paradise", "Spring Recreation",
-   "Kid-Friendly Hikes…") are dropped, and names are tidied ("Hike Beehive Loop" → "Beehive Loop").
-   The feed is read with the public `DEMO_KEY`, which needs no NPS account (about 10 requests an
-   hour, so all parks are fetched in a few batched requests and cached). NPS content is
-   US-government public domain.
-3. Sequoia and Kings Canyon share one NPS code; their hikes are split by park boundary.
-4. **Difficulty** comes from the NPS tags, then the description; **time** from NPS's duration
-   field ("1–2 hours"); **distance** from the description when it states one, skipping distances
-   that describe only part of the hike ("After 1 mile on the Riverside Walk…") or a drive. When NPS
-   gives no usable distance, the same-named trail in the park in **OpenStreetMap** (Overpass, free,
-   no key, one query per park) gives its length, shown with "≈" because it's the mapped trail
-   rather than a stated hike distance. Lengths from the NPS trails map aren't used, because many
-   parks have only parts of their trails drawn (Wonderland Trail comes out at 52 of its 93 miles).
+1. **The list is each park's own day hikes**, as its nps.gov hiking pages list them ("Day Hikes",
+   "Suggested Hikes", per-area trail pages; e.g. Mount Rainier's "Trails of Mount Rainier" and its
+   area pages, Grand Teton's suggested hikes, Rocky Mountain's list of hiking trails, the Smokies'
+   Day Hikes A–Z). Only day hikes: backpacking routes (the Wonderland Trail), campsite paths,
+   roads and bike paths are left out. These are kept in `scripts/nps-day-hikes.json`, one entry
+   per park with its source pages and, for each hike, the distance (and whether it's round trip,
+   one way or a loop), time and difficulty **as the page states them**, null where it doesn't.
+   The pages are laid out differently in every park (tables, lists, prose, PDFs), so the file was
+   compiled by reading them rather than by a parser; each park's `sources` and `note` say where
+   everything came from and what was left out. One-way distances are doubled when shown.
+2. The NPS **Things To Do** feed (the entries behind nps.gov/thingstodo pages, read with the
+   public `DEMO_KEY`, cached) adds a link, difficulty and time to the hike it's about, matched by
+   name, where the list leaves them out. Things To Do hikes that aren't on the park's list are
+   left out (named in the report). NPS content is US-government public domain.
+3. **Distances are only NPS's.** A hike whose page gives no full distance has none (Angels
+   Landing's page gives only the 0.5 mi chain section, so it shows none) rather than a guess.
+4. Parks whose pages list no day hikes (Dry Tortugas, Gates of the Arctic, Gateway Arch, Kobuk
+   Valley) have an empty entry with a note, and list none. A park missing from the file would fall
+   back to the named trails on the official **NPS trails map** (`NPS_Public_Trails`), with
+   OpenStreetMap lengths marked "≈"; none does today.
 5. Hikes with an nps.gov page are listed first, then the rest A–Z.
-6. Write the list, plus `scripts/park-hikes-report.md` with every park's hikes and counts, and
-   commit both to the public repo. Re-run it whenever you want a fresh list.
+6. Write the list, plus `scripts/park-hikes-report.md` with every park's hikes, sources and
+   counts, and commit both to the public repo.
 
-Hikes aren't drawn on the map; drawing the OpenStreetMap trail lines is a possible later
-addition.
+Hikes aren't drawn on the map.
 
-**Coverage.** The current list has **3,066 hikes** across the 64 parks; 540 have an nps.gov page,
-and about two-thirds have a distance (484 stated by NPS, 1,626 from OpenStreetMap). Sequoia, Kings
-Canyon and Gates of the Arctic have no trails in the NPS trails map, so they list only their Things
-To Do hikes (Gates of the Arctic and Dry Tortugas list none). Custom hikes cover the gaps, and
-re-running the script picks up anything NPS adds later.
+**Coverage.** The current list has **1,372 day hikes** across 60 parks, and 1,339 have an NPS
+distance. Dry Tortugas, Gates of the Arctic, Gateway Arch and Kobuk Valley list none. Custom hikes
+cover the gaps. To refresh a park, re-read its pages and update its entry in
+`scripts/nps-day-hikes.json`.
 
 There are **64 national parks**. Chiricahua (Arizona) became the 64th on October 20, 2026; the
 NPS boundary service still files it as a monument, so the build script adds it by code. Other NPS
