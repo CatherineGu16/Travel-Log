@@ -1,22 +1,23 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { hikesDone, parkVisits, type HikeDone } from '../lib/derive.ts'
-import { loadParkHikes, matchesHike, PARKS, type NpsHike } from '../lib/gazetteer.ts'
+import { PARKS } from '../lib/gazetteer.ts'
 import { formatDateRange, formatPartialDate } from '../lib/partialDate.ts'
 import type { ParkInfo } from '../lib/placeSearch.ts'
-import { addHike, hikeKey, removeHike } from '../lib/travelActions.ts'
+import { addHike, removeHike } from '../lib/travelActions.ts'
 import type { TravelData, Trip, TripHike } from '../lib/types.ts'
 import { useStore } from '../store/useTravel.ts'
 import parksJson from '../data/national-parks.json'
 import { HikeFacts } from './HikeFacts.tsx'
-import { HikeFilter } from './HikeFilter.tsx'
+import { HikeAdder } from './HikeAdder.tsx'
+import { useNpsHikes } from '../ui/useNpsHikes.ts'
 import { Sheet } from './Sheet.tsx'
 import { useToast } from './toastContext.ts'
 
 const details = new Map(parksJson.map((p) => [p.id, p]))
 
 /**
- * One national park: when you visited (dates stacked), and its hikes as a checklist. Checking off a
- * hike adds it to one of your trips there; if you've been more than once, it asks which.
+ * One national park: when you visited (dates stacked), and the hikes you've done there. Adding a
+ * hike puts it on one of your trips there; if you've been more than once, it asks which.
  */
 export function ParkSheet({
   parkId,
@@ -35,35 +36,24 @@ export function ParkSheet({
   const toast = useToast()
   const park = PARKS.find((p) => p.id === parkId)!
   const info = details.get(parkId)
-  const [npsHikes, setNpsHikes] = useState<NpsHike[]>([])
+  const npsHikes = useNpsHikes(parkId)
   const [choosing, setChoosing] = useState<TripHike | null>(null)
-  const [custom, setCustom] = useState('')
   const [needVisit, setNeedVisit] = useState(false)
-  const [query, setQuery] = useState('')
-
-  useEffect(() => {
-    void loadParkHikes().then((all) => setNpsHikes(all[parkId] ?? []))
-  }, [parkId])
 
   const visits = useMemo(() => parkVisits(data, parkId), [data, parkId])
   const done = useMemo(() => hikesDone(data, parkId), [data, parkId])
-  const customDone = [...done.values()].filter((h) => h.hikeId === null || !npsHikes.some((n) => n.id === h.hikeId))
-  const doneCount = npsHikes.filter((h) => done.has(hikeKey(parkId, h.id, h.name))).length
-  // NPS hikes first, then hikes you typed in yourself.
-  const rows = [
-    ...npsHikes.map((h) => ({ name: h.name, hikeId: h.id as string | null, url: h.npsUrl as string | null, nps: h as NpsHike | null })),
-    ...customDone.map((h) => ({ name: h.name, hikeId: h.hikeId, url: null, nps: null })),
-  ].map((h) => ({ ...h, key: hikeKey(parkId, h.hikeId, h.name) }))
-  const choosingKey = choosing && hikeKey(parkId, choosing.hikeId, choosing.name)
+  // Newest first.
+  const doneList = [...done.values()].sort((a, b) => (b.times[0]?.date ?? '').localeCompare(a.times[0]?.date ?? ''))
+  const npsOf = (h: HikeDone) => npsHikes.find((n) => n.id === h.hikeId) ?? null
 
   const addTo = (tripId: string, hike: TripHike) => {
     const trip = visits.find((v) => v.trip.id === tripId)?.trip
-    const undoId = store.apply((d, c) => addHike(d, c, tripId, hike), `Checked off ${hike.name}`)
+    const undoId = store.apply((d, c) => addHike(d, c, tripId, hike), `Added ${hike.name}`)
     if (undoId !== null) toast(`${hike.name} added to ${trip?.title ?? 'your trip'}`, [{ label: 'Undo', onClick: () => store.undo(undoId) }])
     setChoosing(null)
   }
 
-  /** Check off a hike: straight onto your only visit, or ask which visit. */
+  /** Adds a hike: straight onto your only visit, or asks which visit. */
   const check = (hike: TripHike) => {
     setNeedVisit(false)
     if (visits.length === 0) return setNeedVisit(true)
@@ -73,8 +63,8 @@ export function ParkSheet({
 
   const uncheck = (h: HikeDone) => {
     const trips = h.times.map((t) => t.trip.id)
-    const undoId = store.apply((d, c) => trips.reduce((acc, id) => removeHike(acc, c, id, h.key), d), `Unchecked ${h.name}`)
-    if (undoId !== null) toast(`Unchecked ${h.name}`, [{ label: 'Undo', onClick: () => store.undo(undoId) }])
+    const undoId = store.apply((d, c) => trips.reduce((acc, id) => removeHike(acc, c, id, h.key), d), `Removed ${h.name}`)
+    if (undoId !== null) toast(`Removed ${h.name}`, [{ label: 'Undo', onClick: () => store.undo(undoId) }])
   }
 
   const meta = [
@@ -121,18 +111,9 @@ export function ParkSheet({
 
         <section aria-label="Hikes">
           <div className="mb-2 flex items-baseline gap-2">
-            <h3 className="font-display text-xl font-semibold">Hikes</h3>
-            {npsHikes.length > 0 && (
-              <span className="text-sm text-muted">
-                {doneCount} / {npsHikes.length}
-              </span>
-            )}
+            <h3 className="font-display text-xl font-semibold">Hikes you've done</h3>
+            {doneList.length > 0 && <span className="text-sm text-muted">{doneList.length}</span>}
           </div>
-          {npsHikes.length > 0 && (
-            <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-raised">
-              <div className="h-full rounded-full bg-park" style={{ width: `${(doneCount / npsHikes.length) * 100}%` }} />
-            </div>
-          )}
           {needVisit && (
             <p role="alert" className="mb-3 flex flex-wrap items-center gap-2 rounded-lg bg-raised p-3 text-sm">
               Hikes go on a trip. Log your visit first.
@@ -141,69 +122,57 @@ export function ParkSheet({
               </button>
             </p>
           )}
-          {npsHikes.length === 0 && <p className="mb-3 text-sm text-muted">NPS doesn't list hikes for this park yet. Add the ones you did below.</p>}
-
-          {rows.length > 10 && <HikeFilter value={query} onChange={setQuery} />}
-          <ul className="divide-y divide-line rounded-xl border border-line">
-            {rows.filter((h) => matchesHike(h.name, query)).map((h) => {
-                const key = h.key
-                const entry = done.get(key)
-                const hike: TripHike = { parkId, hikeId: h.hikeId, name: h.name, date: null }
+          {doneList.length === 0 ? (
+            <p className="mb-3 text-sm text-muted">None yet. Add the hikes you did here; suggestions come from NPS and your past hikes.</p>
+          ) : (
+            <ul className="mb-3 divide-y divide-line rounded-xl border border-line">
+              {doneList.map((h) => {
+                const nps = npsOf(h)
                 return (
-                  <li key={key} className="px-3 py-1.5">
-                    <div className="flex min-h-11 items-center gap-3">
-                      <input
-                        type="checkbox"
-                        aria-label={h.name}
-                        checked={!!entry}
-                        onChange={() => (entry ? uncheck(entry) : check(hike))}
-                        className="size-5 shrink-0 accent-[var(--park)]"
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span className={entry ? 'font-bold' : ''}>{h.name}</span>
-                        {h.nps && <HikeFacts hike={h.nps} />}
-                        {entry && (
-                          <span className="block text-xs text-muted">
-                            {entry.times.map((t) => `${formatPartialDate(t.date)} · ${t.trip.title}`).join('  ·  ')}
-                          </span>
-                        )}
-                      </span>
-                      {h.url && (
-                        <a href={h.url} target="_blank" rel="noreferrer" className="shrink-0 text-xs text-muted underline hover:text-fg" aria-label={`${h.name} on nps.gov`}>
-                          nps.gov
-                        </a>
-                      )}
-                    </div>
-                    {choosing && choosingKey === key && <TripChooser visits={visits} onPick={(id) => addTo(id, choosing)} onCancel={() => setChoosing(null)} />}
+                  <li key={h.key} className="flex min-h-11 items-center gap-2 py-1.5 pr-1 pl-3">
+                    <span className="min-w-0 flex-1">
+                      <span className="font-bold">{h.name}</span>
+                      {nps && <HikeFacts hike={nps} />}
+                      <span className="block text-xs text-muted">{h.times.map((t) => `${formatPartialDate(t.date)} · ${t.trip.title}`).join('  ·  ')}</span>
+                    </span>
+                    {nps?.npsUrl && (
+                      <a
+                        href={nps.npsUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="shrink-0 text-xs text-muted underline hover:text-fg"
+                        aria-label={`${h.name} on nps.gov`}
+                      >
+                        nps.gov
+                      </a>
+                    )}
+                    <button
+                      aria-label={`Remove ${h.name}`}
+                      onClick={() => uncheck(h)}
+                      className="grid size-10 shrink-0 place-items-center rounded-md text-muted hover:bg-raised hover:text-fg"
+                    >
+                      <svg viewBox="0 0 20 20" className="size-4" aria-hidden="true">
+                        <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                    </button>
                   </li>
                 )
               })}
-          </ul>
-
-          <form
-            className="mt-3 flex gap-2"
-            onSubmit={(e) => {
-              e.preventDefault()
-              if (custom.trim()) {
-                check({ parkId, hikeId: null, name: custom.trim(), date: null })
-                setCustom('')
-              }
-            }}
-          >
-            <input
-              aria-label="Add a hike that isn't listed"
-              placeholder="Add a hike that isn't listed"
-              value={custom}
-              onChange={(e) => setCustom(e.target.value)}
-              className="h-11 min-w-0 flex-1 rounded-lg border border-line bg-bg px-3 text-base"
+            </ul>
+          )}
+          <HikeAdder
+            parkId={parkId}
+            data={data}
+            has={(hikeId, name) => doneList.some((h) => (hikeId !== null && h.hikeId === hikeId) || h.name.toLowerCase() === name.trim().toLowerCase())}
+            onAdd={check}
+          />
+          {choosing && (
+            <TripChooser
+              visits={visits}
+              onPick={(id) => addTo(id, choosing)}
+              onCancel={() => setChoosing(null)}
+              label={`Which trip was “${choosing.name}” on?`}
             />
-            <button type="submit" className="h-11 rounded-lg border border-line px-4 font-bold hover:bg-raised">
-              Add
-            </button>
-          </form>
-          {/* A new hike you typed in isn't a row yet, so its trip choice shows here. */}
-          {choosing && !rows.some((r) => r.key === choosingKey) && (
-            <TripChooser visits={visits} onPick={(id) => addTo(id, choosing)} onCancel={() => setChoosing(null)} label={`Which trip was “${choosing.name}” on?`} />
           )}
         </section>
       </div>

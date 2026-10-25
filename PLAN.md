@@ -53,7 +53,8 @@ Same rules as Watchlist-Tracker, plus map rules:
 - **Strangers** who open the site get an empty map with public data only (states, national
   parks). They cannot see your trips without your token.
 - **The token** is stored only in the device's local storage for this site. It is never committed,
-  logged, or sent anywhere except `api.github.com`. It only grants access to `travel-data`. Use a
+  logged, or sent anywhere except `api.github.com`. It grants access to `travel-data` and, for
+  sharing hikes you add, `Travel-Log` (see **Shared hike suggestions**). Use a
   **separate token from Watchlist's**, so revoking one doesn't break the other.
 - **Outside map requests: none by default.** The outline map and place search run entirely from
   bundled files. Only when you turn on the detailed map does the app contact OpenFreeMap (tiles)
@@ -240,6 +241,12 @@ no file. A photo avatar is one small file per person. At ~20 KB each, even 200 p
   Park?").
 - **Hikes done in a park**: every hike across all non-deleted trips with that `parkId`. Doing the
   same trail on two trips stacks both dates on it.
+- **Shared hike suggestions**: after each sync, hikes you typed in yourself (not picked from a
+  suggestion, and not already suggested) are added to `src/data/added-hikes.json` in the public
+  `Travel-Log` repo, **name and park only** (no dates, trips or people), using the same access
+  key. The next deploy bundles them, so they're suggested on every device. Each device remembers
+  what it has shared and doesn't ask again. If the key can't write to `Travel-Log`, your own sync
+  still works and Settings says why. The repo is taken from the build (`GITHUB_REPOSITORY`).
 - **National park pin**: the pin's place has a `parkId`.
 - **The built-in Family group** is stamped at the epoch, so a new device's empty copy never wins a
   sync merge over a Family group edited on another device.
@@ -322,9 +329,8 @@ Same engine as Watchlist-Tracker (`src/sync/`).
   any date. Plus "Dates are approximate".
 - **How you traveled**: Road trip / Flight / Cruise.
 - **Title** (suggested from the main destinations and year, e.g. "Zion & Las Vegas 2024").
-- **Hikes**: for every national park on the trip. Check off trails from that park's list (with
-  difficulty, distance and time), or add a custom hike by name. Long lists have a "Find a hike"
-  box.
+- **Hikes**: for every national park on the trip, the hikes you did there, added with the same
+  **Add a hike** search box and suggestions as the park page (no checklist).
 - **Who went**:
   - **Group tags**: **+ Family**, **+ Friends** (both built in) or any group you create adds the
     group as a tag **plus each of its members** (so "+ Family" tags Family and adds your family,
@@ -357,11 +363,12 @@ Same engine as Watchlist-Tracker (`src/sync/`).
 - All 64 national parks as a checklist, A–Z or by state, with Visited / Not visited / All and a
   "14 / 64" progress bar.
 - Visited parks show every visit date stacked (newest first) with links to the trips.
-- **Hikes**: each park row shows "Hikes 3 / 12". Opening a park lists its trails as a checklist,
-  with "Find a hike" for long lists.
-  Trails you've done show their dates (stacked if done more than once) and the trip. Checking
-  off a trail asks which trip it belongs to (or starts a new one). You can also add a custom hike
-  that isn't on the list.
+- **Hikes**: not a checklist. Each park row shows how many hikes you've done ("3 hikes").
+  Opening a park shows **Hikes you've done**, each with its dates (stacked if done more than
+  once), trip, NPS facts and link when it came from the NPS list, and Remove. **Add a hike** is a
+  search box with suggestions: hikes you've done there before, then hikes added to the shared
+  list, then the park's NPS day hikes with distance and time; or add exactly what you typed.
+  Adding asks which trip it belongs to when you've been more than once.
 - Unvisited parks have **"Log a visit"**, which opens Add trip with the park prefilled as the main
   destination.
 
@@ -469,8 +476,9 @@ apps independent.
    Source: GitHub Actions). Check that it holds no personal data first.
 2. Create the **private** repo `travel-data` (empty).
 3. Create a fine-grained token: Settings → Developer settings → Fine-grained tokens → name it
-   `Travel Log app` → Repository access: *Only select repositories* → `travel-data` →
-   Permissions: *Contents: Read and write* → pick an expiration date.
+   `Travel Log app` → Repository access: *Only select repositories* → `travel-data` and
+   `Travel-Log` (the second only for sharing hikes you add) → Permissions: *Contents: Read and
+   write* → pick an expiration date.
 4. On each device: open the site, install it, then go to Settings → Sync across devices and enter
    `CatherineGu16`, `travel-data`, the key, and a device name. On iPhone/iPad, do this **inside
    the installed app**, because its storage is separate from Safari.

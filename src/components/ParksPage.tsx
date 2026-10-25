@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { hikesDone, parkVisits } from '../lib/derive.ts'
-import { loadParkHikes, PARKS, type NpsHike } from '../lib/gazetteer.ts'
+import { PARKS } from '../lib/gazetteer.ts'
 import { formatDateRange } from '../lib/partialDate.ts'
 import type { ParkInfo } from '../lib/placeSearch.ts'
 import { regionName } from '../lib/states.ts'
@@ -17,32 +17,17 @@ const SHOWS: { id: ParkShow; label: string }[] = [
   { id: 'not-visited', label: 'Not visited' },
 ]
 
-/** All 64 national parks as a checklist, with your visits stacked and hikes done. */
+/** All 64 national parks as a checklist, with your visits stacked and how many hikes you've done. */
 export function ParksPage({ data, onOpenPark, onLogVisit }: { data: TravelData; onOpenPark: (parkId: string) => void; onLogVisit: (park: ParkInfo) => void }) {
   const [show, setShow] = usePersistentState<ParkShow>('travel.parks.show', 'all', (v) => (SHOWS.some((s) => s.id === v) ? (v as ParkShow) : 'all'))
   const [order, setOrder] = usePersistentState<ParkOrder>('travel.parks.order', 'az', (v) => (v === 'state' ? 'state' : 'az'))
-  const [hikes, setHikes] = useState<Record<string, NpsHike[]>>({})
-  useEffect(() => {
-    void loadParkHikes().then(setHikes)
-  }, [])
-
   const rows = useMemo(
     () =>
       PARKS.map((park) => {
         const visits = parkVisits(data, park.id)
-        const done = hikesDone(data, park.id)
-        const listed = hikes[park.id] ?? []
-        const doneHikes = [...done.values()]
-        return {
-          park,
-          visits,
-          hikesDone: listed.filter((h) => doneHikes.some((d) => d.hikeId === h.id)).length,
-          hikesListed: listed.length,
-          // Hikes you added yourself, on top of the NPS list.
-          extraHikes: doneHikes.filter((d) => !listed.some((h) => h.id === d.hikeId)).length,
-        }
+        return { park, visits, hikesDone: hikesDone(data, park.id).size }
       }),
-    [data, hikes],
+    [data],
   )
   const visitedCount = rows.filter((r) => r.visits.length > 0).length
   const shown = rows.filter((r) => show === 'all' || (show === 'visited') === r.visits.length > 0)
@@ -56,7 +41,13 @@ export function ParksPage({ data, onOpenPark, onLogVisit }: { data: TravelData; 
 
   return (
     <ListPage title="National parks" count={`${visitedCount} / ${PARKS.length} visited`}>
-      <div className="mb-4 h-2 overflow-hidden rounded-full bg-raised" role="progressbar" aria-label="Parks visited" aria-valuenow={visitedCount} aria-valuemax={PARKS.length}>
+      <div
+        className="mb-4 h-2 overflow-hidden rounded-full bg-raised"
+        role="progressbar"
+        aria-label="Parks visited"
+        aria-valuenow={visitedCount}
+        aria-valuemax={PARKS.length}
+      >
         <div className="h-full rounded-full bg-park" style={{ width: `${(visitedCount / PARKS.length) * 100}%` }} />
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -73,7 +64,15 @@ export function ParksPage({ data, onOpenPark, onLogVisit }: { data: TravelData; 
             </button>
           ))}
         </div>
-        <Select label="Order" value={order} options={[{ id: 'az', label: 'A–Z' }, { id: 'state', label: 'State' }]} onChange={setOrder} />
+        <Select
+          label="Order"
+          value={order}
+          options={[
+            { id: 'az', label: 'A–Z' },
+            { id: 'state', label: 'State' },
+          ]}
+          onChange={setOrder}
+        />
       </div>
 
       {shown.length === 0 ? (
@@ -83,7 +82,7 @@ export function ParksPage({ data, onOpenPark, onLogVisit }: { data: TravelData; 
           <section key={g.label ?? 'all'} aria-label={g.label ?? 'Parks'} className="mt-6">
             {g.label && <h2 className="mb-2 font-display text-xl font-semibold">{g.label}</h2>}
             <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
-              {g.rows.map(({ park, visits, hikesDone: hd, hikesListed, extraHikes }) => {
+              {g.rows.map(({ park, visits, hikesDone: hd }) => {
                 const visited = visits.length > 0
                 return (
                   <li key={park.id} className="flex items-center gap-3 px-3 py-2.5" aria-label={park.name}>
@@ -100,8 +99,7 @@ export function ParksPage({ data, onOpenPark, onLogVisit }: { data: TravelData; 
                       </span>
                       <span className="block truncate text-sm text-muted">
                         {visited ? visits.map((v) => formatDateRange(v.startDate, v.endDate, v.approximate)).join(' · ') : 'Not visited yet'}
-                        {hikesListed > 0 && ` · Hikes ${hd} / ${hikesListed}`}
-                        {extraHikes > 0 && (hikesListed > 0 ? ` +${extraHikes}` : ` · Hikes ${extraHikes}`)}
+                        {hd > 0 && ` · ${hd} ${hd === 1 ? 'hike' : 'hikes'}`}
                       </span>
                     </button>
                     {!visited && (

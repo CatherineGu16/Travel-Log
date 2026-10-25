@@ -423,7 +423,7 @@ export function TripForm({
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={suggestedTitle || 'e.g. Utah Parks 2023'} className={`${input} h-11`} />
         </label>
 
-        <HikesField parkIds={parkIds} value={hikes} onChange={setHikes} />
+        <HikesField parkIds={parkIds} data={data} value={hikes} onChange={setHikes} />
 
         <PeoplePicker
           data={data}

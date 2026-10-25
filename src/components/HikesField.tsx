@@ -1,116 +1,71 @@
-import { useEffect, useState } from 'react'
-import { loadParkHikes, matchesHike, PARKS, type NpsHike } from '../lib/gazetteer.ts'
-import { HikeFilter } from './HikeFilter.tsx'
+import { sameHikeName } from '../lib/addedHikes.ts'
+import { PARKS } from '../lib/gazetteer.ts'
 import { hikeKey } from '../lib/travelActions.ts'
+import type { TravelData, TripHike } from '../lib/types.ts'
+import { HikeAdder } from './HikeAdder.tsx'
+import { useNpsHikes } from '../ui/useNpsHikes.ts'
 import { HikeFacts } from './HikeFacts.tsx'
-import type { TripHike } from '../lib/types.ts'
 
 /**
- * "Hikes" in the trip form, shown when the trip includes a national park: check off that park's
- * hikes from nps.gov, or add your own.
+ * "Hikes" in the trip form, shown when the trip includes a national park: the hikes you did in
+ * each park on this trip, added by name with suggestions from your past hikes and the NPS list.
  */
-export function HikesField({ parkIds, value, onChange }: { parkIds: string[]; value: TripHike[]; onChange: (hikes: TripHike[]) => void }) {
-  const [all, setAll] = useState<Record<string, NpsHike[]>>({})
-  const [query, setQuery] = useState<Record<string, string>>({})
-  useEffect(() => {
-    void loadParkHikes().then(setAll)
-  }, [])
+export function HikesField({
+  parkIds,
+  data,
+  value,
+  onChange,
+}: {
+  parkIds: string[]
+  data: TravelData
+  value: TripHike[]
+  onChange: (hikes: TripHike[]) => void
+}) {
   if (parkIds.length === 0) return null
-
-  const keyOf = (h: TripHike) => hikeKey(h.parkId, h.hikeId, h.name)
-  const has = (parkId: string, hikeId: string | null, name: string) => value.some((h) => keyOf(h) === hikeKey(parkId, hikeId, name))
-  const toggle = (hike: TripHike) => onChange(has(hike.parkId, hike.hikeId, hike.name) ? value.filter((h) => keyOf(h) !== keyOf(hike)) : [...value, hike])
-
   return (
     <section aria-label="Hikes" className="flex flex-col gap-4">
-      {parkIds.map((parkId) => {
-        const park = PARKS.find((p) => p.id === parkId)
-        const listed = all[parkId] ?? []
-        const custom = value.filter((h) => h.parkId === parkId && !listed.some((l) => l.id === h.hikeId))
-        const count = value.filter((h) => h.parkId === parkId).length
-        return (
-          <details key={parkId} className="rounded-lg border border-line" open={count > 0 || parkIds.length === 1}>
-            <summary className="flex min-h-11 cursor-pointer items-center gap-2 px-3 text-sm font-bold">
-              Hikes in {park?.name ?? parkId}
-              <span className="font-normal text-muted">{count > 0 ? `${count} checked` : listed.length ? `${listed.length} listed` : ''}</span>
-            </summary>
-            <div className="border-t border-line p-2">
-              {listed.length === 0 && <p className="px-1 pb-2 text-sm text-muted">NPS doesn't list hikes for this park yet. Add yours below.</p>}
-              {listed.length > 10 && <HikeFilter value={query[parkId] ?? ''} onChange={(q) => setQuery({ ...query, [parkId]: q })} />}
-              <ul className="max-h-72 overflow-y-auto">
-                {[
-                  ...listed.map((l) => ({
-                    hikeId: l.id as string | null,
-                    name: l.name,
-                    nps: l as NpsHike | null,
-                  })),
-                  ...custom.map((c) => ({
-                    hikeId: c.hikeId,
-                    name: c.name,
-                    nps: null,
-                  })),
-                ]
-                  .filter((l) => matchesHike(l.name, query[parkId] ?? ''))
-                  .map((l) => {
-                    const hike = value.find((h) => keyOf(h) === hikeKey(parkId, l.hikeId, l.name))
-                    return (
-                      <li key={hikeKey(parkId, l.hikeId, l.name)} className="flex min-h-10 items-center gap-2 px-1">
-                        <label className="flex min-h-10 min-w-0 flex-1 items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={!!hike}
-                            onChange={() =>
-                              toggle({
-                                parkId,
-                                hikeId: l.hikeId,
-                                name: l.name,
-                                date: null,
-                              })
-                            }
-                            className="size-4 shrink-0 accent-[var(--park)]"
-                          />
-                          <span className="min-w-0">
-                            <span className={`block truncate text-sm ${hike ? 'font-bold' : ''}`}>{l.name}</span>
-                            {l.nps && <HikeFacts hike={l.nps} />}
-                          </span>
-                        </label>
-                      </li>
-                    )
-                  })}
-              </ul>
-              <AddCustomHike onAdd={(name) => !has(parkId, null, name) && onChange([...value, { parkId, hikeId: null, name, date: null }])} />
-            </div>
-          </details>
-        )
-      })}
+      {parkIds.map((parkId) => (
+        <ParkHikes key={parkId} parkId={parkId} data={data} value={value} onChange={onChange} />
+      ))}
     </section>
   )
 }
 
-function AddCustomHike({ onAdd }: { onAdd: (name: string) => void }) {
-  const [name, setName] = useState('')
-  const add = () => {
-    if (name.trim()) onAdd(name.trim())
-    setName('')
-  }
+function ParkHikes({ parkId, data, value, onChange }: { parkId: string; data: TravelData; value: TripHike[]; onChange: (hikes: TripHike[]) => void }) {
+  const park = PARKS.find((p) => p.id === parkId)
+  const nps = useNpsHikes(parkId)
+  const keyOf = (h: TripHike) => hikeKey(h.parkId, h.hikeId, h.name)
+  const here = value.filter((h) => h.parkId === parkId)
+  const has = (hikeId: string | null, name: string) => here.some((h) => (hikeId !== null && h.hikeId === hikeId) || sameHikeName(h.name, name))
   return (
-    <div className="mt-2 flex gap-2 px-1">
-      <input
-        aria-label="Add a hike that isn't listed"
-        placeholder="Add a hike that isn't listed"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            add()
-          }
-        }}
-        className="h-10 min-w-0 flex-1 rounded-lg border border-line bg-bg px-3 text-base"
-      />
-      <button type="button" onClick={add} className="h-10 rounded-lg border border-line px-3 text-sm font-bold hover:bg-raised">
-        Add
-      </button>
+    <div>
+      <h3 className="mb-1.5 text-sm font-bold">Hikes in {park?.name ?? parkId}</h3>
+      {here.length > 0 && (
+        <ul className="mb-2 divide-y divide-line rounded-lg border border-line">
+          {here.map((h) => {
+            const facts = nps.find((n) => n.id === h.hikeId)
+            return (
+              <li key={keyOf(h)} className="flex min-h-11 items-center gap-2 py-1 pr-1 pl-3">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-bold">{h.name}</span>
+                  {facts && <HikeFacts hike={facts} />}
+                </span>
+                <button
+                  type="button"
+                  aria-label={`Remove ${h.name}`}
+                  onClick={() => onChange(value.filter((x) => keyOf(x) !== keyOf(h)))}
+                  className="grid size-10 shrink-0 place-items-center rounded-md text-muted hover:bg-raised hover:text-fg"
+                >
+                  <svg viewBox="0 0 20 20" className="size-4" aria-hidden="true">
+                    <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      <HikeAdder parkId={parkId} data={data} has={has} onAdd={(h) => onChange([...value, h])} label={`Add a hike in ${park?.name ?? parkId}`} />
     </div>
   )
 }

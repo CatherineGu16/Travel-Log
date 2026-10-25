@@ -280,7 +280,7 @@ describe('sync engine', () => {
     pc.store.apply((d, c) => saveTrip(d, c, { ...trip('Zion again'), hikes: [{ parkId: 'zion', hikeId: null, name: 'Hidden Canyon', date: null }] }), 'x')
     await pc.engine.connect(CONFIG)
     expect(gh.calls.filter((c) => c.startsWith('put Travel-Log'))).toHaveLength(2)
-    expect((gh.json.get('me/Travel-Log/src/data/added-hikes.json')?.value as Record<string, { name: string }[]>).zion.map((h) => h.name)).toEqual([
+    expect((gh.json.get('me/Travel-Log/src/data/added-hikes.json')!.value as Record<string, { name: string }[]>).zion.map((h) => h.name)).toEqual([
       'Hidden Canyon',
       'Secret slot canyon',
     ])
