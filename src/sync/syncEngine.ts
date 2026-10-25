@@ -44,6 +44,8 @@ export interface SyncState {
   error: string | null
   errorKind: SyncErrorKind | null
   config: Omit<SyncConfig, 'token'> | null
+  /** Whether hikes you type in are shared to the public list (only for the public repo's owner). */
+  sharesHikes: boolean
   /** Photos waiting to upload, for "Uploading 2 photos…". */
   uploading: number
   /** Why the hikes you added couldn't be shared to the public list (your own sync still worked). */
@@ -104,6 +106,8 @@ export function createSyncEngine(
   const isOnline = opts.isOnline ?? (() => (typeof navigator === 'undefined' ? true : navigator.onLine))
 
   let meta = metaStore.load()
+  /** Only the public repo's owner shares hikes there. */
+  const canShare = (config: Pick<SyncConfig, 'owner'>) => !!opts.shareHikes && config.owner.toLowerCase() === opts.shareHikes.owner.toLowerCase()
   const publicConfig = (c: SyncConfig | null) => (c ? { owner: c.owner, repo: c.repo, path: c.path, deviceName: c.deviceName } : null)
   let state: SyncState = {
     status: meta.config ? (hasLocalChanges() ? 'pending' : 'synced') : 'off',
@@ -113,6 +117,7 @@ export function createSyncEngine(
     config: publicConfig(meta.config),
     uploading: 0,
     shareError: null,
+    sharesHikes: !!meta.config && canShare(meta.config),
   }
   const listeners = new Set<() => void>()
   const set = (patch: Partial<SyncState>) => {
@@ -195,11 +200,12 @@ export function createSyncEngine(
   /**
    * Adds the hikes you typed in yourself to the public list (name and park only), once each. Run
    * after your own data has synced, with the same access key, which needs write access to the
-   * public repo too.
+   * public repo too. Only the public repo's owner shares: anyone else's key can't write there
+   * (GitHub refuses it), so for them this is skipped rather than reported as an error.
    */
   async function shareAddedHikes(config: SyncConfig) {
     const share = opts.shareHikes
-    if (!share) return
+    if (!share || !canShare(config)) return
     const known = await share.known()
     const shared = new Set(meta.sharedHikes ?? [])
     const keyOf = (h: { parkId: string; name: string }) => `${h.parkId}|${h.name.toLowerCase()}`
@@ -281,12 +287,12 @@ export function createSyncEngine(
       }
       // A new repo or file means this device hasn't seen any of it yet.
       saveMeta({ config, sha: null, dirty: true })
-      set({ config: publicConfig(config) })
+      set({ config: publicConfig(config), sharesHikes: canShare(config) })
       await syncNow()
     },
     disconnect() {
       saveMeta({ ...EMPTY_META })
-      set({ status: 'off', config: null, error: null, errorKind: null, lastSyncedAt: null })
+      set({ status: 'off', config: null, error: null, errorKind: null, lastSyncedAt: null, shareError: null, sharesHikes: false })
     },
     syncNow,
     async downloadAvatar(personId, photoUpdatedAt) {

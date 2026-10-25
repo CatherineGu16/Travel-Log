@@ -295,4 +295,13 @@ describe('sync engine', () => {
     expect(phone.engine.getState()).toMatchObject({ status: 'synced', error: null })
     expect(phone.engine.getState().shareError).toMatch(/me\/Travel-Log/)
   })
+
+  it("doesn't share for anyone but the public repo's owner", async () => {
+    const gh = fakeGitHub()
+    const stranger = await device(gh, 'stranger')
+    stranger.store.apply((d, c) => saveTrip(d, c, { ...trip('Zion'), hikes: [{ parkId: 'zion', hikeId: null, name: 'My secret hike', date: null }] }), 'x')
+    await stranger.engine.connect({ ...CONFIG, owner: 'someone-else' })
+    expect(gh.calls.some((c) => c.includes('Travel-Log'))).toBe(false)
+    expect(stranger.engine.getState()).toMatchObject({ status: 'synced', shareError: null, sharesHikes: false })
+  })
 })

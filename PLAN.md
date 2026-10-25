@@ -247,6 +247,9 @@ no file. A photo avatar is one small file per person. At ~20 KB each, even 200 p
   key. The next deploy bundles them, so they're suggested on every device. Each device remembers
   what it has shared and doesn't ask again. If the key can't write to `Travel-Log`, your own sync
   still works and Settings says why. The repo is taken from the build (`GITHUB_REPOSITORY`).
+  **Only the public repo's owner (CatherineGu16) adds to it**: the app only tries when the sync
+  username is the repo's owner, and GitHub itself refuses writes from anyone else's key, so a
+  stranger using the site just syncs their own private repo.
 - **National park pin**: the pin's place has a `parkId`.
 - **The built-in Family group** is stamped at the epoch, so a new device's empty copy never wins a
   sync merge over a Family group edited on another device.
