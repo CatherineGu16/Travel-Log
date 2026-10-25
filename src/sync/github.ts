@@ -34,6 +34,10 @@ export interface RemoteApi {
   getBlob(t: SyncTarget, path: string): Promise<Blob | null>
   /** Writes a binary file, replacing any file already at `path`. */
   putBlob(t: SyncTarget, path: string, blob: Blob, message: string): Promise<void>
+  /** A JSON file at `path` (in any repo the key can reach), or null if it isn't there. */
+  getJson(t: SyncTarget, path: string): Promise<{ value: unknown; sha: string } | null>
+  /** Writes a JSON file. sha = null creates it; a stale sha fails with a 'conflict' error. */
+  putJson(t: SyncTarget, path: string, value: unknown, sha: string | null, message: string): Promise<void>
 }
 
 const API = 'https://api.github.com'
@@ -117,6 +121,25 @@ export function githubApi(fetchFn: typeof fetch = (...a) => fetch(...a)): Remote
       if (res.status === 404) return null
       if (!res.ok) await fail(res, 'download a photo')
       return await res.blob()
+    },
+
+    async getJson(t, path) {
+      const res = await call(t, contentsUrl(t, path))
+      if (res.status === 404) return null
+      if (!res.ok) await fail(res, `read ${path}`)
+      const body = (await res.json()) as { sha: string; content?: string; encoding?: string }
+      if (body.encoding !== 'base64' || body.content === undefined) throw new SyncError('bad-file', `${path} is too large or not a file.`)
+      try {
+        return { sha: body.sha, value: JSON.parse(decodeBase64(body.content)) as unknown }
+      } catch {
+        throw new SyncError('bad-file', `${path} in ${t.repo} isn't valid JSON.`)
+      }
+    },
+
+    async putJson(t, path, value, sha, message) {
+      const content = encodeBase64(new TextEncoder().encode(JSON.stringify(value, null, 1) + '\n'))
+      const res = await call(t, contentsUrl(t, path), { method: 'PUT', body: JSON.stringify({ message, content, ...(sha ? { sha } : {}) }) })
+      if (!res.ok) await fail(res, `save ${path}`)
     },
 
     async putBlob(t, path, blob, message) {

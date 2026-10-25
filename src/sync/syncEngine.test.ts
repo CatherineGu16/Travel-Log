@@ -5,12 +5,14 @@ import { memoryAvatars } from '../store/avatarStore.ts'
 import { memoryBackend } from '../store/storage.ts'
 import { createTravelStore } from '../store/travelStore.ts'
 import { SyncError, type RemoteApi, type SyncTarget } from './github.ts'
-import { createSyncEngine, type MetaStore, type SyncConfig, type SyncMeta } from './syncEngine.ts'
+import { createSyncEngine, type MetaStore, type ShareHikes, type SyncConfig, type SyncMeta } from './syncEngine.ts'
 import { tripInput } from '../test/tripInput.ts'
 
 /** In-memory GitHub: travel.json with a version sha that changes on every write, plus binary files. */
-function fakeGitHub(opts: { isPrivate?: boolean } = {}) {
+function fakeGitHub(opts: { isPrivate?: boolean; publicWritable?: boolean } = {}) {
   let file: { data: TravelData; sha: string } | null = null
+  /** JSON files in other repos ("owner/repo/path"), e.g. the public hikes list. */
+  const json = new Map<string, { value: unknown; sha: string }>()
   const blobs = new Map<string, Blob>()
   let version = 0
   const calls: string[] = []
@@ -45,6 +47,18 @@ function fakeGitHub(opts: { isPrivate?: boolean } = {}) {
       calls.push(`put ${path}`)
       blobs.set(path, blob)
     },
+    async getJson(t, path) {
+      calls.push(`get ${t.repo}/${path}`)
+      const f = json.get(`${t.owner}/${t.repo}/${path}`)
+      return f ? { value: structuredClone(f.value), sha: f.sha } : null
+    },
+    async putJson(t, path, value, sha, message) {
+      calls.push(`put ${t.repo}/${path}: ${message}`)
+      if (opts.publicWritable === false) throw new SyncError('auth', "The access key isn't allowed to save it.")
+      const key = `${t.owner}/${t.repo}/${path}`
+      if ((json.get(key)?.sha ?? null) !== sha) throw new SyncError('conflict', 'stale sha')
+      json.set(key, { value: structuredClone(value), sha: `j${++version}` })
+    },
   }
   return {
     api,
@@ -56,6 +70,7 @@ function fakeGitHub(opts: { isPrivate?: boolean } = {}) {
     setFile(data: TravelData) {
       file = { data: structuredClone(data), sha: `v${++version}` }
     },
+    json,
     racePut(f: () => void) {
       beforeNextPut = f
     },
@@ -77,11 +92,19 @@ function memoryMeta(): MetaStore & { meta: SyncMeta | null } {
 const CONFIG: SyncConfig = { owner: 'me', repo: 'travel-data', path: 'travel.json', token: 'good', deviceName: 'test' }
 
 let ids = 0
+/** Hikes already suggested: Zion's NPS list. */
+const SHARE: ShareHikes = { owner: 'me', repo: 'Travel-Log', known: async () => (parkId) => (parkId === 'zion' ? ['Angels Landing'] : []) }
+
 async function device(gh: ReturnType<typeof fakeGitHub>, name: string, nowIso = '2026-10-23T12:00:00Z') {
   const store = createTravelStore(memoryBackend(), () => new Date(nowIso), () => `${name}-${++ids}`)
   await store.init()
   const avatars = memoryAvatars()
-  const engine = createSyncEngine(store, gh.api, memoryMeta(), avatars, { debounceMs: 0, isOnline: () => true })
+  const engine = createSyncEngine(store, gh.api, memoryMeta(), avatars, {
+    debounceMs: 0,
+    isOnline: () => true,
+    clock: () => new Date(nowIso),
+    shareHikes: SHARE,
+  })
   return { store, engine, avatars }
 }
 
@@ -234,5 +257,42 @@ describe('sync engine', () => {
     const phone = await device(gh, 'phone')
     await phone.engine.connect(CONFIG)
     expect(JSON.stringify(phone.engine.getState())).not.toContain('good')
+  })
+
+  it('adds hikes you typed in to the public list once, name and park only, skipping suggested ones', async () => {
+    const gh = fakeGitHub()
+    const phone = await device(gh, 'phone')
+    const hikes = [
+      { parkId: 'zion', hikeId: null, name: 'Secret slot canyon', date: '2024-05-02' },
+      { parkId: 'zion', hikeId: null, name: 'angels landing', date: null }, // already an NPS hike
+      { parkId: 'zion', hikeId: 'the-narrows', name: 'The Narrows', date: null }, // picked from the list
+    ]
+    phone.store.apply((d, c) => saveTrip(d, c, { ...trip('Zion'), hikes }), 'x')
+    await phone.engine.connect(CONFIG)
+    expect(gh.json.get('me/Travel-Log/src/data/added-hikes.json')?.value).toEqual({
+      zion: [{ name: 'Secret slot canyon', addedAt: '2026-10-23T12:00:00.000Z' }],
+    })
+    expect(gh.calls.filter((c) => c.startsWith('put Travel-Log'))).toEqual(['put Travel-Log/src/data/added-hikes.json: Add hike: Secret slot canyon (zion)'])
+
+    // Not asked again on the next sync; another device's hike is added alongside.
+    await phone.engine.syncNow()
+    const pc = await device(gh, 'pc')
+    pc.store.apply((d, c) => saveTrip(d, c, { ...trip('Zion again'), hikes: [{ parkId: 'zion', hikeId: null, name: 'Hidden Canyon', date: null }] }), 'x')
+    await pc.engine.connect(CONFIG)
+    expect(gh.calls.filter((c) => c.startsWith('put Travel-Log'))).toHaveLength(2)
+    expect((gh.json.get('me/Travel-Log/src/data/added-hikes.json')?.value as Record<string, { name: string }[]>).zion.map((h) => h.name)).toEqual([
+      'Hidden Canyon',
+      'Secret slot canyon',
+    ])
+  })
+
+  it("keeps your own sync working when the key can't write to the public repo, and says why", async () => {
+    const gh = fakeGitHub({ publicWritable: false })
+    const phone = await device(gh, 'phone')
+    phone.store.apply((d, c) => saveTrip(d, c, { ...trip('Zion'), hikes: [{ parkId: 'zion', hikeId: null, name: 'Secret slot canyon', date: null }] }), 'x')
+    await phone.engine.connect(CONFIG)
+    expect(titles(gh.file!.data)).toEqual(['Zion'])
+    expect(phone.engine.getState()).toMatchObject({ status: 'synced', error: null })
+    expect(phone.engine.getState().shareError).toMatch(/me\/Travel-Log/)
   })
 })

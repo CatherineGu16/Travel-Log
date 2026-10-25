@@ -1,3 +1,4 @@
+import { ADDED_HIKES_PATH, parseAddedHikes, sameHikeName, unsharedHikes, withHikes } from '../lib/addedHikes.ts'
 import { mergeData, sameContent } from '../lib/travelData.ts'
 import type { TravelData } from '../lib/types.ts'
 import type { AvatarStore } from '../store/avatarStore.ts'
@@ -18,6 +19,16 @@ export interface SyncMeta {
    */
   dirty: boolean
   lastSyncedAt: string | null
+  /** Hikes this device has already added to the public list ("parkId|name"), so it doesn't ask again. */
+  sharedHikes?: string[]
+}
+
+/** Sharing the hikes you type in to the app's public repo, where they become suggestions. */
+export interface ShareHikes {
+  owner: string
+  repo: string
+  /** Every hike name already suggested for a park (NPS hikes and the shared list in this build). */
+  known: () => Promise<(parkId: string) => string[]>
 }
 
 export interface MetaStore {
@@ -35,6 +46,8 @@ export interface SyncState {
   config: Omit<SyncConfig, 'token'> | null
   /** Photos waiting to upload, for "Uploading 2 photos…". */
   uploading: number
+  /** Why the hikes you added couldn't be shared to the public list (your own sync still worked). */
+  shareError: string | null
 }
 
 const EMPTY_META: SyncMeta = { config: null, sha: null, dirty: false, lastSyncedAt: null }
@@ -84,7 +97,7 @@ export function createSyncEngine(
   api: RemoteApi,
   metaStore: MetaStore,
   avatars: AvatarStore,
-  opts: { debounceMs?: number; clock?: () => Date; isOnline?: () => boolean } = {},
+  opts: { debounceMs?: number; clock?: () => Date; isOnline?: () => boolean; shareHikes?: ShareHikes } = {},
 ): SyncEngine {
   const debounceMs = opts.debounceMs ?? 3000
   const clock = opts.clock ?? (() => new Date())
@@ -99,6 +112,7 @@ export function createSyncEngine(
     errorKind: null,
     config: publicConfig(meta.config),
     uploading: 0,
+    shareError: null,
   }
   const listeners = new Set<() => void>()
   const set = (patch: Partial<SyncState>) => {
@@ -178,6 +192,37 @@ export function createSyncEngine(
     }
   }
 
+  /**
+   * Adds the hikes you typed in yourself to the public list (name and park only), once each. Run
+   * after your own data has synced, with the same access key, which needs write access to the
+   * public repo too.
+   */
+  async function shareAddedHikes(config: SyncConfig) {
+    const share = opts.shareHikes
+    if (!share) return
+    const known = await share.known()
+    const shared = new Set(meta.sharedHikes ?? [])
+    const keyOf = (h: { parkId: string; name: string }) => `${h.parkId}|${h.name.toLowerCase()}`
+    const todo = unsharedHikes(store.getState().data, known).filter((h) => !shared.has(keyOf(h)))
+    if (todo.length === 0) return
+    const target: SyncTarget = { owner: share.owner, repo: share.repo, path: ADDED_HIKES_PATH, token: config.token }
+    for (let attempt = 0; ; attempt++) {
+      const file = await api.getJson(target, ADDED_HIKES_PATH)
+      const list = parseAddedHikes(file?.value)
+      const fresh = todo.filter((h) => !(list[h.parkId] ?? []).some((x) => sameHikeName(x.name, h.name)))
+      if (fresh.length === 0) break
+      const message = fresh.length === 1 ? `Add hike: ${fresh[0].name} (${fresh[0].parkId})` : `Add ${fresh.length} hikes from ${config.deviceName}`
+      try {
+        await api.putJson(target, ADDED_HIKES_PATH, withHikes(list, fresh, clock().toISOString()), file?.sha ?? null, message)
+        break
+      } catch (e) {
+        if (e instanceof SyncError && e.kind === 'conflict' && attempt < MAX_CONFLICT_RETRIES) continue
+        throw e
+      }
+    }
+    saveMeta({ sharedHikes: [...shared, ...todo.map(keyOf)] })
+  }
+
   async function syncNow(): Promise<void> {
     const config = meta.config
     if (!config) return
@@ -198,6 +243,13 @@ export function createSyncEngine(
         const now = clock().toISOString()
         saveMeta({ lastSyncedAt: now })
         set({ status: hasLocalChanges() ? 'pending' : 'synced', lastSyncedAt: now, uploading: 0 })
+        try {
+          await shareAddedHikes(config)
+          if (state.shareError) set({ shareError: null })
+        } catch (e) {
+          const share = opts.shareHikes!
+          set({ shareError: `Couldn't add your hikes to the public list in ${share.owner}/${share.repo}: ${(e as Error).message}` })
+        }
       } catch (e) {
         const err = e instanceof SyncError ? e : new SyncError('other', (e as Error).message)
         set({ status: err.kind === 'network' ? 'offline' : 'error', error: err.message, errorKind: err.kind })

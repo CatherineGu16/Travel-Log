@@ -42,6 +42,7 @@ export function SyncPanel() {
         <p className="mt-1 text-sm">
           Syncing with <span className="font-bold">{state.config.owner}/{state.config.repo}</span> as {state.config.deviceName}.
         </p>
+        <p className="mt-1 text-sm text-muted">Hikes you type in are also added (name and park only) to the suggestions in {__PUBLIC_REPO__}.</p>
         <p className="mt-1 text-sm text-muted" aria-live="polite">
           {state.status === 'syncing'
             ? 'Syncing…'
@@ -56,6 +57,12 @@ export function SyncPanel() {
                   : 'Not synced yet.'}
         </p>
         {error}
+        {state.shareError && (
+          <p role="alert" className="mt-3 rounded-lg bg-raised p-3 text-sm">
+            {state.shareError} Your travels still synced. To share hikes you add, give the access key Contents: Read and write on{' '}
+            {__PUBLIC_REPO__} too.
+          </p>
+        )}
         {state.errorKind === 'auth' && (
           <p className="mt-2 text-sm">
             Create a new access key on GitHub, then disconnect and connect again with it.{' '}
@@ -120,7 +127,8 @@ export function SyncPanel() {
             <a className="font-bold underline" href={TOKEN_URL} target="_blank" rel="noreferrer">
               Create a fine-grained access key
             </a>
-            . Under Repository access pick <span className="font-bold">Only select repositories</span> and choose travel-data. Under
+            . Under Repository access pick <span className="font-bold">Only select repositories</span> and choose travel-data and{' '}
+            {__PUBLIC_REPO__.split('/')[1]} (so hikes you add are shared as suggestions). Under
             Permissions, set <span className="font-bold">Contents</span> to <span className="font-bold">Read and write</span>. Pick an expiration
             date, then copy the key.
           </li>

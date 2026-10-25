@@ -1,7 +1,9 @@
 import { createContext, useContext, useEffect, useState, useSyncExternalStore } from 'react'
+import { loadAddedHikes } from '../lib/addedHikes.ts'
+import { loadParkHikes } from '../lib/gazetteer.ts'
 import type { Person } from '../lib/types.ts'
 import { githubApi } from '../sync/github.ts'
-import { createSyncEngine, localStorageMeta, type SyncEngine } from '../sync/syncEngine.ts'
+import { createSyncEngine, localStorageMeta, type ShareHikes, type SyncEngine } from '../sync/syncEngine.ts'
 import { defaultAvatarStore, type AvatarStore } from './avatarStore.ts'
 import { defaultBackend, requestPersistence } from './storage.ts'
 import { createTravelStore, type TravelStore } from './travelStore.ts'
@@ -21,10 +23,25 @@ export function loadServices(): Promise<AppServices> {
     const store = createTravelStore(backend)
     await store.init()
     void requestPersistence()
-    const sync = createSyncEngine(store, githubApi(), localStorageMeta(), avatars)
+    const sync = createSyncEngine(store, githubApi(), localStorageMeta(), avatars, { shareHikes: shareHikesTo(PUBLIC_REPO) })
     sync.start()
     return { store, sync, avatars }
   })())
+}
+
+/** The app's own public repo, where hikes you type in are shared as suggestions ("owner/repo"). */
+const PUBLIC_REPO = __PUBLIC_REPO__
+
+function shareHikesTo(repo: string): ShareHikes {
+  const [owner, name] = repo.split('/')
+  return {
+    owner,
+    repo: name,
+    known: async () => {
+      const [nps, added] = await Promise.all([loadParkHikes(), loadAddedHikes()])
+      return (parkId) => [...(nps[parkId] ?? []).map((h) => h.name), ...(added[parkId] ?? []).map((h) => h.name)]
+    },
+  }
 }
 
 export const ServicesContext = createContext<AppServices | null>(null)

@@ -34,9 +34,14 @@ const contentSecurityPolicy = (): Plugin => ({
   transformIndexHtml: (html) => html.replace('<head>', `<head>\n    <meta http-equiv="Content-Security-Policy" content="${CSP}" />`),
 })
 
+// The app's public repo ("owner/repo"), where hikes people type in are shared as suggestions.
+// GitHub Actions sets GITHUB_REPOSITORY; local builds use the original repo.
+const PUBLIC_REPO = process.env.GITHUB_REPOSITORY ?? 'CatherineGu16/Travel-Log'
+
 // https://vite.dev/config/
 export default defineConfig({
   base: BASE,
+  define: { __PUBLIC_REPO__: JSON.stringify(PUBLIC_REPO) },
   plugins: [
     react(),
     tailwindcss(),
