@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { describeRef, type ChosenPlace } from '../lib/chosenPlace.ts'
 import { comparePartialDates, formatDateRange, todayIso, yearOf } from '../lib/partialDate.ts'
 import { addPerson, saveTrip, type PlaceInput, type TripInput } from '../lib/travelActions.ts'
@@ -101,6 +101,8 @@ export function TripForm({
   const [description, setDescription] = useState(trip?.description ?? '')
   const [highlights, setHighlights] = useState(trip?.highlights ?? '')
   const [rating, setRating] = useState<number | null>(trip?.rating ?? null)
+  const [notesOpen, setNotesOpen] = useState(() => !!(trip && (trip.description || trip.highlights || trip.rating || trip.tags.length)))
+  const formId = useId()
   const [tags, setTags] = useState((trip?.tags ?? []).join(', '))
   const [hikes, setHikes] = useState<TripHike[]>(trip?.hikes ?? [])
   const [error, setError] = useState<string | null>(null)
@@ -438,9 +440,27 @@ export function TripForm({
           }}
         />
 
-        <details className="group rounded-lg border border-line" open={!!(trip && (description || highlights || rating || tags))}>
-          <summary className="flex min-h-11 cursor-pointer items-center px-3 text-sm font-bold">Notes, rating and tags</summary>
-          <div className="flex flex-col gap-4 border-t border-line p-3">
+        <section className="rounded-lg border border-line">
+          <button
+            type="button"
+            aria-expanded={notesOpen}
+            aria-controls={`${formId}-notes`}
+            onClick={() => {
+              setNotesOpen(!notesOpen)
+              // Opened at the bottom of the form: bring the fields into view.
+              if (!notesOpen) requestAnimationFrame(() => document.getElementById(`${formId}-notes`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }))
+            }}
+            className="flex min-h-11 w-full items-center gap-2 px-3 text-left text-sm font-bold"
+          >
+            <span className="flex-1">
+              Notes, rating and tags
+              <span className="block text-xs font-normal text-muted">A description and highlights for the trip page, stars, and tags you can filter by</span>
+            </span>
+            <svg viewBox="0 0 20 20" className={`size-4 shrink-0 text-muted transition-transform ${notesOpen ? 'rotate-180' : ''}`} aria-hidden="true">
+              <path d="M6 8l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <div id={`${formId}-notes`} hidden={!notesOpen} className="flex flex-col gap-4 border-t border-line p-3">
             <label className="block">
               <span className="mb-1 block text-sm font-bold">Description</span>
               <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className={`${input} py-2`} />
@@ -469,9 +489,10 @@ export function TripForm({
             <label className="block">
               <span className="mb-1 block text-sm font-bold">Tags</span>
               <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="camping, beach" className={`${input} h-10`} />
+              <span className="mt-1 block text-xs text-muted">Separate with commas. Filter the map and lists by a tag.</span>
             </label>
           </div>
-        </details>
+        </section>
         <button type="submit" hidden />
       </form>
     </Sheet>
