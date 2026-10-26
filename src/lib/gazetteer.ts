@@ -5,6 +5,7 @@ import parksJson from '../data/national-parks.json'
 import { containsPoint, distanceMeters } from './geo.ts'
 import type { ParkInfo, TownRow } from './placeSearch.ts'
 import type { PlaceInput } from './travelActions.ts'
+import type { DistanceKind } from './types.ts'
 
 /**
  * Bundled place data for search and for naming a dropped pin. The big files load on first use and
@@ -67,6 +68,8 @@ export interface NpsHike {
   npsUrl: string | null
   difficulty: 'Easy' | 'Moderate' | 'Strenuous' | null
   distanceMi: number | null
+  /** How NPS states the distance; null when it doesn't say. */
+  distanceKind?: DistanceKind | null
   /** "nps" = stated by the park; "osm" = length of the mapped trail, so approximate. */
   distanceSource: 'nps' | 'osm' | null
   /** NPS's time estimate, e.g. "1–2 hours". */

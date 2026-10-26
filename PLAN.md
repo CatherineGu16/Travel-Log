@@ -149,13 +149,21 @@ app):
    one way or a loop), time and difficulty **as the page states them**, null where it doesn't.
    The pages are laid out differently in every park (tables, lists, prose, PDFs), so the file was
    compiled by reading them rather than by a parser; each park's `sources` and `note` say where
-   everything came from and what was left out. One-way distances are doubled when shown.
+   everything came from and what was left out.
    A park can instead name its hiking page under **`listingPages`** (Acadia does): many nps.gov
    pages load their hike lists in the browser from nps.gov's search, so the script runs those same
    searches (on the page and on the park's hiking pages it links to), reads each hike's own page
    for the distance it states ("Distance: 2.7 miles round trip"), and also picks up trails written
    as a heading plus a paragraph starting with the distance (Acadia's Schoodic trails). Pages are
    cached in `scripts/.cache/nps-pages/`; `--refresh` reads them again.
+   Then every park's trails in **NPS's trail database** (the trail cards on park pages, from
+   `home.nps.gov/customfields/trail_selector/getTrails.cfm?site_code=…`; 13 parks have some, e.g.
+   Acadia 26, Rocky Mountain 50) join its list with their difficulty, length, route type and time.
+   A trail with the same name as a listed hike fills in what the listing leaves out; one whose name
+   contains a listed hike's name ("Chasm Lake Trail from Longs Peak Trailhead") isn't added.
+   **Distances are shown as NPS states them**: "3.9 mi one way" (a point-to-point trail),
+   "0.3 mi loop", "2.7 mi round trip", or just "1.1 mi" when it doesn't say (out-and-back trails in
+   the trail database are sometimes one way, sometimes round trip).
 2. The NPS **Things To Do** feed (the entries behind nps.gov/thingstodo pages, read with the
    public `DEMO_KEY`, cached) adds a link, difficulty and time to the hike it's about, matched by
    name, where the list leaves them out. Things To Do hikes that aren't on the park's list are
@@ -173,7 +181,7 @@ app):
 
 Hikes aren't drawn on the map.
 
-**Coverage.** The current list has **1,375 day hikes** across 60 parks, and 1,339 have an NPS
+**Coverage.** The current list has **1,402 day hikes** across 60 parks, most with an NPS
 distance. Dry Tortugas, Gates of the Arctic, Gateway Arch and Kobuk Valley list none. Custom hikes
 cover the gaps. To refresh a park, re-read its pages and update its entry in
 `scripts/nps-day-hikes.json`.

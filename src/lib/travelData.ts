@@ -193,6 +193,7 @@ export function parseTravelData(input: unknown): TravelData {
           hikeId: x.hikeId,
           name: x.name,
           distanceMi: typeof x.distanceMi === 'number' && Number.isFinite(x.distanceMi) && x.distanceMi >= 0 ? x.distanceMi : null,
+          distanceKind: x.distanceKind === 'round trip' || x.distanceKind === 'one way' || x.distanceKind === 'loop' ? x.distanceKind : null,
           duration: typeof x.duration === 'string' && x.duration.trim() ? x.duration : null,
           difficulty: x.difficulty === 'Easy' || x.difficulty === 'Moderate' || x.difficulty === 'Strenuous' ? x.difficulty : null,
           hidden: x.hidden === true,

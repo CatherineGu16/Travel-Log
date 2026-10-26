@@ -115,10 +115,13 @@ export interface HikeEdit extends Synced {
   hikeId: string
   name: string
   distanceMi: number | null
+  distanceKind: DistanceKind | null
   duration: string | null
   difficulty: HikeDifficulty | null
   hidden: boolean
 }
+
+export type DistanceKind = 'round trip' | 'one way' | 'loop'
 
 export interface EditContext {
   now: string

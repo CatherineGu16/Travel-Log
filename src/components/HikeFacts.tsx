@@ -6,10 +6,11 @@ const TONE = {
   Strenuous: 'bg-danger/15 text-danger',
 } as const
 
-/** "Moderate · 2.2 mi · 1–2 hours" for a hike, as far as it's known. */
-export function HikeFacts({ hike }: { hike: Pick<NpsHike, 'difficulty' | 'distanceMi' | 'distanceSource' | 'duration'> }) {
+/** "Moderate · 2.2 mi round trip · 1–2 hours" for a hike, as far as it's known. */
+export function HikeFacts({ hike }: { hike: Pick<NpsHike, 'difficulty' | 'distanceMi' | 'distanceKind' | 'distanceSource' | 'duration'> }) {
   const rest = [
-    hike.distanceMi !== null && `${hike.distanceSource === 'osm' ? '≈' : ''}${hike.distanceMi} mi`,
+    // As NPS states it: "3.9 mi one way", "0.3 mi loop", "2.7 mi round trip".
+    hike.distanceMi !== null && `${hike.distanceSource === 'osm' ? '≈' : ''}${hike.distanceMi} mi${hike.distanceKind ? ` ${hike.distanceKind}` : ''}`,
     hike.duration,
   ].filter(Boolean)
   if (!hike.difficulty && rest.length === 0) return null

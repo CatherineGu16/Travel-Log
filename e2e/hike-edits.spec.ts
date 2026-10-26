@@ -61,7 +61,7 @@ test("the public repo's owner corrects a suggested hike, and it's shared to the 
   await sheet.getByRole('button', { name: /Correct the NPS hike info/ }).click()
   await sheet.getByRole('button', { name: 'Edit Angels Landing' }).click()
   const form = sheet.getByRole('group', { name: 'Edit Angels Landing' })
-  await form.getByRole('textbox', { name: 'Distance (mi, round trip)' }).fill('5.4')
+  await form.getByRole('textbox', { name: 'Distance (mi)' }).fill('5.4')
   await form.getByRole('button', { name: 'Save' }).click()
 
   // The suggestion shows the correction at once.

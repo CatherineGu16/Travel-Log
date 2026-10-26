@@ -1,5 +1,5 @@
 import type { NpsHike } from './gazetteer.ts'
-import type { HikeDifficulty, HikeEdit } from './types.ts'
+import type { DistanceKind, HikeDifficulty, HikeEdit } from './types.ts'
 
 /**
  * The public repo's corrections to the NPS hike suggestions (src/data/hike-edits.json): park id →
@@ -9,6 +9,7 @@ export type PublicHikeEdits = Record<string, Record<string, PublicHikeEdit>>
 export interface PublicHikeEdit {
   name: string
   distanceMi: number | null
+  distanceKind: DistanceKind | null
   duration: string | null
   difficulty: HikeDifficulty | null
   hidden: boolean
@@ -45,6 +46,7 @@ export function shownHikes(nps: NpsHike[], published: Record<string, PublicHikeE
       ...h,
       name: fix.name,
       distanceMi: fix.distanceMi,
+      distanceKind: fix.distanceKind,
       distanceSource: fix.distanceMi === null ? null : 'nps',
       duration: fix.duration,
       difficulty: fix.difficulty,
@@ -65,7 +67,7 @@ export function withHikeEdits(file: PublicHikeEdits, edits: HikeEdit[]): PublicH
     const have = park[e.hikeId]
     if (have && have.editedAt > e.updatedAt) continue
     if (e.deleted) delete park[e.hikeId]
-    else park[e.hikeId] = { name: e.name, distanceMi: e.distanceMi, duration: e.duration, difficulty: e.difficulty, hidden: e.hidden, editedAt: e.updatedAt }
+    else park[e.hikeId] = { name: e.name, distanceMi: e.distanceMi, distanceKind: e.distanceKind, duration: e.duration, difficulty: e.difficulty, hidden: e.hidden, editedAt: e.updatedAt }
     if (Object.keys(park).length === 0) delete next[e.parkId]
   }
   const sorted = (o: Record<string, PublicHikeEdit>) => Object.fromEntries(Object.entries(o).sort(([a], [b]) => a.localeCompare(b)))
@@ -88,6 +90,7 @@ export function parsePublicHikeEdits(value: unknown): PublicHikeEdits {
       ;(out[parkId] ??= {})[hikeId] = {
         name: e.name,
         distanceMi: typeof e.distanceMi === 'number' && Number.isFinite(e.distanceMi) ? e.distanceMi : null,
+        distanceKind: e.distanceKind === 'round trip' || e.distanceKind === 'one way' || e.distanceKind === 'loop' ? e.distanceKind : null,
         duration: typeof e.duration === 'string' && e.duration ? e.duration : null,
         difficulty: typeof e.difficulty === 'string' && DIFFICULTIES.has(e.difficulty) ? (e.difficulty as HikeDifficulty) : null,
         hidden: e.hidden === true,

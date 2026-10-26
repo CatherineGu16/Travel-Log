@@ -308,7 +308,7 @@ describe('sync engine', () => {
   it('shares your hike corrections to the public file, and a reset removes them', async () => {
     const gh = fakeGitHub()
     const phone = await device(gh, 'phone')
-    const edit = { parkId: 'zion', hikeId: 'angels-landing', name: 'Angels Landing', distanceMi: 5.4, duration: '4 hours', difficulty: 'Strenuous' as const, hidden: false }
+    const edit = { parkId: 'zion', hikeId: 'angels-landing', name: 'Angels Landing', distanceMi: 5.4, distanceKind: 'round trip' as const, duration: '4 hours', difficulty: 'Strenuous' as const, hidden: false }
     phone.store.apply((d, c) => saveHikeEdit(d, c, edit), 'x')
     await phone.engine.connect(CONFIG)
     const file = () => gh.json.get('me/Travel-Log/src/data/hike-edits.json')?.value as Record<string, Record<string, { distanceMi: number }>>

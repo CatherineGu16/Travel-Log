@@ -10,6 +10,7 @@ const fix = (over: Partial<HikeEdit> = {}): HikeEdit => ({
   hikeId: 'skyline-trail',
   name: 'Skyline Loop',
   distanceMi: 5.5,
+  distanceKind: 'loop',
   duration: '4–5 hours',
   difficulty: 'Strenuous',
   hidden: false,
@@ -20,6 +21,7 @@ const fix = (over: Partial<HikeEdit> = {}): HikeEdit => ({
 const pub = (over: Partial<PublicHikeEdit> = {}): PublicHikeEdit => ({
   name: 'Skyline (published)',
   distanceMi: 5.4,
+  distanceKind: null,
   duration: null,
   difficulty: 'Moderate',
   hidden: false,
@@ -43,7 +45,7 @@ describe('hike corrections', () => {
   it('writes corrections to the public file and removes reset ones', () => {
     const written = withHikeEdits({}, [fix()])
     expect(written).toEqual({
-      'mount-rainier': { 'skyline-trail': { name: 'Skyline Loop', distanceMi: 5.5, duration: '4–5 hours', difficulty: 'Strenuous', hidden: false, editedAt: '2026-10-25T10:00:00.000Z' } },
+      'mount-rainier': { 'skyline-trail': { name: 'Skyline Loop', distanceMi: 5.5, distanceKind: 'loop', duration: '4–5 hours', difficulty: 'Strenuous', hidden: false, editedAt: '2026-10-25T10:00:00.000Z' } },
     })
     expect(withHikeEdits(written, [fix({ deleted: true, updatedAt: '2026-10-26T00:00:00.000Z' })])).toEqual({})
     // An older copy doesn't overwrite a newer published correction.

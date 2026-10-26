@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { matchesHike } from '../lib/gazetteer.ts'
 import type { ShownHike } from '../lib/hikeEdits.ts'
 import { resetHikeEdit, saveHikeEdit } from '../lib/travelActions.ts'
-import type { HikeDifficulty } from '../lib/types.ts'
+import type { DistanceKind, HikeDifficulty } from '../lib/types.ts'
 import { useStore } from '../store/useTravel.ts'
 import { HikeFacts } from './HikeFacts.tsx'
 import { useToast } from './toastContext.ts'
@@ -80,6 +80,7 @@ function EditForm({ parkId, hike, onDone }: { parkId: string; hike: ShownHike; o
   const toast = useToast()
   const [name, setName] = useState(hike.name)
   const [distance, setDistance] = useState(hike.distanceMi === null ? '' : String(hike.distanceMi))
+  const [kind, setKind] = useState<DistanceKind | ''>(hike.distanceKind ?? '')
   const [duration, setDuration] = useState(hike.duration ?? '')
   const [difficulty, setDifficulty] = useState<HikeDifficulty | ''>(hike.difficulty ?? '')
   const [hidden, setHidden] = useState(hike.hidden)
@@ -91,7 +92,7 @@ function EditForm({ parkId, hike, onDone }: { parkId: string; hike: ShownHike; o
     if (miles !== null && !(miles >= 0)) return setError('Distance is a number of miles, like 4.5.')
     if (!name.trim()) return setError('A hike needs a name.')
     const undoId = store.apply(
-      (d, c) => saveHikeEdit(d, c, { parkId, hikeId: hike.id, name, distanceMi: miles, duration, difficulty: difficulty || null, hidden }),
+      (d, c) => saveHikeEdit(d, c, { parkId, hikeId: hike.id, name, distanceMi: miles, distanceKind: miles === null ? null : kind || null, duration, difficulty: difficulty || null, hidden }),
       `Corrected ${name}`,
     )
     if (undoId !== null) toast(`Corrected ${name.trim()}`, [{ label: 'Undo', onClick: () => store.undo(undoId) }])
@@ -111,14 +112,23 @@ function EditForm({ parkId, hike, onDone }: { parkId: string; hike: ShownHike; o
       </label>
       <div className="grid grid-cols-2 gap-2">
         <label className="block min-w-0 text-sm">
-          <span className="mb-1 block font-bold">Distance (mi, round trip)</span>
+          <span className="mb-1 block font-bold">Distance (mi)</span>
           <input inputMode="decimal" value={distance} onChange={(e) => setDistance(e.target.value)} placeholder="Unknown" className={input} />
         </label>
         <label className="block min-w-0 text-sm">
-          <span className="mb-1 block font-bold">Time</span>
-          <input value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="2–3 hours" className={input} />
+          <span className="mb-1 block font-bold">Distance is</span>
+          <select value={kind} onChange={(e) => setKind(e.target.value as DistanceKind | '')} className={input}>
+            <option value="">Not stated</option>
+            <option>round trip</option>
+            <option>one way</option>
+            <option>loop</option>
+          </select>
         </label>
       </div>
+      <label className="block text-sm">
+        <span className="mb-1 block font-bold">Time</span>
+        <input value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="2–3 hours" className={input} />
+      </label>
       <label className="block text-sm">
         <span className="mb-1 block font-bold">Difficulty</span>
         <select value={difficulty} onChange={(e) => setDifficulty(e.target.value as HikeDifficulty | '')} className={input}>
@@ -135,7 +145,7 @@ function EditForm({ parkId, hike, onDone }: { parkId: string; hike: ShownHike; o
       {hike.original && (
         <p className="text-xs text-muted">
           NPS says: {hike.original.name}
-          {hike.original.distanceMi !== null && ` · ${hike.original.distanceMi} mi`}
+          {hike.original.distanceMi !== null && ` · ${hike.original.distanceMi} mi${hike.original.distanceKind ? ` ${hike.original.distanceKind}` : ''}`}
           {hike.original.duration && ` · ${hike.original.duration}`}
           {hike.original.difficulty && ` · ${hike.original.difficulty}`}
         </p>

@@ -308,7 +308,7 @@ export function deleteGroup(data: TravelData, ctx: EditContext, id: string): Tra
 
 // ---------- Hike corrections ----------
 
-export type HikeEditInput = Pick<HikeEdit, 'parkId' | 'hikeId' | 'name' | 'distanceMi' | 'duration' | 'difficulty' | 'hidden'>
+export type HikeEditInput = Pick<HikeEdit, 'parkId' | 'hikeId' | 'name' | 'distanceMi' | 'distanceKind' | 'duration' | 'difficulty' | 'hidden'>
 
 export const hikeEditId = (parkId: string, hikeId: string) => `${parkId}|${hikeId}`
 

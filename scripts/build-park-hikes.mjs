@@ -437,8 +437,8 @@ function applyDayHikes(bucket, dayHikes) {
     const name = cleanName(d.name.replace(/\s+/g, ' '))
     const page = matchTrail({ name, lat: null, lng: null }, [...unused])
     if (page) unused.delete(page)
-    // Shown as the whole hike: a one-way distance is doubled for the walk back.
-    const stated = typeof d.distanceMi === 'number' ? Math.round(d.distanceMi * (d.distanceKind === 'one way' ? 2 : 1) * 10) / 10 : null
+    // As the page states it: "3.9 mi one way" stays one way (NPS's own trail pages show it so).
+    const stated = typeof d.distanceMi === 'number' ? Math.round(d.distanceMi * 10) / 10 : null
     let id = page?.id ?? slug(name)
     if (bucket.hikes.has(id)) id = slug(name)
     if (bucket.hikes.has(id)) continue
@@ -448,6 +448,7 @@ function applyDayHikes(bucket, dayHikes) {
       npsUrl: d.url ?? page?.npsUrl ?? null,
       difficulty: d.difficulty ?? page?.difficulty ?? null,
       distanceMi: stated ?? page?.distanceMi ?? null,
+      distanceKind: stated !== null ? (d.distanceKind ?? null) : null,
       distanceSource: null,
       duration: d.duration ?? page?.duration ?? null,
       npsId: page?.npsId ?? null,
@@ -593,6 +594,85 @@ async function hikesFromListings(npsCode, pages) {
   return out.sort((a, b) => a.name.localeCompare(b.name))
 }
 
+// ---------- NPS's trail database (nps.gov/trails) ----------
+
+// The trail cards on park hiking pages ("Cadillac Summit Loop · Easy • 0.3 miles • Loop") come from
+// NPS's trail database, which gives each trail's difficulty, length, route type and time.
+const TRAIL_FEED = (code) => `https://home.nps.gov/customfields/trail_selector/getTrails.cfm?site_code=${code}&request_type=listing&trail_list=&returnFormat=JSON`
+// An out-and-back trail's length is sometimes the round trip and sometimes one way (Rocky Mountain's
+// Chasm Lake 8.4 mi vs. Dream Lake 1.1 mi), so it isn't labelled.
+const ROUTE_KIND = { 'point to point': 'one way', loop: 'loop', lollipop: 'loop' }
+
+/** Just the fields used, so the cache leaves out the trails' map lines and photos. */
+const trimTrail = (x) =>
+  'trailInfo' in x
+    ? {
+        id: x.id,
+        name: x.name,
+        type: x.type,
+        difficulty: x.trailInfo?.difficulty ?? null,
+        length: x.trailInfo?.length ?? null,
+        lengthUnit: x.trailInfo?.lengthUnit ?? null,
+        routeType: x.trailInfo?.routeType ?? null,
+        hikeTime: x.trailInfo?.hikeTime ?? null,
+        activities: x.trailInfo?.activities ?? [],
+      }
+    : x
+
+/** A park's trails from NPS's trail database, cached. [] when it has none. */
+async function fetchTrailFeed(code) {
+  const path = join(CACHE, 'nps-trail-selector', `${code}.json`)
+  if (!REFRESH && existsSync(path)) {
+    const cached = JSON.parse(await readFile(path, 'utf8'))
+    return Array.isArray(cached) ? cached.map(trimTrail) : []
+  }
+  let items = []
+  try {
+    const res = await fetch(TRAIL_FEED(code), { headers: { 'User-Agent': 'Travel Log build script' }, signal: AbortSignal.timeout(180_000) })
+    const body = res.ok ? await res.json() : []
+    items = Array.isArray(body) ? body : []
+  } catch {
+    return [] // not cached, so a later run retries
+  }
+  const kept = items.map(trimTrail)
+  await mkdir(dirname(path), { recursive: true })
+  await writeFile(path, JSON.stringify(kept))
+  return kept
+}
+
+/** A trail from NPS's trail database as a day hike: "Hard" is Strenuous, a point-to-point length is one way. */
+export function trailFeedHike(t) {
+  const miles = typeof t.length === 'number' ? (/^k/i.test(t.lengthUnit ?? '') ? t.length * 0.621371 : /^m(eter|$)/i.test(t.lengthUnit ?? '') ? t.length / 1609.344 : t.length) : null
+  const difficulty = { easy: 'Easy', moderate: 'Moderate', hard: 'Strenuous', strenuous: 'Strenuous', difficult: 'Strenuous' }[(t.difficulty ?? '').toLowerCase()] ?? null
+  return {
+    name: t.name.replace(/\s+/g, ' ').trim(),
+    distanceMi: miles === null ? null : Math.round(miles * 10) / 10,
+    distanceKind: ROUTE_KIND[(t.routeType ?? '').toLowerCase()] ?? null,
+    // "3-6" means hours.
+    duration: parseDuration(/^[\d.\s–-]+$/.test(t.hikeTime ?? '') ? `${t.hikeTime} hours` : t.hikeTime) || null,
+    difficulty,
+    url: `https://www.nps.gov/trails/view.htm?id=${t.id}`,
+  }
+}
+
+/** Adds a park's trails from NPS's trail database to its day hikes; one already listed gets missing facts filled in. */
+function addTrailFeed(hikes, feed, source) {
+  const key = (name) => [...stems(name)].sort().join(' ')
+  for (const t of feed) {
+    if (t.type && t.type !== 'Trail') continue
+    if (t.activities?.length && !t.activities.some((a) => /hik|walk/i.test(a))) continue
+    const h = trailFeedHike(t)
+    if (!h.name) continue
+    // The same hike fills in what its listing leaves out. One named inside the other ("Chasm Lake" /
+    // "Chasm Lake Trail from Longs Peak Trailhead") is likely the same hike too, but not surely (it
+    // could be "Estes Cone from Longs Peak Trailhead"), so it isn't added and lends no facts.
+    const same = hikes.find((x) => key(x.name) === key(h.name))
+    if (same) for (const k of ['distanceMi', 'distanceKind', 'duration', 'difficulty', 'url']) if (same[k] == null && h[k] != null) same[k] = h[k]
+    if (!same && !hikes.some((x) => sameName(x.name, h.name))) hikes.push({ ...h, source })
+  }
+  return hikes
+}
+
 // ---------- Build ----------
 
 const slug = (s) =>
@@ -604,13 +684,25 @@ async function main() {
   console.log(`NPS Things To Do entries: ${items.length}`)
   const trails = await fetchTrails()
 
-  // Parks whose day hikes come from nps.gov listing pages: read them now.
+  // Parks whose day hikes come from nps.gov listing pages: read them now. Then every park's trails
+  // in NPS's trail database join its list.
   for (const park of PARKS) {
     const entry = DAY_HIKES[park.id]
     if (!entry?.listingPages?.length) continue
     entry.hikes = await hikesFromListings(park.npsCode, entry.listingPages)
     entry.sources = entry.listingPages
     console.log(`${park.name}: ${entry.hikes.length} hikes from its listing pages`)
+  }
+  const feedCodes = { sequ: 'seki', kica: 'seki' }
+  for (const park of PARKS) {
+    const code = feedCodes[park.npsCode] ?? park.npsCode
+    const feed = await fetchTrailFeed(code)
+    if (!feed.length) continue
+    const entry = (DAY_HIKES[park.id] ??= { sources: [], note: '', hikes: [] })
+    const before = entry.hikes.length
+    addTrailFeed(entry.hikes, feed, `https://www.nps.gov/${code}/planyourvisit/hiking.htm`)
+    if (!entry.sources.includes(TRAIL_FEED(code))) entry.sources = [...entry.sources, TRAIL_FEED(code)]
+    console.log(`${park.name}: ${feed.length} trails in NPS's trail database, ${entry.hikes.length - before} new`)
   }
 
   const codeToParks = new Map()
@@ -748,7 +840,7 @@ async function main() {
     const day = DAY_HIKES[park.id]
     lines.push(day ? (day.hikes.length ? `From the park's day-hike list: ${day.sources.join(', ')}` : `No day hikes: ${day.note}`) : 'From the NPS trails map', '')
     for (const h of out[park.id]) {
-      const facts = [h.difficulty, h.distanceMi !== null && `${h.distanceSource === 'nps' ? '' : '≈'}${h.distanceMi} mi`, h.duration].filter(Boolean).join(' · ')
+      const facts = [h.difficulty, h.distanceMi !== null && `${h.distanceSource === 'nps' ? '' : '≈'}${h.distanceMi} mi${h.distanceKind ? ` ${h.distanceKind}` : ''}`, h.duration].filter(Boolean).join(' · ')
       lines.push(`- ${h.npsUrl ? `[${h.name}](${h.npsUrl})` : h.name}${facts ? ` — ${facts}` : ''}`)
     }
     if (overview.length) lines.push('', `Skipped overview pages: ${overview.join('; ')}`)
@@ -761,9 +853,9 @@ async function main() {
 
   // The same list as a spreadsheet: one row per hike.
   const cell = (v) => (v === null || v === undefined ? '' : /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v))
-  const rows = [['Park', 'Hike', 'Distance (mi, round trip)', 'Distance approximate', 'Time', 'Difficulty', 'nps.gov page']]
+  const rows = [['Park', 'Hike', 'Distance (mi)', 'Distance is', 'Distance approximate', 'Time', 'Difficulty', 'nps.gov page']]
   for (const park of PARKS)
-    for (const h of out[park.id]) rows.push([park.name, h.name, h.distanceMi, h.distanceSource === 'osm' ? 'yes' : '', h.duration, h.difficulty, h.npsUrl])
+    for (const h of out[park.id]) rows.push([park.name, h.name, h.distanceMi, h.distanceKind, h.distanceSource === 'osm' ? 'yes' : '', h.duration, h.difficulty, h.npsUrl])
   await writeFile(CSV, rows.map((r) => r.map(cell).join(',')).join('\n') + '\n')
   console.log(`Wrote ${OUT}\nWrote ${REPORT}\nWrote ${CSV}\n${total} hikes; no hikes listed for ${empty.length} parks`)
 }

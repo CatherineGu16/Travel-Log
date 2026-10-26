@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 // @ts-expect-error: a plain JS build script
-import { headedHikes, listingSearches, parseDifficulty, parseDistanceMi, parseDuration, statedDistance } from './build-park-hikes.mjs'
+import { headedHikes, listingSearches, trailFeedHike, parseDifficulty, parseDistanceMi, parseDuration, statedDistance } from './build-park-hikes.mjs'
 
 describe('hike details from NPS text', () => {
   it('reads stated distances, preferring round-trip figures', () => {
@@ -57,6 +57,28 @@ This short, easy walk traverses inland from the rocky shore.</p>
 <h2>Visiting</h2>
 <p>The park is open all year.</p>`
     expect(headedHikes(html)).toEqual([{ name: 'Alder Trail', distanceMi: 0.6, distanceKind: null, duration: null, difficulty: 'Easy', url: null }])
+  })
+})
+
+describe("NPS's trail database", () => {
+  it('maps a trail to a hike as NPS shows it', () => {
+    const trail = (over: object) => ({ id: 'x', name: 'Cadillac Summit Loop ', difficulty: 'Easy', length: 0.349, lengthUnit: 'Miles', routeType: 'Loop', hikeTime: '', ...over })
+    expect(trailFeedHike(trail({}))).toEqual({
+      name: 'Cadillac Summit Loop',
+      distanceMi: 0.3,
+      distanceKind: 'loop',
+      duration: null,
+      difficulty: 'Easy',
+      url: 'https://www.nps.gov/trails/view.htm?id=x',
+    })
+    expect(trailFeedHike(trail({ difficulty: 'Hard', routeType: 'Point to point', length: 3.939, hikeTime: '3-6' }))).toMatchObject({
+      difficulty: 'Strenuous',
+      distanceMi: 3.9,
+      distanceKind: 'one way',
+      duration: '3–6 hours',
+    })
+    // Out-and-back lengths are sometimes round trip, sometimes one way: not labelled.
+    expect(trailFeedHike(trail({ routeType: 'Out & back' })).distanceKind).toBeNull()
   })
 })
 
