@@ -1,15 +1,15 @@
 # Park hikes build report
 
-Generated 2026-10-25 by `scripts/build-park-hikes.mjs` from the parks' nps.gov day-hike pages, NPS Things To Do and the NPS trails map.
+Generated 2026-10-26 by `scripts/build-park-hikes.mjs` from the parks' nps.gov day-hike pages, NPS Things To Do and the NPS trails map.
 
-- **1372 hikes** across 64 parks; 746 have an nps.gov page
-- Difficulty known for 803; distance for 1339 (1339 from NPS, 0 from OpenStreetMap); time for 697
+- **1375 hikes** across 64 parks; 749 have an nps.gov page
+- Difficulty known for 804; distance for 1342 (1342 from NPS, 0 from OpenStreetMap); time for 700
 - Parks with no hikes listed by NPS (4): Dry Tortugas, Gates of the Arctic, Gateway Arch, Kobuk Valley
 - From the park's own day-hike list (64 parks); the rest from the NPS trails map
 
 | Park | Hikes |
 |---|---|
-| Acadia | 39 |
+| Acadia | 42 |
 | American Samoa | 7 |
 | Arches | 18 |
 | Badlands | 9 |
@@ -74,9 +74,9 @@ Generated 2026-10-25 by `scripts/build-park-hikes.mjs` from the parks' nps.gov d
 | Yosemite | 50 |
 | Zion | 28 |
 
-## Acadia (39)
+## Acadia (42)
 
-From the park's day-hike list: https://www.nps.gov/acad/planyourvisit/hiking.htm, https://www.nps.gov/acad/planyourvisit/hike-mdi.htm, https://www.nps.gov/acad/planyourvisit/schoodic-trails.htm
+From the park's day-hike list: https://www.nps.gov/acad/planyourvisit/hiking.htm
 
 - [Bald Peak and Parkman Mountain Loop](https://www.nps.gov/thingstodo/hike-bald-peak-parkman-mountain-loop.htm) — Strenuous · 2.7 mi · 1–2 hours
 - [Bar Island Trail](https://www.nps.gov/thingstodo/hike-bar-island-trail.htm) — 1.9 mi · 45–90 minutes
@@ -94,8 +94,10 @@ From the park's day-hike list: https://www.nps.gov/acad/planyourvisit/hiking.htm
 - [Giant Slide Loop](https://www.nps.gov/thingstodo/hike-giant-slide-loop.htm) — Strenuous · 5.7 mi · 2–4 hours
 - [Gorge Path](https://www.nps.gov/thingstodo/hike-gorge-path.htm) — 2.5 mi · 2–3 hours
 - [Gorham Mountain Loop](https://www.nps.gov/thingstodo/hike-gorham-mountain-loop.htm) — 3.5 mi · 1–3 hours
+- [Great Head Trail](https://www.nps.gov/thingstodo/hike-great-head-trail.htm) — Easy · 1.9 mi · 2–4 hours
 - [Hadlock Ponds Loop](https://www.nps.gov/thingstodo/hike-hadlock-ponds-loop.htm) — 4.1 mi · 2–4 hours
 - [Homans Path](https://www.nps.gov/thingstodo/hike-homans-path.htm) — 0.6 mi · 15–30 minutes
+- [Jesup Path and Hemlock Path Loop](https://www.nps.gov/thingstodo/hike-jesup-path-hemlock-path-loop.htm) — 1.5 mi · 30–60 minutes
 - [Jordan Cliffs Loop](https://www.nps.gov/thingstodo/hike-jordan-cliffs-loop.htm) — Strenuous · 5 mi · 3–4 hours
 - [Jordan Pond Path](https://www.nps.gov/thingstodo/hike-jordan-pond-path.htm) — Strenuous · 3.3 mi · 1–3 hours
 - [Kebo Brook Trail to Kebo Mountain](https://www.nps.gov/thingstodo/hike-kebo-brook-kebo-mountain.htm) — 2 mi · 1–2 hours
@@ -110,6 +112,7 @@ From the park's day-hike list: https://www.nps.gov/acad/planyourvisit/hiking.htm
 - [Ship Harbor Trail](https://www.nps.gov/thingstodo/hike-ship-harbor-trail.htm) — 1.3 mi · 30–60 minutes
 - [St. Sauveur and Acadia Mountain Loop](https://www.nps.gov/thingstodo/hike-st-sauveur-acadia-mountain-loop.htm) — Strenuous · 3.7 mi · 2–4 hours
 - [Western Mountain Loop](https://www.nps.gov/thingstodo/hike-western-mountain-loop.htm) — Strenuous · 3.8 mi · 2–3 hours
+- [Wonderland Trail](https://www.nps.gov/thingstodo/hike-wonderland-trail.htm) — 1.4 mi · 30–60 minutes
 - Alder Trail — Easy · 0.6 mi
 - Anvil Trail — 1.1 mi
 - Buck Cove Mountain Trail — 3.2 mi
@@ -120,7 +123,7 @@ From the park's day-hike list: https://www.nps.gov/acad/planyourvisit/hiking.htm
 
 Skipped pages that aren't one hike: Kurt Diederichs Climb; Carriage Roads; Bubbles
 
-Things To Do hikes not on the park's day-hike list (left out): Jesup Path and Hemlock Path Loop; Wonderland Trail; Cadillac Summit Loop; Great Head Trail; Schoodic Peninsula Trails; Village Green to Sieur de Monts with Island Explorer Bus; Pemetic Summit with Island Explorer Bus; Double Bubble Nubble Loop with Island Explorer; Gorge/Cadillac Mountain North Ridge Loop with Island Explorer Bus; The Acadia Mountain Loop with Island Explorer Bus; Sieur de Monts to Jesup Path with Island Explorer Bus; Sieur de Monts to Sand Beach Trek with Island Explorer; Beech Cliff Trail with Island Explorer Bus; Great Head with Island Explorer Bus; Ocean Path Trail with Island Explorer Bus; Sargent and Penobscot Mountains from JPH with Island Explorer Bus; Jordan Pond Loop with Island Explorer Bus
+Things To Do hikes not on the park's day-hike list (left out): Cadillac Summit Loop; Schoodic Peninsula Trails; Village Green to Sieur de Monts with Island Explorer Bus; Pemetic Summit with Island Explorer Bus; Double Bubble Nubble Loop with Island Explorer; Gorge/Cadillac Mountain North Ridge Loop with Island Explorer Bus; The Acadia Mountain Loop with Island Explorer Bus; Sieur de Monts to Jesup Path with Island Explorer Bus; Sieur de Monts to Sand Beach Trek with Island Explorer; Beech Cliff Trail with Island Explorer Bus; Great Head with Island Explorer Bus; Ocean Path Trail with Island Explorer Bus; Sargent and Penobscot Mountains from JPH with Island Explorer Bus; Jordan Pond Loop with Island Explorer Bus
 
 ## American Samoa (7)
 

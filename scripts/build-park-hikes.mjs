@@ -25,6 +25,7 @@
 // but allows only ~10 requests an hour, so all parks are fetched in a few batched requests and
 // cached in scripts/.cache/.
 
+import { createHash } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -35,6 +36,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const CACHE = join(ROOT, 'scripts', '.cache')
 const OUT = join(ROOT, 'src', 'data', 'park-hikes.json')
 const REPORT = join(ROOT, 'scripts', 'park-hikes-report.md')
+const CSV = join(ROOT, 'scripts', 'park-hikes.csv')
 const REFRESH = process.argv.includes('--refresh')
 const NPS_KEY = process.env.NPS_API_KEY || 'DEMO_KEY'
 const USE_OSM = !process.argv.includes('--no-osm')
@@ -456,6 +458,141 @@ function applyDayHikes(bucket, dayHikes) {
   bucket.notListed = [...unused].map((h) => h.name)
 }
 
+// ---------- Hike lists that nps.gov pages load from its search ----------
+
+// Many park pages (Acadia's "Hiking", "Mount Desert Island Hikes", …) don't list hikes in their
+// HTML: a "searchlisting" box loads them in the browser from nps.gov's own search (/solr/). Such a
+// page can be named under a park's "listingPages" in nps-day-hikes.json; the script runs the same
+// searches, on the page and on the park's pages it links to, then reads each hike's own page for
+// the distance and difficulty it states.
+
+const NPS = 'https://www.nps.gov'
+const PAGES = join(CACHE, 'nps-pages')
+const decodeEntities = (s) =>
+  s
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, '&')
+
+/** A page (or search result) from nps.gov, cached in scripts/.cache/nps-pages/. */
+async function npsGet(url) {
+  // Readable start, plus a hash so long search URLs that differ only at the end don't collide.
+  const file = join(PAGES, `${url.replace(/^https?:\/\//, '').replace(/[^a-z0-9.-]+/gi, '_').slice(0, 80)}-${createHash('sha1').update(url).digest('hex').slice(0, 12)}`)
+  if (!REFRESH && existsSync(file)) return readFile(file, 'utf8')
+  await sleep(300)
+  const res = await fetch(url, { headers: { 'User-Agent': 'Travel Log build script' }, signal: AbortSignal.timeout(60_000) })
+  if (!res.ok) throw new Error(`${url}: ${res.status}`)
+  const text = await res.text()
+  await mkdir(PAGES, { recursive: true })
+  await writeFile(file, text)
+  return text
+}
+
+/** The searches a page's listing boxes run (their "searchURLReady"), all results at once. */
+export function listingSearches(html) {
+  return [...html.matchAll(/searchURLReady:\s*"((?:[^"\\]|\\.)*)"/g)].map((m) =>
+    decodeEntities(m[1].replace(/\\"/g, '"').replace(/\\'/g, "'")).replace(/([?&])rows=\d+/, '$1rows=500'),
+  )
+}
+
+/** "Distance: 2.7 miles round trip" on a hike's page: [miles, kind] or null. */
+export function statedDistance(text) {
+  const m = text.match(/Distance:?\s*(?:about|approximately|approx\.?)?\s*(\d+(?:\.\d+)?|\.\d+)\s*(miles?|mi\b|kilometers?|km\b)(?:[^.|]{0,30}?(round[- ]?trip|roundtrip|one[- ]way|loop))?/i)
+  if (!m) return null
+  const n = Number(m[1]) * (/^k/i.test(m[2]) ? 0.621371 : 1)
+  const kind = (m[3] ?? '').toLowerCase().replace(/[- ]/g, '')
+  return [Math.round(n * 10) / 10, kind === 'oneway' ? 'one way' : kind === 'loop' ? 'loop' : kind ? 'round trip' : null]
+}
+
+const pageText = (html) => {
+  const start = html.search(/<h1\b/i)
+  return decodeEntities(
+    html
+      .slice(start < 0 ? 0 : start)
+      .replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, ' ')
+      .replace(/<[^>]+>/g, ' | '),
+  )
+    .replace(/(\s*\|\s*)+/g, ' | ')
+    .replace(/\s+/g, ' ')
+}
+
+/**
+ * Hikes written out on a page as a heading per trail with a paragraph starting with its distance
+ * (Acadia's Schoodic trails: "<h2>Alder Trail</h2><p>0.6 miles (1 km) Traveling amongst…").
+ */
+export function headedHikes(html) {
+  const out = []
+  for (const m of html.matchAll(/<h([234])\b[^>]*>((?:(?!<\/?h[1-6]\b|<script)[\s\S]){1,300}?)<\/h\1>\s*<p\b[^>]*>([\s\S]*?)<\/p>/gi)) {
+    const name = decodeEntities(m[2].replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim()
+    const text = decodeEntities(m[3].replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim()
+    const lead = text.match(/^(?:about\s+)?(\d+(?:\.\d+)?|\.\d+)\s*(miles?|mi\b)([^.]{0,30}?(round[- ]?trip|one[- ]way|loop))?/i)
+    if (!name || name.length > 80 || !lead || /\b(bike|bicycle|road|carriage)\b/i.test(name)) continue
+    const kind = (lead[4] ?? '').toLowerCase().replace(/[- ]/g, '')
+    out.push({
+      name,
+      distanceMi: Number(lead[1]),
+      distanceKind: kind === 'oneway' ? 'one way' : kind === 'loop' ? 'loop' : kind ? 'round trip' : null,
+      duration: null,
+      difficulty: parseDifficulty([], text),
+      url: null,
+    })
+  }
+  return out
+}
+
+/**
+ * A park's day hikes from listing pages: every hike the pages' searches return (and those of the
+ * park's pages they link to), each with the distance its own page states, its time and, where its
+ * summary or page says, its difficulty. Shaped like the hand-made entries in nps-day-hikes.json.
+ */
+async function hikesFromListings(npsCode, pages) {
+  const searches = new Map()
+  const headed = []
+  const listingOf = async (url) => {
+    const html = await npsGet(url)
+    for (const q of listingSearches(html)) searches.set(q, url)
+    for (const h of headedHikes(html)) headed.push({ ...h, source: url })
+    return html
+  }
+  for (const page of pages) {
+    const html = await listingOf(page)
+    // Category pages the page links to ("Summit Hikes", "Coastal Hikes"), one level deep.
+    const linked = [...html.matchAll(/href="([^"]+)"/g)].map((m) => decodeEntities(m[1])).filter((h) => h.startsWith(`/${npsCode}/planyourvisit/`) && h.endsWith('.htm'))
+    for (const href of new Set(linked)) if (/hik|trail|walk/i.test(href)) await listingOf(NPS + href)
+  }
+  const hikes = new Map()
+  for (const [query, source] of searches) {
+    const body = JSON.parse(await npsGet(NPS + encodeURI(query).replace(/#/g, '%23')))
+    for (const doc of body.response?.docs ?? []) {
+      const activities = [doc.Subtype, doc.Activities, doc.Type].flat().filter(Boolean).join(' ')
+      if (!doc.PageURL || !doc.Title || !/hik|walk/i.test(`${activities} ${doc.Title}`) || hikes.has(doc.PageURL)) continue
+      // One hike's page: not an article, a trip idea, a road, or an overview of several trails.
+      const name = cleanName(doc.Title)
+      if (!doc.PageURL.startsWith('/thingstodo/') || isTheme(name) || isOverview(name) || /\b(roads?|trails)$/i.test(name)) continue
+      hikes.set(doc.PageURL, { doc, source })
+    }
+  }
+  const out = []
+  for (const { doc, source } of hikes.values()) {
+    const url = new URL(doc.PageURL, NPS).href
+    const text = pageText(await npsGet(url))
+    const distance = statedDistance(text)
+    const difficulty = (text.match(/Difficulty:?\s*\|?\s*([A-Za-z -]{3,40})/i)?.[1] ?? '') || doc.Abstract || ''
+    out.push({
+      name: cleanName(doc.Title),
+      distanceMi: distance?.[0] ?? null,
+      distanceKind: distance?.[1] ?? null,
+      duration: parseDuration(doc.Duration),
+      difficulty: parseDifficulty([], difficulty),
+      url,
+      source,
+    })
+  }
+  for (const h of headed) if (!out.some((o) => o.name.toLowerCase() === h.name.toLowerCase())) out.push(h)
+  return out.sort((a, b) => a.name.localeCompare(b.name))
+}
+
 // ---------- Build ----------
 
 const slug = (s) =>
@@ -466,6 +603,15 @@ async function main() {
   const items = await fetchThingsToDo()
   console.log(`NPS Things To Do entries: ${items.length}`)
   const trails = await fetchTrails()
+
+  // Parks whose day hikes come from nps.gov listing pages: read them now.
+  for (const park of PARKS) {
+    const entry = DAY_HIKES[park.id]
+    if (!entry?.listingPages?.length) continue
+    entry.hikes = await hikesFromListings(park.npsCode, entry.listingPages)
+    entry.sources = entry.listingPages
+    console.log(`${park.name}: ${entry.hikes.length} hikes from its listing pages`)
+  }
 
   const codeToParks = new Map()
   for (const p of PARKS) codeToParks.set(ttdCode(p), [...(codeToParks.get(ttdCode(p)) || []), p.id])
@@ -612,7 +758,14 @@ async function main() {
     lines.push('')
   }
   await writeFile(REPORT, lines.join('\n'))
-  console.log(`Wrote ${OUT}\nWrote ${REPORT}\n${total} hikes; no hikes listed for ${empty.length} parks`)
+
+  // The same list as a spreadsheet: one row per hike.
+  const cell = (v) => (v === null || v === undefined ? '' : /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v))
+  const rows = [['Park', 'Hike', 'Distance (mi, round trip)', 'Distance approximate', 'Time', 'Difficulty', 'nps.gov page']]
+  for (const park of PARKS)
+    for (const h of out[park.id]) rows.push([park.name, h.name, h.distanceMi, h.distanceSource === 'osm' ? 'yes' : '', h.duration, h.difficulty, h.npsUrl])
+  await writeFile(CSV, rows.map((r) => r.map(cell).join(',')).join('\n') + '\n')
+  console.log(`Wrote ${OUT}\nWrote ${REPORT}\nWrote ${CSV}\n${total} hikes; no hikes listed for ${empty.length} parks`)
 }
 
 // Build only when run as a script; tests import the parsers above.

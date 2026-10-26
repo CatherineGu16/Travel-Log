@@ -145,6 +145,15 @@
    "duration": "1–3 hours"
   },
   {
+   "id": "great-head-trail",
+   "name": "Great Head Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-great-head-trail.htm",
+   "difficulty": "Easy",
+   "distanceMi": 1.9,
+   "distanceSource": "nps",
+   "duration": "2–4 hours"
+  },
+  {
    "id": "hadlock-ponds-loop",
    "name": "Hadlock Ponds Loop",
    "npsUrl": "https://www.nps.gov/thingstodo/hike-hadlock-ponds-loop.htm",
@@ -161,6 +170,15 @@
    "distanceMi": 0.6,
    "distanceSource": "nps",
    "duration": "15–30 minutes"
+  },
+  {
+   "id": "jesup-path-and-hemlock-path-loop",
+   "name": "Jesup Path and Hemlock Path Loop",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-jesup-path-hemlock-path-loop.htm",
+   "difficulty": null,
+   "distanceMi": 1.5,
+   "distanceSource": "nps",
+   "duration": "30–60 minutes"
   },
   {
    "id": "jordan-cliffs-loop",
@@ -287,6 +305,15 @@
    "distanceMi": 3.8,
    "distanceSource": "nps",
    "duration": "2–3 hours"
+  },
+  {
+   "id": "wonderland-trail",
+   "name": "Wonderland Trail",
+   "npsUrl": "https://www.nps.gov/thingstodo/hike-wonderland-trail.htm",
+   "difficulty": null,
+   "distanceMi": 1.4,
+   "distanceSource": "nps",
+   "duration": "30–60 minutes"
   },
   {
    "id": "alder-trail",

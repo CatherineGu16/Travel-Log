@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 // @ts-expect-error: a plain JS build script
-import { parseDifficulty, parseDistanceMi, parseDuration } from './build-park-hikes.mjs'
+import { headedHikes, listingSearches, parseDifficulty, parseDistanceMi, parseDuration, statedDistance } from './build-park-hikes.mjs'
 
 describe('hike details from NPS text', () => {
   it('reads stated distances, preferring round-trip figures', () => {
@@ -31,3 +31,32 @@ describe('hike details from NPS text', () => {
     expect(parseDuration('')).toBeNull()
   })
 })
+
+describe('nps.gov pages that load their hike lists', () => {
+  it("finds a listing box's search, asking for every result", () => {
+    const html = `jQuery('#searchListing-1').searchlisting({
+searchURL: "/solr/",
+searchURLReady: "/solr/?q=*&fl=Title,Duration,PageURL&sort=Title asc&start=0&fq=Category:\\"Trip Ideas\\" AND Tags_Item:\\"hiking\\" AND Sites_Codes_Item:\\"acad\\"&rows=10",`
+    expect(listingSearches(html)).toEqual(['/solr/?q=*&fl=Title,Duration,PageURL&sort=Title asc&start=0&fq=Category:"Trip Ideas" AND Tags_Item:"hiking" AND Sites_Codes_Item:"acad"&rows=500'])
+  })
+
+  it("reads the distance a hike's page states", () => {
+    expect(statedDistance('… | Distance: 2.7 miles round trip | Terrain: …')).toEqual([2.7, 'round trip'])
+    expect(statedDistance('Distance: 1.4 miles, loop')).toEqual([1.4, 'loop'])
+    expect(statedDistance('Distance: 3 km one way')).toEqual([1.9, 'one way'])
+    expect(statedDistance('Distance: 2 miles | Terrain')).toEqual([2, null])
+    expect(statedDistance('No distance here')).toBeNull()
+  })
+
+  it('reads trails written as a heading and a paragraph starting with the distance', () => {
+    const html = `<h2>Alder Trail</h2>
+<p>0.6 miles (1 km)
+This short, easy walk traverses inland from the rocky shore.</p>
+<h2>Schoodic Bike Trails</h2>
+<p>8.3 miles of wide paths</p>
+<h2>Visiting</h2>
+<p>The park is open all year.</p>`
+    expect(headedHikes(html)).toEqual([{ name: 'Alder Trail', distanceMi: 0.6, distanceKind: null, duration: null, difficulty: 'Easy', url: null }])
+  })
+})
+

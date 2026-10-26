@@ -150,6 +150,12 @@ app):
    The pages are laid out differently in every park (tables, lists, prose, PDFs), so the file was
    compiled by reading them rather than by a parser; each park's `sources` and `note` say where
    everything came from and what was left out. One-way distances are doubled when shown.
+   A park can instead name its hiking page under **`listingPages`** (Acadia does): many nps.gov
+   pages load their hike lists in the browser from nps.gov's search, so the script runs those same
+   searches (on the page and on the park's hiking pages it links to), reads each hike's own page
+   for the distance it states ("Distance: 2.7 miles round trip"), and also picks up trails written
+   as a heading plus a paragraph starting with the distance (Acadia's Schoodic trails). Pages are
+   cached in `scripts/.cache/nps-pages/`; `--refresh` reads them again.
 2. The NPS **Things To Do** feed (the entries behind nps.gov/thingstodo pages, read with the
    public `DEMO_KEY`, cached) adds a link, difficulty and time to the hike it's about, matched by
    name, where the list leaves them out. Things To Do hikes that aren't on the park's list are
@@ -162,11 +168,12 @@ app):
    OpenStreetMap lengths marked "≈"; none does today.
 5. Hikes with an nps.gov page are listed first, then the rest A–Z.
 6. Write the list, plus `scripts/park-hikes-report.md` with every park's hikes, sources and
-   counts, and commit both to the public repo.
+   counts, and **`scripts/park-hikes.csv`**, the same list as a spreadsheet (park, hike, distance,
+   time, difficulty, nps.gov page), and commit them to the public repo.
 
 Hikes aren't drawn on the map.
 
-**Coverage.** The current list has **1,372 day hikes** across 60 parks, and 1,339 have an NPS
+**Coverage.** The current list has **1,375 day hikes** across 60 parks, and 1,339 have an NPS
 distance. Dry Tortugas, Gates of the Arctic, Gateway Arch and Kobuk Valley list none. Custom hikes
 cover the gaps. To refresh a park, re-read its pages and update its entry in
 `scripts/nps-day-hikes.json`.
