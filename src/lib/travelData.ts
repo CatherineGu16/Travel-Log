@@ -1,7 +1,7 @@
 import { isPartialDate } from './partialDate.ts'
 import { insertCheapest } from './route.ts'
 import { builtInGroups } from './travelActions.ts'
-import { FAMILY_GROUP_ID, FRIENDS_GROUP_ID, type Avatar, type Destination, type Group, type LngLat, type Person, type Place, type Synced, type TravelData, type Trip } from './types.ts'
+import { FAMILY_GROUP_ID, FRIENDS_GROUP_ID, type Avatar, type Destination, type Group, type HikeEdit, type LngLat, type Person, type Place, type Synced, type TravelData, type Trip } from './types.ts'
 
 /**
  * Combines two copies of your data record by record: the newer updatedAt wins, and deletes travel
@@ -15,6 +15,7 @@ export function mergeData(a: TravelData, b: TravelData): TravelData {
     places: newestById(a.places, b.places),
     people: newestById(a.people, b.people),
     groups: newestById(a.groups, b.groups),
+    hikeEdits: newestById(a.hikeEdits, b.hikeEdits),
   }
 }
 
@@ -42,7 +43,7 @@ const stable = (v: unknown): string =>
 
 /** Content equality, ignoring record order, key order and the top-level timestamp. */
 export function sameContent(a: TravelData, b: TravelData): boolean {
-  const canon = (d: TravelData) => stable([d.trips, d.places, d.people, d.groups].map((records) => [...records].sort((x, y) => x.id.localeCompare(y.id))))
+  const canon = (d: TravelData) => stable([d.trips, d.places, d.people, d.groups, d.hikeEdits].map((records) => [...records].sort((x, y) => x.id.localeCompare(y.id))))
   return canon(a) === canon(b)
 }
 
@@ -182,5 +183,22 @@ export function parseTravelData(input: unknown): TravelData {
   // Every copy has the built-in Family and Friends groups, even an old or hand-made file.
   for (const g of builtInGroups()) if (!groups.some((x) => x.id === g.id)) groups.push(g)
 
-  return { schemaVersion: 1, updatedAt: str(o.updatedAt, new Date(0).toISOString()), trips, places, people, groups }
+  // Added later: older files have none.
+  if (!Array.isArray(o.hikeEdits)) o.hikeEdits = []
+  const hikeEdits = records<HikeEdit>('hikeEdits', (x, base) =>
+    typeof x.parkId === 'string' && typeof x.hikeId === 'string' && typeof x.name === 'string'
+      ? {
+          ...base,
+          parkId: x.parkId,
+          hikeId: x.hikeId,
+          name: x.name,
+          distanceMi: typeof x.distanceMi === 'number' && Number.isFinite(x.distanceMi) && x.distanceMi >= 0 ? x.distanceMi : null,
+          duration: typeof x.duration === 'string' && x.duration.trim() ? x.duration : null,
+          difficulty: x.difficulty === 'Easy' || x.difficulty === 'Moderate' || x.difficulty === 'Strenuous' ? x.difficulty : null,
+          hidden: x.hidden === true,
+        }
+      : null,
+  )
+
+  return { schemaVersion: 1, updatedAt: str(o.updatedAt, new Date(0).toISOString()), trips, places, people, groups, hikeEdits }
 }

@@ -1,4 +1,5 @@
 import { ADDED_HIKES_PATH, parseAddedHikes, sameHikeName, unsharedHikes, withHikes } from '../lib/addedHikes.ts'
+import { HIKE_EDITS_PATH, parsePublicHikeEdits, withHikeEdits } from '../lib/hikeEdits.ts'
 import { mergeData, sameContent } from '../lib/travelData.ts'
 import type { TravelData } from '../lib/types.ts'
 import type { AvatarStore } from '../store/avatarStore.ts'
@@ -21,6 +22,8 @@ export interface SyncMeta {
   lastSyncedAt: string | null
   /** Hikes this device has already added to the public list ("parkId|name"), so it doesn't ask again. */
   sharedHikes?: string[]
+  /** Hike corrections already written to the public file ("id@updatedAt"). */
+  sharedEdits?: string[]
 }
 
 /** Sharing the hikes you type in to the app's public repo, where they become suggestions. */
@@ -229,6 +232,32 @@ export function createSyncEngine(
     saveMeta({ sharedHikes: [...shared, ...todo.map(keyOf)] })
   }
 
+  /** Writes your corrections to the NPS hike suggestions (and resets) to the public file, once each. */
+  async function shareHikeEdits(config: SyncConfig) {
+    const share = opts.shareHikes
+    if (!share || !canShare(config)) return
+    const shared = new Set(meta.sharedEdits ?? [])
+    const keyOf = (e: { id: string; updatedAt: string; deleted?: boolean }) => `${e.id}@${e.updatedAt}${e.deleted ? ' reset' : ''}`
+    const todo = store.getState().data.hikeEdits.filter((e) => !shared.has(keyOf(e)))
+    if (todo.length === 0) return
+    const target: SyncTarget = { owner: share.owner, repo: share.repo, path: HIKE_EDITS_PATH, token: config.token }
+    for (let attempt = 0; ; attempt++) {
+      const file = await api.getJson(target, HIKE_EDITS_PATH)
+      const current = parsePublicHikeEdits(file?.value)
+      const next = withHikeEdits(current, todo)
+      if (JSON.stringify(next) === JSON.stringify(current)) break
+      const message = todo.length === 1 ? `${todo[0].deleted ? 'Reset' : 'Correct'} hike: ${todo[0].name} (${todo[0].parkId})` : `Correct ${todo.length} hikes`
+      try {
+        await api.putJson(target, HIKE_EDITS_PATH, next, file?.sha ?? null, message)
+        break
+      } catch (e) {
+        if (e instanceof SyncError && e.kind === 'conflict' && attempt < MAX_CONFLICT_RETRIES) continue
+        throw e
+      }
+    }
+    saveMeta({ sharedEdits: [...shared, ...todo.map(keyOf)] })
+  }
+
   async function syncNow(): Promise<void> {
     const config = meta.config
     if (!config) return
@@ -251,10 +280,11 @@ export function createSyncEngine(
         set({ status: hasLocalChanges() ? 'pending' : 'synced', lastSyncedAt: now, uploading: 0 })
         try {
           await shareAddedHikes(config)
+          await shareHikeEdits(config)
           if (state.shareError) set({ shareError: null })
         } catch (e) {
           const share = opts.shareHikes!
-          set({ shareError: `Couldn't add your hikes to the public list in ${share.owner}/${share.repo}: ${(e as Error).message}` })
+          set({ shareError: `Couldn't update the public hike list in ${share.owner}/${share.repo}: ${(e as Error).message}` })
         }
       } catch (e) {
         const err = e instanceof SyncError ? e : new SyncError('other', (e as Error).message)

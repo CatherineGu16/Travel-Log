@@ -100,6 +100,24 @@ export interface TravelData {
   places: Place[]
   people: Person[]
   groups: Group[]
+  /** Your corrections to the NPS hike suggestions (shared to the public list by its owner). */
+  hikeEdits: HikeEdit[]
+}
+
+export type HikeDifficulty = 'Easy' | 'Moderate' | 'Strenuous'
+
+/**
+ * A correction to one suggested NPS hike: the values to show instead (all of them, not a diff), or
+ * hidden to stop suggesting it. id = "parkId|hikeId". Deleting it goes back to NPS's values.
+ */
+export interface HikeEdit extends Synced {
+  parkId: string
+  hikeId: string
+  name: string
+  distanceMi: number | null
+  duration: string | null
+  difficulty: HikeDifficulty | null
+  hidden: boolean
 }
 
 export interface EditContext {

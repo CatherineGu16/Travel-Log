@@ -5,6 +5,7 @@ import {
   type Avatar,
   type EditContext,
   type Group,
+  type HikeEdit,
   type LngLat,
   type PartialDate,
   type Person,
@@ -40,6 +41,7 @@ export function emptyData(now: string): TravelData {
     places: [],
     people: [],
     groups: builtInGroups(),
+    hikeEdits: [],
   }
 }
 
@@ -304,6 +306,35 @@ export function deleteGroup(data: TravelData, ctx: EditContext, id: string): Tra
   return { ...data, updatedAt: ctx.now, groups: tombstone(data.groups, id, ctx.now) }
 }
 
+// ---------- Hike corrections ----------
+
+export type HikeEditInput = Pick<HikeEdit, 'parkId' | 'hikeId' | 'name' | 'distanceMi' | 'duration' | 'difficulty' | 'hidden'>
+
+export const hikeEditId = (parkId: string, hikeId: string) => `${parkId}|${hikeId}`
+
+/** Saves your correction to a suggested hike (replacing any earlier one). */
+export function saveHikeEdit(data: TravelData, ctx: EditContext, input: HikeEditInput): TravelData {
+  const name = input.name.trim().replace(/\s+/g, ' ')
+  if (!name) throw new Error('A hike needs a name.')
+  const id = hikeEditId(input.parkId, input.hikeId)
+  const existing = data.hikeEdits.find((e) => e.id === id)
+  const record: HikeEdit = {
+    ...input,
+    id,
+    name,
+    distanceMi: input.distanceMi !== null && Number.isFinite(input.distanceMi) && input.distanceMi >= 0 ? Math.round(input.distanceMi * 10) / 10 : null,
+    duration: input.duration?.trim() || null,
+    createdAt: existing?.createdAt ?? ctx.now,
+    updatedAt: ctx.now,
+  }
+  return { ...data, updatedAt: ctx.now, hikeEdits: [...data.hikeEdits.filter((e) => e.id !== id), record] }
+}
+
+/** Drops your correction, so the hike shows NPS's values again. */
+export function resetHikeEdit(data: TravelData, ctx: EditContext, parkId: string, hikeId: string): TravelData {
+  return { ...data, updatedAt: ctx.now, hikeEdits: tombstone(data.hikeEdits, hikeEditId(parkId, hikeId), ctx.now) }
+}
+
 // ---------- Undo ----------
 
 /**
@@ -318,6 +349,7 @@ export function revertTo(current: TravelData, snapshot: TravelData, ctx: EditCon
     places: revertRecords(current.places, snapshot.places, ctx.now),
     people: revertRecords(current.people, snapshot.people, ctx.now),
     groups: revertRecords(current.groups, snapshot.groups, ctx.now),
+    hikeEdits: revertRecords(current.hikeEdits, snapshot.hikeEdits, ctx.now),
   }
 }
 

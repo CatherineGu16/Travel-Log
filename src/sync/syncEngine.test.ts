@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addPerson, deleteTrip, saveTrip, type TripInput } from '../lib/travelActions.ts'
+import { addPerson, deleteTrip, resetHikeEdit, saveHikeEdit, saveTrip, type TripInput } from '../lib/travelActions.ts'
 import type { EditContext, TravelData } from '../lib/types.ts'
 import { memoryAvatars } from '../store/avatarStore.ts'
 import { memoryBackend } from '../store/storage.ts'
@@ -303,5 +303,19 @@ describe('sync engine', () => {
     await stranger.engine.connect({ ...CONFIG, owner: 'someone-else' })
     expect(gh.calls.some((c) => c.includes('Travel-Log'))).toBe(false)
     expect(stranger.engine.getState()).toMatchObject({ status: 'synced', shareError: null, sharesHikes: false })
+  })
+
+  it('shares your hike corrections to the public file, and a reset removes them', async () => {
+    const gh = fakeGitHub()
+    const phone = await device(gh, 'phone')
+    const edit = { parkId: 'zion', hikeId: 'angels-landing', name: 'Angels Landing', distanceMi: 5.4, duration: '4 hours', difficulty: 'Strenuous' as const, hidden: false }
+    phone.store.apply((d, c) => saveHikeEdit(d, c, edit), 'x')
+    await phone.engine.connect(CONFIG)
+    const file = () => gh.json.get('me/Travel-Log/src/data/hike-edits.json')?.value as Record<string, Record<string, { distanceMi: number }>>
+    expect(file().zion['angels-landing'].distanceMi).toBe(5.4)
+
+    phone.store.apply((d, c) => resetHikeEdit(d, c, 'zion', 'angels-landing'), 'x')
+    await phone.engine.syncNow()
+    expect(file()).toEqual({})
   })
 })

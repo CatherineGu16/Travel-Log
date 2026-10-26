@@ -33,7 +33,7 @@ export function HikesField({
 
 function ParkHikes({ parkId, data, value, onChange }: { parkId: string; data: TravelData; value: TripHike[]; onChange: (hikes: TripHike[]) => void }) {
   const park = PARKS.find((p) => p.id === parkId)
-  const nps = useNpsHikes(parkId)
+  const nps = useNpsHikes(parkId, data)
   const keyOf = (h: TripHike) => hikeKey(h.parkId, h.hikeId, h.name)
   const here = value.filter((h) => h.parkId === parkId)
   const has = (hikeId: string | null, name: string) => here.some((h) => (hikeId !== null && h.hikeId === hikeId) || sameHikeName(h.name, name))

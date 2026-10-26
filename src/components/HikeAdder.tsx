@@ -34,7 +34,7 @@ export function HikeAdder({
   label?: string
 }) {
   const id = useId()
-  const nps = useNpsHikes(parkId)
+  const nps = useNpsHikes(parkId, data)
   const [added, setAdded] = useState<AddedHikes>({})
   useEffect(() => {
     void loadAddedHikes().then(setAdded)
@@ -52,7 +52,7 @@ export function HikeAdder({
     const npsOf = (hikeId: string | null, name: string) => nps.find((h) => h.id === hikeId) ?? nps.find((h) => sameHikeName(h.name, name)) ?? null
     for (const h of hikesDone(data, parkId).values()) push({ hikeId: h.hikeId, name: h.name, nps: npsOf(h.hikeId, h.name), from: 'yours' })
     for (const h of added[parkId] ?? []) push({ hikeId: null, name: h.name, nps: null, from: 'added' })
-    for (const h of nps) push({ hikeId: h.id, name: h.name, nps: h, from: 'nps' })
+    for (const h of nps) if (!h.hidden) push({ hikeId: h.id, name: h.name, nps: h, from: 'nps' })
     return out
   }, [data, parkId, added, nps, has])
 

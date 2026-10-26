@@ -5,10 +5,11 @@ import { formatDateRange, formatPartialDate } from '../lib/partialDate.ts'
 import type { ParkInfo } from '../lib/placeSearch.ts'
 import { addHike, removeHike } from '../lib/travelActions.ts'
 import type { TravelData, Trip, TripHike } from '../lib/types.ts'
-import { useStore } from '../store/useTravel.ts'
+import { useStore, useSyncState } from '../store/useTravel.ts'
 import parksJson from '../data/national-parks.json'
 import { HikeFacts } from './HikeFacts.tsx'
 import { HikeAdder } from './HikeAdder.tsx'
+import { HikeCorrections } from './HikeCorrections.tsx'
 import { useNpsHikes } from '../ui/useNpsHikes.ts'
 import { Sheet } from './Sheet.tsx'
 import { useToast } from './toastContext.ts'
@@ -36,7 +37,9 @@ export function ParkSheet({
   const toast = useToast()
   const park = PARKS.find((p) => p.id === parkId)!
   const info = details.get(parkId)
-  const npsHikes = useNpsHikes(parkId)
+  const npsHikes = useNpsHikes(parkId, data)
+  // Only the public repo's owner corrects the shared suggestions.
+  const { sharesHikes } = useSyncState()
   const [choosing, setChoosing] = useState<TripHike | null>(null)
   const [needVisit, setNeedVisit] = useState(false)
 
@@ -174,6 +177,7 @@ export function ParkSheet({
               label={`Which trip was “${choosing.name}” on?`}
             />
           )}
+          {sharesHikes && npsHikes.length > 0 && <HikeCorrections parkId={parkId} hikes={npsHikes} />}
         </section>
       </div>
     </Sheet>
