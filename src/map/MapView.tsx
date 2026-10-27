@@ -9,7 +9,7 @@ import { loadOutlineData } from './mapData.ts'
 import { outlineStyle, PALETTES, themedPaint } from './outlineStyle.ts'
 import { hideDetailed, showDetailed } from './detailedTiles.ts'
 import { setParkImages, setPinImages } from './pinImages.ts'
-import { QUICK_JUMPS, VIEWS, type ViewId } from './views.ts'
+import { VIEWS, WORLD_ZOOM } from './views.ts'
 
 // MapLibre 6 runs its tile/geometry work in a separate worker file, served from the app's own assets.
 setWorkerUrl(workerUrl)
@@ -82,7 +82,7 @@ export function MapView(props: MapViewProps) {
           style: outlineStyle(data, palette, glyphsUrl()),
           bounds: VIEWS.us.bounds,
           fitBoundsOptions: { padding: fitPadding() },
-          minZoom: 1.5,
+          minZoom: WORLD_ZOOM,
           maxZoom: 14,
           attributionControl: { compact: true, customAttribution: 'National Park Service' },
           dragRotate: false,
@@ -255,7 +255,6 @@ export function MapView(props: MapViewProps) {
     }
   }, [map])
 
-  const jump = (id: ViewId) => map?.fitBounds(VIEWS[id].bounds, { padding: fitPadding(), duration: 900 })
 
   return (
     <div className="relative h-full w-full">
@@ -272,8 +271,8 @@ export function MapView(props: MapViewProps) {
         <MapControls
           onZoomIn={() => map.zoomIn()}
           onZoomOut={() => map.zoomOut()}
-          onReset={() => jump('us')}
-          onJump={jump}
+          onReset={() => map.fitBounds(VIEWS.us.bounds, { padding: fitPadding(), duration: 900 })}
+          onWorld={() => map.easeTo({ zoom: WORLD_ZOOM, duration: 900 })}
         />
       )}
     </div>
@@ -329,7 +328,7 @@ function bindInteractions(map: MapLibreMap, latest: { current: MapViewProps }) {
   for (const ev of ['touchend', 'touchcancel', 'touchmove', 'movestart'] as const) map.on(ev, cancel)
 }
 
-function MapControls(props: { onZoomIn: () => void; onZoomOut: () => void; onReset: () => void; onJump: (id: ViewId) => void }) {
+function MapControls(props: { onZoomIn: () => void; onZoomOut: () => void; onReset: () => void; onWorld: () => void }) {
   const btn =
     'grid min-h-11 min-w-11 place-items-center px-2 text-sm font-bold text-fg hover:bg-raised active:bg-raised disabled:opacity-40'
   return (
@@ -346,20 +345,11 @@ function MapControls(props: { onZoomIn: () => void; onZoomOut: () => void; onRes
         <button className={btn} onClick={props.onReset} aria-label="Reset to US" title="Reset to US">
           US
         </button>
+        <span className="h-px bg-line" />
+        <button className={btn} onClick={props.onWorld} aria-label="Show the whole globe" title="Whole globe">
+          <span aria-hidden className="text-lg leading-none">🌐</span>
+        </button>
       </div>
-      <nav
-        aria-label="Jump to"
-        className="absolute bottom-[calc(0.75rem+2.25rem)] left-3 flex overflow-hidden rounded-xl border border-line bg-surface shadow-md"
-      >
-        {QUICK_JUMPS.map((id, i) => (
-          <span key={id} className="flex">
-            {i > 0 && <span className="w-px bg-line" />}
-            <button className={btn} onClick={() => props.onJump(id)} aria-label={`Jump to ${VIEWS[id].label}`} title={VIEWS[id].label}>
-              {VIEWS[id].short}
-            </button>
-          </span>
-        ))}
-      </nav>
     </>
   )
 }

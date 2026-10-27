@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('the outline map loads with only bundled data, and quick-jumps work', async ({ page }) => {
+test('the outline map loads with only bundled data, and the globe and US buttons work', async ({ page }) => {
   const outside: string[] = []
   page.on('request', (r) => {
     const url = new URL(r.url())
@@ -13,7 +13,7 @@ test('the outline map loads with only bundled data, and quick-jumps work', async
   await expect(page.locator('[data-testid="map"] canvas')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Zoom in' })).toBeVisible()
 
-  await page.getByRole('button', { name: 'Jump to Alaska' }).click()
+  await page.getByRole('button', { name: 'Show the whole globe' }).click()
   await page.getByRole('button', { name: 'Reset to US' }).click()
   await page.getByRole('button', { name: 'Zoom in' }).click()
 
