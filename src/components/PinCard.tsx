@@ -93,24 +93,33 @@ export function PinCard({
           <p className="text-sm text-muted">{formatDateRange(trip.startDate, trip.endDate, trip.approximate)}</p>
           {route.length > 1 && (
             <ol aria-label="Route" className="mt-2 flex flex-wrap items-center gap-x-1 gap-y-1 text-sm">
-              {route.map((r, i) => (
-                <li key={r.place.id + i} className="flex items-center gap-1">
-                  {r.leg && (
-                    <span className="text-xs" title={legModeInfo(r.leg.mode).label}>
-                      <span aria-hidden>{legModeInfo(r.leg.mode).icon}</span>
-                      <span className="sr-only">{legModeInfo(r.leg.mode).label} to</span>
-                    </span>
-                  )}
-                  {r.role === 'home' ? (
-                    <HomeGlyph className="size-4" />
-                  ) : r.number === null ? (
-                    <PinGlyph park={!!r.place.parkId} className="size-4" />
-                  ) : (
-                    <span className="grid size-5 place-items-center rounded-full bg-[var(--route)] text-[0.7rem] font-bold text-[var(--route-text)]">{r.number}</span>
-                  )}
-                  <span className={r.role === 'main' ? 'font-bold' : ''}>{r.place.name}</span>
-                </li>
-              ))}
+              {route.map((r, i) =>
+                r.returning ? (
+                  // The way back through the same stops: one entry, not each stop again.
+                  !route[i - 1].returning && (
+                    <li key="return" className="text-xs text-muted">
+                      ↩ same way back
+                    </li>
+                  )
+                ) : (
+                  <li key={r.place.id + i} className="flex items-center gap-1">
+                    {r.leg && (
+                      <span className="text-xs" title={legModeInfo(r.leg.mode).label}>
+                        <span aria-hidden>{legModeInfo(r.leg.mode).icon}</span>
+                        <span className="sr-only">{legModeInfo(r.leg.mode).label} to</span>
+                      </span>
+                    )}
+                    {r.role === 'home' ? (
+                      <HomeGlyph className="size-4" />
+                    ) : r.number === null ? (
+                      <PinGlyph park={!!r.place.parkId} className="size-4" />
+                    ) : (
+                      <span className="grid size-5 place-items-center rounded-full bg-[var(--route)] text-[0.7rem] font-bold text-[var(--route-text)]">{r.number}</span>
+                    )}
+                    <span className={r.role === 'main' ? 'font-bold' : ''}>{r.place.name}</span>
+                  </li>
+                ),
+              )}
             </ol>
           )}
           <div className="mt-3 flex items-center gap-1">

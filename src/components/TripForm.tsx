@@ -2,8 +2,7 @@ import { useMemo, useState } from 'react'
 import { describeRef, type ChosenPlace } from '../lib/chosenPlace.ts'
 import { comparePartialDates, formatDateRange, todayIso, yearOf } from '../lib/partialDate.ts'
 import { addPerson, saveTrip, type PlaceInput, type TripInput } from '../lib/travelActions.ts'
-import { distanceMeters } from '../lib/geo.ts'
-import { endOfHome, FLIGHT_GUESS_M, legMemory, makeLeg, type LegEnd } from '../lib/legs.ts'
+import { endOfHome, homeLeg, legMemory, makeLeg, returnLegs, type Leg, type LegEnd } from '../lib/legs.ts'
 import { FAMILY_GROUP_ID, type LegMode, type LngLat, type PartialDate, type TravelData, type Trip, type TripHike } from '../lib/types.ts'
 import { newId, useStore, useTravelState } from '../store/useTravel.ts'
 import { DateRangeField } from './DateRangeField.tsx'
@@ -11,7 +10,7 @@ import { HikesField } from './HikesField.tsx'
 import { PeoplePicker } from './PeoplePicker.tsx'
 import { ParkSuggestion, PinGlyph, PlacePicker } from './PlacePicker.tsx'
 import { Sheet } from './Sheet.tsx'
-import { HomeGlyph, LegRow } from './LegRow.tsx'
+import { HomeGlyph, LegRow, ReturnRow } from './LegRow.tsx'
 import { useToast } from './toastContext.ts'
 
 interface DestinationDraft {
@@ -113,9 +112,8 @@ export function TripForm({
     return []
   })
   const [step, setStep] = useState<Step>(0)
-  // On a new trip, travel from home is on while the first destination is within driving distance,
-  // until you switch it yourself.
-  const [homeLegsChoice, setHomeLegsChoice] = useState<Trip['homeLegs'] | undefined>(trip ? trip.homeLegs : undefined)
+  const [fromHome, setFromHome] = useState(trip?.fromHome ?? false)
+  const [returnSameWay, setReturnSameWay] = useState(trip?.returnSameWay ?? false)
   const [companions, setCompanions] = useState<string[]>(trip?.companions ?? [])
   const [companionGroupIds, setCompanionGroupIds] = useState<string[]>(trip?.companionGroupIds ?? [])
   const [description, setDescription] = useState(trip?.description ?? '')
@@ -135,12 +133,13 @@ export function TripForm({
     const [from, to] = [ends[i - 1], ends[i]]
     return from && to ? makeLeg(from, to, destinations[i].via, destinations[i].legMode, memory) : null
   }
+  // Coming back the same way needs somewhere to come back through.
+  const comesBack = returnSameWay && destinations.length > 1
+  const backThrough = comesBack ? returnLegs(destinations.slice(1).flatMap((_, k) => legBefore(k + 1) ?? [])) : []
   const first = ends[0]
-  const last = ends.at(-1)
-  const homeLegs: Trip['homeLegs'] =
-    homeLegsChoice !== undefined ? homeLegsChoice : home && first && distanceMeters(home, first) <= FLIGHT_GUESS_M ? { to: null, back: null } : null
-  const homeLeg = (dir: 'to' | 'back') =>
-    home && homeLegs && first && last ? (dir === 'to' ? makeLeg(home, first, [], homeLegs.to, memory) : makeLeg(last, home, [], homeLegs.back, memory)) : null
+  const end = comesBack ? first : ends.at(-1)
+  const toLeg: Leg | null = home && fromHome && first ? homeLeg(home, first) : null
+  const backLeg: Leg | null = home && fromHome && end ? homeLeg(end, home) : null
   // National parks on this trip: their hikes can be checked off.
   const parkIds = [...new Set(destinations.map((d) => d.place.parkId).filter((id): id is string => !!id))]
 
@@ -244,7 +243,8 @@ export function TripForm({
       })),
       companions,
       companionGroupIds,
-      homeLegs,
+      fromHome,
+      returnSameWay: comesBack,
       description,
       highlights,
       rating,
@@ -266,9 +266,6 @@ export function TripForm({
   // Editing saves from any step; a new trip once it has somewhere to go. Notes are optional.
   const canSave = !!trip || step > 0 || destinations.length > 0
   let stopNumber = 0
-  const toLeg = homeLeg('to')
-  const backLeg = homeLeg('back')
-  const setHomeMode = (dir: 'to' | 'back', mode: LegMode | null) => setHomeLegsChoice({ ...(homeLegs ?? { to: null, back: null }), [dir]: mode })
 
   return (
     <Sheet
@@ -374,21 +371,16 @@ export function TripForm({
           <section aria-label="Where you went">
             <h3 className="text-sm font-bold">Where you went</h3>
             <p className="mb-2 text-xs text-muted">
-              In order. Tap a pin to make that place a main destination; each main destination gets a pin on the map. Between two places, tap how you went to
+              In order. Choose <b>Main</b> for each place that gets a pin on the map; the rest are stops along the way. Between two places, tap how you went to
               change it, and shape a drive to follow the road.
             </p>
             {home ? (
               <label className="mb-2 flex min-h-11 items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={!!homeLegs}
-                  onChange={(e) => setHomeLegsChoice(e.target.checked ? { to: null, back: null } : null)}
-                  className="size-4"
-                />
-                Show travel from and back to home ({home.name})
+                <input type="checkbox" checked={fromHome} onChange={(e) => setFromHome(e.target.checked)} className="size-4" />
+                Drove from home ({home.name}) and back
               </label>
             ) : (
-              <p className="mb-2 text-xs text-muted">Set your home in Settings to show travel from and back to home.</p>
+              <p className="mb-2 text-xs text-muted">For a road trip from home, set your home in Settings.</p>
             )}
             {toLeg && (
               <div aria-label="From home">
@@ -396,7 +388,7 @@ export function TripForm({
                   <HomeGlyph className="size-6" />
                   <span className="font-bold">Home</span>
                 </div>
-                <LegRow leg={toLeg} onPick={(mode) => setHomeMode('to', mode)} />
+                <LegRow leg={toLeg} />
               </div>
             )}
             {destinations.length > 0 && (
@@ -441,7 +433,7 @@ export function TripForm({
                                   : 'Stop: tap to make it a main destination'
                             }
                             onClick={() => patch(d.key, { isMain: !d.isMain })}
-                            className="grid size-10 shrink-0 place-items-center rounded-md hover:bg-raised disabled:cursor-default disabled:hover:bg-transparent"
+                            className={`flex h-10 shrink-0 items-center gap-1 rounded-full border py-1 pr-2.5 pl-1 text-xs font-bold disabled:cursor-default ${d.isMain ? 'border-primary/50 bg-primary/10 text-fg' : 'border-line text-muted hover:bg-raised hover:text-fg'}`}
                           >
                             {d.isMain ? (
                               <PinGlyph park={d.place.isPark} className="size-6" />
@@ -450,6 +442,7 @@ export function TripForm({
                                 {number}
                               </span>
                             )}
+                            <span aria-hidden>{d.isMain ? 'Main' : 'Stop'}</span>
                           </button>
                           <button
                             type="button"
@@ -531,9 +524,16 @@ export function TripForm({
                 })}
               </ol>
             )}
+            {destinations.length > 1 && (
+              <label className="flex min-h-11 items-center gap-2 text-sm">
+                <input type="checkbox" checked={returnSameWay} onChange={(e) => setReturnSameWay(e.target.checked)} className="size-4" />
+                Came back the same way
+              </label>
+            )}
+            {comesBack && <ReturnRow legs={backThrough} />}
             {backLeg && (
               <div aria-label="Back home">
-                <LegRow leg={backLeg} onPick={(mode) => setHomeMode('back', mode)} />
+                <LegRow leg={backLeg} />
                 <div className="mb-2 flex min-h-11 items-center gap-2 pl-2">
                   <HomeGlyph className="size-6" />
                   <span className="font-bold">Home</span>

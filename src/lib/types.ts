@@ -68,11 +68,10 @@ export interface Trip extends Synced {
   /** Groups that went, as a tag ("Friends"), without listing each person. */
   companionGroupIds: string[]
   hikes: TripHike[]
-  /**
-   * Travel from home to the first destination and back from the last, shown on the map and counted
-   * as legs. Null: not shown. A null mode is guessed.
-   */
-  homeLegs: { to: LegMode | null; back: LegMode | null } | null
+  /** You drove from home and back (Settings → Home): drives at both ends, always drawn on the map. */
+  fromHome: boolean
+  /** You came back through the same stops in reverse, the same way you went. */
+  returnSameWay: boolean
   description: string
   highlights: string
   rating: number | null

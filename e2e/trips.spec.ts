@@ -298,3 +298,45 @@ test('legs between stops: guessed from distance, changed with a tap, and filtera
   await filterBy(/Flight/)
   await expect(row).toHaveCount(1)
 })
+
+test('a road trip from home that comes back the same way, with two main pins', async ({ page }) => {
+  await page.goto('./')
+  await page.getByRole('button', { name: 'Settings' }).click()
+  const settings = page.getByRole('dialog', { name: 'Settings' })
+  await settings.getByRole('combobox', { name: 'Set home' }).fill('Pasadena')
+  await settings.getByRole('option', { name: /^Pasadena\s*CA$/ }).first().click()
+  await expect(settings).toContainText('Trips can start and end at Pasadena')
+  await page.keyboard.press('Escape')
+
+  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
+  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await toStep(dialog, 'Route')
+  await choosePlace(page, DEST, 'Las Vegas', /^Las Vegas\s*NV$/)
+  await choosePlace(page, DEST, 'zion', /Zion National Park/)
+
+  // Each place says whether it's a main pin or a stop; tap to change.
+  const zion = dialog.getByRole('button', { name: 'Make Zion National Park a main destination' })
+  await expect(zion).toHaveText(/Stop/)
+  await zion.click()
+  await expect(dialog.getByRole('button', { name: 'Zion National Park is a main destination' })).toHaveText(/Main/)
+
+  await dialog.getByRole('checkbox', { name: 'Drove from home (Pasadena) and back' }).check()
+  await expect(dialog.getByLabel(/^Drive from Pasadena to Las Vegas/)).toBeVisible()
+  await dialog.getByRole('checkbox', { name: 'Came back the same way' }).check()
+  await expect(dialog).toContainText('Back the same way')
+  // Home is reached from the first stop, along the way back.
+  await expect(dialog.getByLabel(/^Drive from Las Vegas to Pasadena/)).toBeVisible()
+  await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+  await expect(dialog).toBeHidden()
+
+  const route = page.getByRole('region', { name: 'Las Vegas trips' }).getByRole('list', { name: 'Route' })
+  await expect(route).toContainText('Pasadena')
+  await expect(route).toContainText('same way back')
+
+  // Every leg a drive, home included: a road trip.
+  await page.goto('./#/trips')
+  await page.getByRole('button', { name: /^Filter/ }).first().click()
+  await page.getByRole('dialog', { name: /Filter/ }).getByRole('button', { name: /Road trip/ }).click()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('button', { name: /Las Vegas & Zion/ })).toHaveCount(1)
+})

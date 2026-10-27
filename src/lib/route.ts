@@ -14,14 +14,17 @@ export interface RoutePoint {
   marker?: string
   /** How you got here from the previous point; null for the first. */
   leg: Leg | null
+  /** A stop passed again on the way back the same way (already shown, so no second marker). */
+  returning?: boolean
 }
 
 /** Home as a route point's place (it isn't one of your places, so it never gets a pin). */
 const homePlace = (h: Home): Place => ({ ...h, city: null, countryCode: 'US', regionCode: null, parkId: null })
 
 /**
- * A trip's route: its destinations in the order you entered them, from and back to home when the
- * trip shows that. Empty when there's nowhere to go between (a single place).
+ * A trip's route: its destinations in the order you entered them, back through them when you came
+ * back the same way, and from and back to home when you drove from home. Empty when there's
+ * nowhere to go between (a single place).
  */
 export function routeOf(trip: Trip, places: Place[], opts: { home?: Home | null; memory?: LegMemory } = {}): RoutePoint[] {
   const home = opts.home && !opts.home.deleted ? opts.home : null
@@ -33,8 +36,11 @@ export function routeOf(trip: Trip, places: Place[], opts: { home?: Home | null;
     const place = byId.get(d.placeId)
     return place ? [{ place, role: d.isMain ? ('main' as const) : ('stop' as const), number: d.isMain ? null : ++n, via: d.via }] : []
   })
-  const atHome: Omit<RoutePoint, 'leg'>[] = home && trip.homeLegs ? [{ place: homePlace(home), role: 'home', number: null, via: [] }] : []
-  return [...atHome, ...stops, ...atHome].map((p, i) => ({ ...p, via: i === 0 ? [] : p.via, leg: i === 0 ? null : legs[i - 1] }))
+  const atHome: Omit<RoutePoint, 'leg'>[] = home && trip.fromHome && stops.length ? [{ place: homePlace(home), role: 'home', number: null, via: [] }] : []
+  // On the way back, each stop is reached along the reversed leg that left it.
+  const back: Omit<RoutePoint, 'leg'>[] =
+    trip.returnSameWay && stops.length > 1 ? stops.slice(0, -1).reverse().map((p) => ({ ...p, returning: true })) : []
+  return [...atHome, ...stops, ...back, ...atHome].map((p, i) => ({ ...p, via: i === 0 ? [] : legs[i - 1].via, leg: i === 0 ? null : legs[i - 1] }))
 }
 
 /** The line through a route: each point, after the bends on the way to it. */

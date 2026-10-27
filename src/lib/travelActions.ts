@@ -125,8 +125,10 @@ export interface TripInput {
   companions: string[]
   /** Groups tagged on the trip as a whole ("Friends"). */
   companionGroupIds?: string[]
-  /** Travel from and back to home (see Trip.homeLegs). */
-  homeLegs?: Trip['homeLegs']
+  /** Drove from home and back (see Trip.fromHome). */
+  fromHome?: boolean
+  /** Came back the same way (see Trip.returnSameWay). */
+  returnSameWay?: boolean
   description: string
   highlights: string
   rating: number | null
@@ -165,7 +167,9 @@ export function saveTrip(data: TravelData, ctx: EditContext, input: TripInput, t
     destinations,
     companions: [...new Set(input.companions)],
     companionGroupIds: [...new Set(input.companionGroupIds ?? [])],
-    homeLegs: input.homeLegs ?? null,
+    fromHome: input.fromHome ?? false,
+    // Only meaningful with two or more places to go back through.
+    returnSameWay: !!input.returnSameWay && destinations.length > 1,
     description: input.description.trim(),
     highlights: input.highlights.trim(),
     rating: input.rating,

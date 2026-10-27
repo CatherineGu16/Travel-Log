@@ -149,15 +149,12 @@ export function parseTravelData(input: unknown): TravelData {
     if (!destinations?.length) return null
     if (!destinations.some((d) => d.isMain)) destinations[0].isMain = true
     destinations[0].legMode = null
-    const legMode = (v: unknown): LegMode | null => (isLegMode(v) ? v : null)
-    let homeLegs: Trip['homeLegs'] = isObject(x.homeLegs) ? { to: legMode(x.homeLegs.to), back: legMode(x.homeLegs.back) } : null
-    // Trips saved with one "how you traveled" for the whole trip: carried over onto the legs.
+    // Trips saved with one "how you traveled" for the whole trip: carried over onto the legs, and a
+    // road trip was driven from home. So were trips saved with drives to and from home.
     const pick = (mode: LegMode) => destinations.forEach((d, i) => i > 0 && !d.legMode && (d.legMode = mode))
-    if (x.travelMode === 'road-trip') {
-      pick('drive')
-      homeLegs = { to: 'drive', back: 'drive' }
-    } else if (x.travelMode === 'cruise') pick('cruise')
-    else if (x.travelMode === 'flight') homeLegs = { to: 'flight', back: 'flight' }
+    if (x.travelMode === 'road-trip') pick('drive')
+    else if (x.travelMode === 'cruise') pick('cruise')
+    const droveHome = isObject(x.homeLegs) && [x.homeLegs.to, x.homeLegs.back].every((m) => m == null || m === 'drive')
     return {
       ...base,
       title: str(x.title, 'Trip'),
@@ -177,7 +174,8 @@ export function parseTravelData(input: unknown): TravelData {
       hikes: (Array.isArray(x.hikes) ? x.hikes : [])
         .filter((h): h is Record<string, unknown> => isObject(h) && typeof h.parkId === 'string' && typeof h.name === 'string')
         .map((h) => ({ parkId: h.parkId as string, hikeId: typeof h.hikeId === 'string' ? h.hikeId : null, name: h.name as string, date: dateOrNull(h.date) })),
-      homeLegs,
+      fromHome: x.fromHome === true || x.travelMode === 'road-trip' || droveHome,
+      returnSameWay: x.returnSameWay === true && destinations.length > 1,
       description: str(x.description),
       highlights: str(x.highlights),
       rating: typeof x.rating === 'number' && x.rating >= 1 && x.rating <= 5 ? Math.round(x.rating) : null,

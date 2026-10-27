@@ -79,7 +79,7 @@ describe('trips saved before destinations', () => {
       ['springdale', false, null, ''],
       ['zion', true, null, ''],
     ])
-    expect(parsed.trips[0].homeLegs).toBeNull()
+    expect(parsed.trips[0]).toMatchObject({ fromHome: false, returnSameWay: false })
     expect(parsed.trips[0].destinations.map((d) => d.legMode)).toEqual([null, null, null])
     expect(parsed.trips[0].companionGroupIds).toEqual([])
   })

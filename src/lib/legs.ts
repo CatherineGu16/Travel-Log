@@ -18,7 +18,7 @@ export const legModeInfo = (mode: LegMode) => LEG_MODES.find((m) => m.id === mod
 /** Farther than this in a straight line, a leg is guessed to be a flight; closer, a drive. */
 export const FLIGHT_GUESS_M = 250 * 1609.344
 
-/** The place id that stands for home in legs and in the remembered modes. Real ids never clash. */
+/** The place id that stands for home in legs. Real ids never clash. */
 export const HOME_ID = 'home'
 
 export interface LegEnd {
@@ -39,6 +39,8 @@ export interface Leg {
   guessed: boolean
   /** Straight-line distance through the bends. */
   distanceM: number
+  /** Between two stops; from or back to home; or retracing an earlier leg on the way back. */
+  role: 'stop' | 'home' | 'return'
 }
 
 /** Modes you've picked, by the two places (either direction). The most recently edited trip wins. */
@@ -58,10 +60,6 @@ export function legMemory(data: TravelData): LegMemory {
     t.destinations.forEach((d, i) => {
       if (i > 0 && d.legMode) out.set(pairKey(t.destinations[i - 1].placeId, d.placeId), d.legMode)
     })
-    const first = t.destinations[0]?.placeId
-    const last = t.destinations.at(-1)?.placeId
-    if (first && t.homeLegs?.to) out.set(pairKey(HOME_ID, first), t.homeLegs.to)
-    if (last && t.homeLegs?.back) out.set(pairKey(HOME_ID, last), t.homeLegs.back)
   }
   memoryCache.set(data, out)
   return out
@@ -75,15 +73,23 @@ export function guessMode(from: LegEnd, to: LegEnd, memory?: LegMemory): LegMode
 export function makeLeg(from: LegEnd, to: LegEnd, via: LngLat[], picked: LegMode | null, memory?: LegMemory): Leg {
   const points = [from, ...via.map(([lng, lat]) => ({ lng, lat })), to]
   const distanceM = points.slice(1).reduce((sum, p, i) => sum + distanceMeters(points[i], p), 0)
-  return { from, to, via, mode: picked ?? guessMode(from, to, memory), guessed: !picked, distanceM }
+  return { from, to, via, mode: picked ?? guessMode(from, to, memory), guessed: !picked, distanceM, role: 'stop' }
 }
+
+/** The way from or back to home: always a drive (home legs only exist when you drove). */
+export const homeLeg = (from: LegEnd, to: LegEnd): Leg => ({ ...makeLeg(from, to, [], 'drive'), role: 'home' })
+
+/** The legs back through the same stops: each outbound leg reversed, same bends and mode. */
+export const returnLegs = (legs: Leg[]): Leg[] =>
+  [...legs].reverse().map((l) => ({ ...l, from: l.to, to: l.from, via: [...l.via].reverse(), role: 'return' as const }))
 
 export const endOfPlace = (p: Pick<Place, 'id' | 'name' | 'lat' | 'lng'>): LegEnd => ({ id: p.id, name: p.name, lat: p.lat, lng: p.lng })
 export const endOfHome = (h: Home): LegEnd => ({ id: HOME_ID, name: h.name, lat: h.lat, lng: h.lng })
 
 /**
- * Every leg of a trip in order: from home (when shown), between each pair of destinations, and back
- * home. Destinations whose place is missing are skipped.
+ * Every leg of a trip in order: from home (when you drove from home), between each pair of
+ * destinations, back through them the same way (when you did), and back home. Destinations whose
+ * place is missing are skipped.
  */
 export function legsOf(trip: Trip, data: Pick<TravelData, 'places' | 'home'>, memory?: LegMemory): Leg[] {
   const byId = new Map(data.places.map((p) => [p.id, p]))
@@ -91,13 +97,13 @@ export function legsOf(trip: Trip, data: Pick<TravelData, 'places' | 'home'>, me
     const p = byId.get(d.placeId)
     return p ? [{ end: endOfPlace(p), d }] : []
   })
-  const legs = stops.slice(1).map(({ end, d }, i) => makeLeg(stops[i].end, end, d.via, d.legMode, memory))
+  const out = stops.slice(1).map(({ end, d }, i) => makeLeg(stops[i].end, end, d.via, d.legMode, memory))
+  const legs = trip.returnSameWay ? [...out, ...returnLegs(out)] : out
   const home = data.home && !data.home.deleted ? endOfHome(data.home) : null
-  if (home && trip.homeLegs && stops.length) {
-    legs.unshift(makeLeg(home, stops[0].end, [], trip.homeLegs.to, memory))
-    legs.push(makeLeg(stops.at(-1)!.end, home, [], trip.homeLegs.back, memory))
-  }
-  return legs
+  if (!home || !trip.fromHome || !stops.length) return legs
+  // Back home from wherever the trip ended: the first stop when you came back the same way.
+  const end = legs.at(-1)?.to ?? stops[0].end
+  return [homeLeg(home, stops[0].end), ...legs, homeLeg(end, home)]
 }
 
 /** A trip that's all drives is a road trip; a cruise anywhere makes it a cruise. Never stored. */

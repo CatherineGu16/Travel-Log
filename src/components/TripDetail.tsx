@@ -6,7 +6,7 @@ import { Avatar } from './Avatar.tsx'
 import { GroupIcon } from './PeoplePicker.tsx'
 import { PinGlyph } from './PlacePicker.tsx'
 import { Sheet } from './Sheet.tsx'
-import { HomeGlyph, LegRow } from './LegRow.tsx'
+import { HomeGlyph, LegRow, ReturnRow } from './LegRow.tsx'
 
 /**
  * Everything about one trip: dates, who went, the route stop by stop (each with its own dates,
@@ -34,8 +34,8 @@ export function TripDetail({
   })
   const legs = legsOf(trip, data, legMemory(data))
   const kind = tripKind(legs)
-  const showHome = !!(data.home && !data.home.deleted && trip.homeLegs && stops.length)
-  // The leg arriving at each stop (home's leg comes first when shown).
+  const showHome = legs[0]?.role === 'home'
+  // The leg arriving at each stop (the way from home comes first when you drove from home).
   const legTo = (i: number) => (i === 0 ? (showHome ? legs[0] : null) : legs[i - 1 + Number(showHome)])
   const people = trip.companions.map((id) => data.people.find((p) => p.id === id)).filter((p) => p !== undefined)
 
@@ -135,6 +135,11 @@ export function TripDetail({
                 </li>
               )
             })}
+            {trip.returnSameWay && (
+              <li>
+                <ReturnRow legs={legs.filter((l) => l.role === 'return')} />
+              </li>
+            )}
             {showHome && (
               <li>
                 <LegRow leg={legs.at(-1)!} />
