@@ -170,8 +170,6 @@ export function outlineStyle(data: OutlineData, palette: MapPalette, glyphsUrl: 
   return {
     version: 8,
     glyphs: glyphsUrl,
-    // A globe when zoomed out, easing into a flat map as you zoom in on a region.
-    projection: { type: ['interpolate', ['linear'], ['zoom'], 3, 'vertical-perspective', 4.5, 'mercator'] },
     sources: {
       countries: { type: 'geojson', data: data.countries, attribution: 'Natural Earth' },
       // promoteId lets each state carry its trip count as feature-state, keyed by "US-CA".

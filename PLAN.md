@@ -481,7 +481,7 @@ What gets added:
 | States / provinces | `us-states.json` | Natural Earth regions for every country, **split into one small file per country** (`regions/{CC}.json`). Loaded when you zoom into that country, then cached for offline |
 | City labels, lakes, coastlines | US places + US lakes | Natural Earth populated places (~7,000 cities) and world lakes/coastlines, all small |
 | Offline place search | Census Gazetteer (US) | GeoNames (CC BY 4.0, needs a "data from GeoNames" credit in About): cities over 15,000 people bundled (~1 MB compressed); smaller towns **split per country** and loaded on demand |
-| Zoomed-out view | Flat map | MapLibre **globe projection** when zoomed out, flat when zoomed in |
+| Zoomed-out view | **Flat map or globe** (a 🌐 toggle, remembered per device; done early). The globe zooms out to fill 75% of the screen against a starry sky | Same |
 | Long routes | Short US hops | Dashed lines follow the great-circle path and cross the date line the short way (LA → Tokyo goes over the Pacific) |
 | Stats | States n/50, parks n/64 | Adds **countries n/195** and regions visited per country, with visited countries shaded |
 | Checklists | US national parks | Unchanged. Other lists (e.g. UNESCO World Heritage Sites) could be added as separate checklists |

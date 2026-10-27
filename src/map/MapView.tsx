@@ -11,7 +11,8 @@ import { loadOutlineData } from './mapData.ts'
 import { outlineStyle, PALETTES, themedPaint } from './outlineStyle.ts'
 import { hideDetailed, showDetailed } from './detailedTiles.ts'
 import { setParkImages, setPinImages } from './pinImages.ts'
-import { VIEWS, WORLD_ZOOM } from './views.ts'
+import { usePersistentState } from '../ui/usePersistentState.ts'
+import { FLAT_MIN_ZOOM, globeZoom, VIEWS, type MapProjection } from './views.ts'
 
 // MapLibre 6 runs its tile/geometry work in a separate worker file, served from the app's own assets.
 setWorkerUrl(workerUrl)
@@ -71,6 +72,9 @@ export function MapView(props: MapViewProps) {
   useEffect(() => {
     latest.current = props
   })
+  // Flat map or globe; the map reads the one in place from the ref.
+  const [projection, setMapProjection] = usePersistentState<MapProjection>('travel.mapProjection', 'flat', (v) => (v === 'globe' ? 'globe' : 'flat'))
+  const shownProjection = useRef(projection)
 
   useEffect(() => {
     let cancelled = false
@@ -81,15 +85,24 @@ export function MapView(props: MapViewProps) {
         const palette = PALETTES[resolvedTheme()]
         const created = new MapLibreMap({
           container: container.current,
-          style: outlineStyle(data, palette, glyphsUrl()),
+          style: { ...outlineStyle(data, palette, glyphsUrl()), projection: { type: projectionType(shownProjection.current) } },
           bounds: VIEWS.us.bounds,
           fitBoundsOptions: { padding: fitPadding() },
-          minZoom: WORLD_ZOOM,
           maxZoom: 14,
           attributionControl: { compact: true, customAttribution: 'National Park Service' },
           dragRotate: false,
           pitchWithRotate: false,
           touchPitch: false,
+        })
+        const limitZoom = () => created.setMinZoom(minZoomFor(created, shownProjection.current))
+        limitZoom()
+        created.on('move', limitZoom)
+        created.on('resize', limitZoom)
+        // Wheel zooming on the globe can overshoot the limit; ease back when it settles.
+        created.on('moveend', () => {
+          if (shownProjection.current !== 'globe') return
+          const min = worldZoom(created)
+          if (created.getZoom() < min - 0.01) created.easeTo({ zoom: min, duration: 300 })
         })
         created.touchZoomRotate.disableRotation()
         created.keyboard.disableRotation()
@@ -108,6 +121,17 @@ export function MapView(props: MapViewProps) {
       instance?.remove()
     }
   }, [])
+
+  // Switching between the flat map and the globe. Turning the globe on zooms out to see all of it;
+  // back to flat, the view stays unless it was zoomed out past the flat map's limit.
+  useEffect(() => {
+    if (!map || shownProjection.current === projection) return
+    shownProjection.current = projection
+    map.setProjection({ type: projectionType(projection) })
+    map.setMinZoom(minZoomFor(map, projection))
+    if (projection === 'globe') map.easeTo({ zoom: worldZoom(map), duration: 900 })
+    else if (map.getZoom() <= FLAT_MIN_ZOOM) map.fitBounds(VIEWS.us.bounds, { padding: fitPadding(), duration: 900 })
+  }, [map, projection])
 
   // Pins: one per major location.
   const { pins, selectedPlaceId } = props
@@ -267,7 +291,7 @@ export function MapView(props: MapViewProps) {
     <div className="relative h-full w-full">
       {/* MapLibre's stylesheet makes its container position: relative, so it fills an absolute wrapper. */}
       <div className="absolute inset-0">
-        <div ref={container} className="h-full w-full" data-testid="map" aria-label="Map of your travels" role="region" />
+        <div ref={container} className="map-space h-full w-full" data-testid="map" aria-label="Map of your travels" role="region" />
       </div>
       {failed && (
         <p className="absolute inset-x-4 top-24 rounded-lg bg-surface p-4 text-center text-danger shadow">
@@ -279,11 +303,29 @@ export function MapView(props: MapViewProps) {
           onZoomIn={() => map.zoomIn()}
           onZoomOut={() => map.zoomOut()}
           onReset={() => map.fitBounds(VIEWS.us.bounds, { padding: fitPadding(), duration: 900 })}
-          onWorld={() => map.easeTo({ zoom: WORLD_ZOOM, duration: 900 })}
+          globe={projection === 'globe'}
+          onToggleGlobe={() => setMapProjection(projection === 'globe' ? 'flat' : 'globe')}
         />
       )}
     </div>
   )
+}
+
+/** MapLibre's globe flattens on its own when zoomed in close, so street detail still looks right. */
+const projectionType = (p: MapProjection) => (p === 'globe' ? 'globe' : 'mercator')
+
+/** Zoomed all the way out, the globe fills 75% of the screen; the flat map stops at FLAT_MIN_ZOOM. */
+const minZoomFor = (map: MapLibreMap, p: MapProjection) => (p === 'globe' ? worldZoom(map) : FLAT_MIN_ZOOM)
+
+/**
+ * The zoom that shows the whole globe at 75% of the map's shorter side. The globe's size at a
+ * given zoom depends on the latitude in view, so this follows the map as it moves.
+ */
+const worldZoom = (map: MapLibreMap) => {
+  const { clientWidth, clientHeight } = map.getContainer()
+  const zoom = globeZoom(clientWidth, clientHeight, map.getCenter().lat, map.getVerticalFieldOfView())
+  // Before the map has a size there's nothing to fit.
+  return Number.isFinite(zoom) ? Math.min(Math.max(zoom, -2), map.getMaxZoom()) : 0
 }
 
 /** How a leg is drawn: a flight as a dashed arc, "not sure" (or a leg being shaped) dotted, the rest solid. */
@@ -345,7 +387,7 @@ function bindInteractions(map: MapLibreMap, latest: { current: MapViewProps }) {
   for (const ev of ['touchend', 'touchcancel', 'touchmove', 'movestart'] as const) map.on(ev, cancel)
 }
 
-function MapControls(props: { onZoomIn: () => void; onZoomOut: () => void; onReset: () => void; onWorld: () => void }) {
+function MapControls(props: { onZoomIn: () => void; onZoomOut: () => void; onReset: () => void; globe: boolean; onToggleGlobe: () => void }) {
   const btn =
     'grid min-h-11 min-w-11 place-items-center px-2 text-sm font-bold text-fg hover:bg-raised active:bg-raised disabled:opacity-40'
   return (
@@ -363,8 +405,16 @@ function MapControls(props: { onZoomIn: () => void; onZoomOut: () => void; onRes
           US
         </button>
         <span className="h-px bg-line" />
-        <button className={btn} onClick={props.onWorld} aria-label="Show the whole globe" title="Whole globe">
-          <span aria-hidden className="text-lg leading-none">🌐</span>
+        <button
+          className={`${btn} ${props.globe ? 'bg-raised' : ''}`}
+          onClick={props.onToggleGlobe}
+          aria-label="Globe view"
+          aria-pressed={props.globe}
+          title={props.globe ? 'Globe view: on (tap for the flat map)' : 'Globe view: off (tap to see the globe)'}
+        >
+          <span aria-hidden className={`text-lg leading-none ${props.globe ? '' : 'opacity-60 grayscale'}`}>
+            🌐
+          </span>
         </button>
       </div>
     </>

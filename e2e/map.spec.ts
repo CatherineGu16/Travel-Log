@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('the outline map loads with only bundled data, and the globe and US buttons work', async ({ page }) => {
+test('the outline map loads with only bundled data, and the globe toggle and US button work', async ({ page }) => {
   const outside: string[] = []
   page.on('request', (r) => {
     const url = new URL(r.url())
@@ -13,7 +13,15 @@ test('the outline map loads with only bundled data, and the globe and US buttons
   await expect(page.locator('[data-testid="map"] canvas')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Zoom in' })).toBeVisible()
 
-  await page.getByRole('button', { name: 'Show the whole globe' }).click()
+  // The globe is a toggle, remembered on this device.
+  const globe = page.getByRole('button', { name: 'Globe view' })
+  await expect(globe).toHaveAttribute('aria-pressed', 'false')
+  await globe.click()
+  await expect(globe).toHaveAttribute('aria-pressed', 'true')
+  await page.reload()
+  await expect(globe).toHaveAttribute('aria-pressed', 'true')
+  await globe.click()
+  await expect(globe).toHaveAttribute('aria-pressed', 'false')
   await page.getByRole('button', { name: 'Reset to US' }).click()
   await page.getByRole('button', { name: 'Zoom in' }).click()
 
