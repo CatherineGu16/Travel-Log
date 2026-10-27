@@ -19,6 +19,7 @@ import { mainPlaceIds, parksVisited, pinsOf, statesVisited, tripsPerRegion } fro
 import { filterData, NO_FILTER, reviveFilter, type TripFilter } from './lib/filters.ts'
 import { placeAt } from './lib/gazetteer.ts'
 import { parkInput, type ParkInfo } from './lib/placeSearch.ts'
+import { legMemory } from './lib/legs.ts'
 import { addBend, routeOf, type RoutePoint } from './lib/route.ts'
 import { live, type PlaceInput } from './lib/travelActions.ts'
 import { todayIso, yearOf } from './lib/partialDate.ts'
@@ -95,14 +96,14 @@ function Shell() {
   const selectedPin = pins.find((p) => p.place.id === selectedPlaceId) ?? null
   // The visit shown on the pin card: the one you picked, else the newest.
   const selectedTrip = selectedPin ? (selectedPin.trips.find((t) => t.id === selectedTripId) ?? selectedPin.trips[0]) : null
-  const tripRoute = useMemo(() => (selectedTrip ? routeOf(selectedTrip, data.places) : []), [selectedTrip, data.places])
+  const tripRoute = useMemo(() => (selectedTrip ? routeOf(selectedTrip, data.places, { home: data.home, memory: legMemory(data) }) : []), [selectedTrip, data])
   // While you shape a leg, the map shows just that leg, from A to B.
   const shapeRoute = useMemo<RoutePoint[]>(() => {
     if (!shape) return []
     const end = (e: RouteEnd, id: string) => ({ id, name: e.name, lat: e.lat, lng: e.lng }) as Place
     return [
-      { place: end(shape.from, 'shape-from'), role: 'stop', number: null, marker: 'A', via: [] },
-      { place: end(shape.to, 'shape-to'), role: 'stop', number: null, marker: 'B', via: shape.via },
+      { place: end(shape.from, 'shape-from'), role: 'stop', number: null, marker: 'A', via: [], leg: null },
+      { place: end(shape.to, 'shape-to'), role: 'stop', number: null, marker: 'B', via: shape.via, leg: null },
     ]
   }, [shape])
   const route = shape ? shapeRoute : tripRoute

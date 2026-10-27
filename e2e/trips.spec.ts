@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { dateRange, pickDays, setTripYear } from './helpers.ts'
+import { dateRange, pickDays, setTripYear, toStep } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -17,11 +17,13 @@ test('log a multi-stop family trip, see it on the map, and it survives a reload'
 
   await page.getByRole('button', { name: 'Add trip' }).click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await toStep(dialog, 'Route')
   await choosePlace(page, DEST, 'zion', /Zion National Park/)
   await choosePlace(page, DEST, 'Springdale, UT', /^Springdale\s*UT$/)
   await choosePlace(page, DEST, 'Las Vegas', /^Las Vegas\s*NV$/)
 
-  // A new person, added to the Family group on the spot.
+  // Who went is on the Details step. A new person, added to the Family group on the spot.
+  await toStep(dialog, 'Details')
   await dialog.getByRole('searchbox', { name: 'Add a person' }).fill('Mom')
   await dialog.getByRole('checkbox', { name: 'Family' }).check()
   await dialog.getByRole('button', { name: 'Add “Mom”' }).click()
@@ -50,7 +52,9 @@ test('a second trip to the same place stacks on its pin', async ({ page }) => {
   for (const year of ['2019', '2024']) {
     await page.getByRole('button', { name: 'Add trip' }).click()
     const dialog = page.getByRole('dialog', { name: 'Add trip' })
+    await toStep(dialog, 'Route')
     await choosePlace(page, DEST, 'moab', /^Moab/)
+    await toStep(dialog, 'Details')
     await setTripYear(dialog, year)
     await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
     await expect(dialog).toBeHidden()
@@ -70,8 +74,10 @@ test('picking a stacked date shows that trip’s route, and details show other v
   for (const [year, stops] of trips) {
     await page.getByRole('button', { name: 'Add trip' }).click()
     const dialog = page.getByRole('dialog', { name: 'Add trip' })
+    await toStep(dialog, 'Route')
     await choosePlace(page, DEST, 'moab', /^Moab/)
     for (const [q, o] of stops) await choosePlace(page, DEST, q, o)
+    await toStep(dialog, 'Details')
     await setTripYear(dialog, year)
     await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
     await expect(dialog).toBeHidden()
@@ -99,6 +105,7 @@ test('a trip with two main destinations, each with its own dates', async ({ page
   await page.goto('./')
   await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await toStep(dialog, 'Route')
   await choosePlace(page, DEST, 'zion', /Zion National Park/)
   await choosePlace(page, DEST, 'Las Vegas', /^Las Vegas\s*NV$/)
 
@@ -116,9 +123,8 @@ test('a trip with two main destinations, each with its own dates', async ({ page
     await row.getByRole('checkbox', { name: 'I know when I was here' }).check()
     await pickDays(row, `Dates at ${name}`, from, to)
   }
+  await toStep(dialog, 'Details')
   await expect(dateRange(dialog, 'Trip dates')).toContainText('May 1 – 6, 2024')
-
-  await dialog.getByRole('button', { name: /Road trip/ }).click()
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(dialog).toBeHidden()
 
@@ -129,7 +135,8 @@ test('a trip with two main destinations, each with its own dates', async ({ page
   await page.goto('./#/trips')
   const row = page.getByRole('button', { name: /Zion & Las Vegas 2024/ })
   await expect(row).toContainText('Zion National Park & Las Vegas')
-  await expect(row).toContainText('Road trip')
+  // A short hop is guessed as a drive, so it's a road trip, but rows don't say so: the filter does.
+  await expect(row).not.toContainText('Road trip')
 })
 
 test('trip dates are a range picker: tap the first day, then the last', async ({ page }) => {
@@ -156,7 +163,9 @@ test('Friends can be added as one tag, without listing anyone', async ({ page })
   await page.goto('./')
   await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await toStep(dialog, 'Route')
   await choosePlace(page, DEST, 'chicago', /^Chicago/)
+  await toStep(dialog, 'Details')
   await dialog.getByRole('group', { name: 'Add a group' }).getByRole('button', { name: '+ Friends' }).click()
   await expect(dialog.getByRole('list', { name: 'Who went' })).toContainText('Friends')
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
@@ -197,6 +206,7 @@ test('shaping the route between two places bends the dotted line through your ta
   await page.goto('./')
   await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await toStep(dialog, 'Route')
   await choosePlace(page, DEST, 'zion', /Zion National Park/)
   await choosePlace(page, DEST, 'Las Vegas', /^Las Vegas\s*NV$/)
   await expect(dialog.getByRole('button', { name: 'Pick on map' })).toHaveCount(0)
@@ -213,27 +223,26 @@ test('shaping the route between two places bends the dotted line through your ta
   await banner.getByRole('button', { name: 'Done' }).click()
 
   await expect(dialog).toBeVisible()
-  await expect(dialog.getByRole('button', { name: /^Shape the route from Zion/ })).toHaveText('Route bends once · Edit')
+  await expect(dialog.getByRole('button', { name: /^Shape the route from Zion/ })).toHaveText('Bends 1× · Edit')
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(dialog).toBeHidden()
 
   // Saved with the trip.
   await page.getByRole('region', { name: 'Zion National Park trips' }).getByRole('button', { name: /^Edit/ }).click()
   const edit = page.getByRole('dialog', { name: 'Edit trip' })
-  await expect(edit.getByRole('button', { name: /^Shape the route from Zion/ })).toHaveText('Route bends once · Edit')
+  await toStep(edit, 'Route')
+  await expect(edit.getByRole('button', { name: /^Shape the route from Zion/ })).toHaveText('Bends 1× · Edit')
   await edit.getByRole('button', { name: 'Straighten' }).click()
-  await expect(edit.getByRole('button', { name: /^Shape the route from Zion/ })).toHaveText('Shape the route on the map')
+  await expect(edit.getByRole('button', { name: /^Shape the route from Zion/ })).toHaveText('Shape on map')
 })
 
-test('notes, rating and tags open with a tap and show on the trip', async ({ page }) => {
+test('notes, rating and tags are their own step and show on the trip', async ({ page }) => {
   await page.goto('./')
   await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await toStep(dialog, 'Route')
   await choosePlace(page, DEST, 'zion', /Zion National Park/)
-  const notes = dialog.getByRole('button', { name: /^Notes, rating and tags/ })
-  await expect(notes).toHaveAttribute('aria-expanded', 'false')
-  await notes.click()
-  await expect(notes).toHaveAttribute('aria-expanded', 'true')
+  await dialog.getByRole('button', { name: 'Next: Notes' }).click()
   await dialog.getByRole('textbox', { name: 'Highlights' }).fill('Sunrise at Canyon Overlook')
   await dialog.getByRole('button', { name: '4 stars' }).click()
   await dialog.getByRole('textbox', { name: 'Tags' }).fill('camping, desert')
@@ -245,4 +254,47 @@ test('notes, rating and tags open with a tap and show on the trip', async ({ pag
   await expect(detail).toContainText('Sunrise at Canyon Overlook')
   await expect(detail).toContainText('camping')
   await expect(detail.getByLabel('4 out of 5 stars')).toBeVisible()
+})
+
+test('legs between stops: guessed from distance, changed with a tap, and filterable', async ({ page }) => {
+  await page.goto('./')
+  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
+  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  // Details first; Next moves on to the route.
+  await dialog.getByRole('button', { name: 'Next: Route' }).click()
+  await choosePlace(page, DEST, 'Los Angeles', /^Los Angeles\s*CA$/)
+  await choosePlace(page, DEST, 'Las Vegas', /^Las Vegas\s*NV$/)
+  await choosePlace(page, DEST, 'Seattle', /^Seattle\s*WA$/)
+
+  const drive = dialog.getByRole('button', { name: /^Drive \(guessed\) from Los Angeles to Las Vegas, \d+ mi/ })
+  await expect(drive).toBeVisible()
+  await expect(dialog.getByRole('button', { name: /^Flight \(guessed\) from Las Vegas to Seattle/ })).toBeVisible()
+  // Flights aren't shaped on the map; drives are.
+  await expect(dialog.getByRole('button', { name: /^Shape the route from Las Vegas to Seattle/ })).toHaveCount(0)
+  await expect(dialog.getByRole('button', { name: /^Shape the route from Los Angeles to Las Vegas/ })).toBeVisible()
+
+  await drive.click()
+  await dialog.getByRole('group', { name: 'How you got from Los Angeles to Las Vegas' }).getByRole('button', { name: 'Train' }).click()
+  await expect(dialog.getByRole('button', { name: /^Train from Los Angeles to Las Vegas/ })).toBeVisible()
+  await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+  await expect(dialog).toBeHidden()
+
+  // The pin card shows how you went between stops.
+  const route = page.getByRole('region', { name: 'Los Angeles trips' }).getByRole('list', { name: 'Route' })
+  await expect(route).toContainText('Train to')
+  await expect(route).toContainText('Flight to')
+
+  // No chip on the row; the Flight filter finds the trip, Road trip doesn't.
+  await page.goto('./#/trips')
+  const row = page.getByRole('button', { name: /Los Angeles/ })
+  await expect(row).not.toContainText('Flight')
+  const filterBy = async (mode: RegExp) => {
+    await page.getByRole('button', { name: /^Filter/ }).first().click()
+    await page.getByRole('dialog', { name: /Filter/ }).getByRole('button', { name: mode }).click()
+    await page.keyboard.press('Escape')
+  }
+  await filterBy(/Road trip/)
+  await expect(row).toHaveCount(0)
+  await filterBy(/Flight/)
+  await expect(row).toHaveCount(1)
 })

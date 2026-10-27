@@ -7,7 +7,8 @@ import { useStore } from '../store/useTravel.ts'
 import { WhoWent } from './WhoWent.tsx'
 import { PinGlyph } from './PlacePicker.tsx'
 import { useToast } from './toastContext.ts'
-import { TravelModeBadge } from './TravelMode.tsx'
+import { legModeInfo } from '../lib/legs.ts'
+import { HomeGlyph } from './LegRow.tsx'
 
 /**
  * The preview card for a selected pin. A place visited more than once shows its dates stacked;
@@ -88,21 +89,21 @@ export function PinCard({
         )}
 
         <div className="px-4 py-3">
-          <div className="flex items-baseline gap-2">
-            <h3 className="min-w-0 flex-1 truncate font-bold">{trip.title}</h3>
-              <TravelModeBadge mode={trip.travelMode} />
-          </div>
+          <h3 className="truncate font-bold">{trip.title}</h3>
           <p className="text-sm text-muted">{formatDateRange(trip.startDate, trip.endDate, trip.approximate)}</p>
           {route.length > 1 && (
             <ol aria-label="Route" className="mt-2 flex flex-wrap items-center gap-x-1 gap-y-1 text-sm">
               {route.map((r, i) => (
                 <li key={r.place.id + i} className="flex items-center gap-1">
-                  {i > 0 && (
-                    <span aria-hidden className="text-muted">
-                      ⋯
+                  {r.leg && (
+                    <span className="text-xs" title={legModeInfo(r.leg.mode).label}>
+                      <span aria-hidden>{legModeInfo(r.leg.mode).icon}</span>
+                      <span className="sr-only">{legModeInfo(r.leg.mode).label} to</span>
                     </span>
                   )}
-                  {r.number === null ? (
+                  {r.role === 'home' ? (
+                    <HomeGlyph className="size-4" />
+                  ) : r.number === null ? (
                     <PinGlyph park={!!r.place.parkId} className="size-4" />
                   ) : (
                     <span className="grid size-5 place-items-center rounded-full bg-[var(--route)] text-[0.7rem] font-bold text-[var(--route-text)]">{r.number}</span>

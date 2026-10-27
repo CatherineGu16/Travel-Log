@@ -5,7 +5,7 @@ import type { TravelData } from '../lib/types.ts'
 import { Avatar } from './Avatar.tsx'
 import { GroupIcon } from './PeoplePicker.tsx'
 import { Sheet } from './Sheet.tsx'
-import { TRAVEL_MODES } from '../lib/travelModes.ts'
+import { MODE_FILTERS } from '../lib/legs.ts'
 
 
 /** The filters shared by the map and the lists. Changes apply as you tap. */
@@ -100,8 +100,8 @@ export function FilterSheet({
         <fieldset>
           <legend className="mb-2 text-sm font-bold">How you traveled</legend>
           <div className="flex flex-wrap gap-1.5">
-            {TRAVEL_MODES.map((m) => (
-              <button key={m.id} type="button" aria-pressed={filter.mode === m.id} onClick={() => set({ mode: filter.mode === m.id ? null : m.id })} className={chip(filter.mode === m.id)}>
+            {MODE_FILTERS.map((m) => (
+              <button key={m.id} type="button" title={m.hint} aria-pressed={filter.mode === m.id} onClick={() => set({ mode: filter.mode === m.id ? null : m.id })} className={chip(filter.mode === m.id)}>
                 <span aria-hidden>{m.icon}</span> {m.label}
               </button>
             ))}

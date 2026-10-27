@@ -13,7 +13,7 @@ const data = (() => {
   let d = addPerson(emptyData('t'), ctx, 'mom', { name: 'Mom', groupIds: [FAMILY_GROUP_ID] })
   d = saveTrip(d, ctx, input({ title: 'Moab with Mom', companions: ['mom'], companionGroupIds: [FAMILY_GROUP_ID], tags: ['camping'], rating: 4 }))
   d = saveTrip(d, ctx, input({ title: 'Chicago work trip', startDate: '2019-05', main: place('Chicago', 41.88, -87.63, 'US-IL'), highlights: 'Deep dish' }))
-  d = saveTrip(d, ctx, input({ title: 'Denver', startDate: '2023-02', main: place('Denver', 39.74, -104.99, 'US-CO'), rating: 5, travelMode: 'road-trip' }))
+  d = saveTrip(d, ctx, input({ title: 'Denver', startDate: '2023-02', main: place('Denver', 39.74, -104.99, 'US-CO'), stops: [{ place: place('Boulder', 40.01, -105.27, 'US-CO') }], rating: 5 }))
   return d
 })()
 
@@ -26,7 +26,9 @@ describe('filters', () => {
     expect(titles(filterData(data, { ...NO_FILTER, personIds: ['mom'] }))).toEqual(['Moab with Mom'])
     expect(titles(filterData(data, { ...NO_FILTER, year: '2019' }))).toEqual(['Chicago work trip'])
     expect(titles(filterData(data, { ...NO_FILTER, tag: 'camping' }))).toEqual(['Moab with Mom'])
+    // Denver → Boulder is a short hop, guessed as a drive, so it's a road trip; the others have no legs.
     expect(titles(filterData(data, { ...NO_FILTER, mode: 'road-trip' }))).toEqual(['Denver'])
+    expect(titles(filterData(data, { ...NO_FILTER, mode: 'flight' }))).toEqual([])
     expect(filterData(data, NO_FILTER)).toBe(data)
   })
 

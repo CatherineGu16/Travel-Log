@@ -79,7 +79,12 @@ Same rules as Watchlist-Tracker, plus map rules:
   **destinations**, the places it went in visit order. Any number of them can be **main
   destinations**; the rest are stops along the way. Each destination can have its **own dates**
   ("3 days in Zion, then 3 in Las Vegas"), and a note.
-- **How you traveled**: Road trip, Flight or Cruise (optional), shown as a badge and filterable.
+- **Legs**: the stretch between two destinations is a **leg**, traveled by drive, flight, train,
+  cruise, ferry, walk, or "not sure". It's guessed from the straight-line distance (over 250 mi is
+  a flight, under is a drive) unless you pick one. There's no trip-level "how you traveled": a
+  trip whose legs are **all drives is a road trip**, and a trip with **a cruise leg anywhere is a
+  cruise**. Both are worked out from the legs, never stored, and only used to filter. See
+  **Legs**.
 - **Who went**: group tags (Family, Friends, your own groups) and individual people. Filtering and
   grouping by Family / Friends uses these tags. (An earlier Family switch and Family / Friends /
   Work type were replaced by the tags; old Family and Friends trips keep them as tags.)
@@ -98,6 +103,11 @@ Same rules as Watchlist-Tracker, plus map rules:
   (A to B); each tap adds a bend where it fits along the leg, with Undo, Straighten, Cancel and
   Done. Bends aren't places: no pins, no search, no dates. Reordering or removing destinations
   drops the bends of any leg that changed.
+- **Legs**: each leg is drawn by how you went: **flights** as a dashed great-circle arc in the
+  accent color, **drives, trains, cruises, ferries and walks** as a solid line (straight unless
+  shaped), and **not sure** as the thin dotted line. When a trip is selected the map fits its
+  destinations, not its arcs, so a long flight can run off the edge while the places stay
+  readable.
 - **Stacked dates**: if you've been to a major location more than once (Chicago 2018, Chicago
   2022), it stays **one pin with a ×2 badge**. Its preview card stacks each visit's dates (that
   place's own dates when you gave them), newest first, with the newest selected. **Picking a
@@ -204,8 +214,9 @@ units (monuments, seashores, historic sites — 400+ total) could be added later
                                isMain,       // main destinations get pins; at least one per trip
                                startDate | null, endDate | null,   // this place's own dates
                                note,
-                               via: [[lng, lat]] } ],   // bends in the route from the previous destination
-             travelMode | null,              // "road-trip" | "flight" | "cruise"
+                               via: [[lng, lat]],       // bends in the route from the previous destination
+                               legMode | null } ],      // how you got here from the previous one; null = guessed
+             homeLegs: { to, back } | null,  // travel from and back to home, shown on the map; null = not shown
              companions: [personId],         // people who went, one by one
              companionGroupIds: [groupId],   // groups tagged as a whole ("Friends")
              hikes: [ { parkId,              // hikes done on this trip
@@ -231,9 +242,17 @@ units (monuments, seashores, historic sites — 400+ total) could be added later
   groups: [ { id, name,                      // "Family", "College friends", "Work team"
               memberIds: [personId],
               isFamily,                      // only the built-in "Family" group; "Friends" is also built in
-              createdAt, updatedAt, deleted? } ]
+              createdAt, updatedAt, deleted? } ],
+  home: { id: "home", name, lat, lng,        // Settings → Home; legs to and from it are optional per trip
+          createdAt, updatedAt, deleted? } | null
 }
 ```
+
+Leg modes (`legMode`, `homeLegs.to`, `homeLegs.back`): `"drive" | "flight" | "train" | "cruise" |
+"boat" | "walk" | "unknown"`, or null for "use the guess". Trips saved with the old trip-level
+`travelMode` are converted when read: a road trip's legs become drives (and its home legs, if
+shown, drives), a cruise's legs become cruises, and a flight trip's travel to and from home is
+marked as flights.
 
 **Avatar photos** (`travel-data/avatars/`, optional):
 
@@ -272,6 +291,11 @@ no file. A photo avatar is one small file per person. At ~20 KB each, even 200 p
   username is the repo's owner, and GitHub itself refuses writes from anyone else's key, so a
   stranger using the site just syncs their own private repo.
 - **National park pin**: the pin's place has a `parkId`.
+- **A leg's mode**: the mode you picked; else the mode you last picked for the same two places on
+  any trip (either direction); else over 250 mi straight-line is a flight, under is a drive.
+- **Road trip / cruise**: every leg (including shown legs to and from home) is a drive → road
+  trip; any leg is a cruise → cruise (a cruise wins over a road trip). A trip with no legs is
+  neither.
 - **The built-in Family group** is stamped at the epoch, so a new device's empty copy never wins a
   sync merge over a Family group edited on another device.
 - **Family trip**: `isFamily === true`. When you pick who went, the form turns the Family switch on
@@ -333,6 +357,13 @@ Same engine as Watchlist-Tracker (`src/sync/`).
 - **Add trip**: the colored **+** circle in the center of the navigation, always visible.
 
 ### Add / edit trip
+
+A **three-step stepper**, so trip details and mapping out the route are on separate pages: **1.
+Details** (title, dates, who went), **2. Route** (destinations in order, the leg between each pair,
+travel to and from home), **3. Notes** (hikes, description, highlights, rating, tags). Back and
+Next keep everything; Save works from the Route step on, since Notes is optional. Editing a trip
+opens the same steps with tabs to jump straight to one.
+
 - **Where you went**: add destinations in order: search a place (your places and parks first, then
   cities and towns, **biggest first**; towns near the trip's main destination come first; plus
   landmarks and addresses when the detailed map is on). Long-press (or right-click) the map to
@@ -347,11 +378,17 @@ Same engine as Watchlist-Tracker (`src/sync/`).
   - A place inside a national park offers to be linked to the park ("This is inside Zion National
     Park. Count it as a visit?").
   - Move up / down, remove.
-  - Between two destinations, **"Shape the route on the map"** (see Shaping a route).
+  - Between two destinations, a **leg row**: a small rail (solid for ground, dashed for flights),
+    the mode with its icon, the straight-line distance, "guessed" until you pick one, and a tap
+    target of at least 44 px that opens a one-step mode picker. Ground legs also have **"Shape the
+    route on the map"** (see Shaping a route); this is how a drive follows the real road, since
+    the app uses no routing service.
+  - **Travel to and from home** (when Home is set in Settings): a switch that adds a leg from home
+    to the first destination and back from the last, each with its own mode. On by default for a
+    new trip whose first destination is within driving distance of home.
 - **Trip dates**: a **date range picker**: tap the first day, then the last, on a calendar (Date),
   a month grid (Month) or a year grid (Year). The month and year menus above the calendar jump to
   any date. Plus "Dates are approximate".
-- **How you traveled**: Road trip / Flight / Cruise.
 - **Title** (suggested from the main destinations and year, e.g. "Zion & Las Vegas 2024").
 - **Hikes**: for every national park on the trip, the hikes you did there, added with the same
   **Add a hike** search box and suggestions as the park page (no checklist).
@@ -377,6 +414,8 @@ Same engine as Watchlist-Tracker (`src/sync/`).
 - **Who-went filter**: Family, Friends, other groups or people, same as the map. Filters are shared with the map
   and remembered per device, as in Watchlist.
 - **Search** across title, places, description, people, groups and tags.
+- **No travel-mode chip on rows** (here or on pin cards). Instead the Filter sheet has **Road
+  trip** (every leg a drive), **Flight** (any leg a flight) and **Cruise** (any leg a cruise).
 - Tapping a row opens the trip detail and highlights its route on the map.
 
 ### Places tab
@@ -397,7 +436,7 @@ Same engine as Watchlist-Tracker (`src/sync/`).
   destination.
 
 ### Trip detail
-- Title, dates, who went, Family badge, the route stop by stop (each with its own dates and note,
+- Title, dates, who went, Family badge, Road trip / Cruise label when it is one, the route stop by stop with each leg's mode and distance between stops (each with its own dates and note,
   and "Also here" chips for every other visit to that place, which open those trips), hikes, description, highlights, and Edit and Delete with Undo.
 
 ### Header, navigation, settings
@@ -406,7 +445,8 @@ Same engine as Watchlist-Tracker (`src/sync/`).
 - **Navigation**: Map · Trips · **+** · Places · Parks, kept in the URL hash so Back works. **Add
   trip** is a large colored circle in the center: raised above the bottom tab bar on phones, in the
   middle of the header's page links on wider screens.
-- **Settings**: Sync across devices (same as Watchlist), **Map detail** (Outline · Detailed, with a
+- **Settings**: Sync across devices (same as Watchlist), **Home** (pick your town from the bundled
+  place search; synced in `travel.json`; trips can show legs from and back to it), **Map detail** (Outline · Detailed, with a
   note that Detailed contacts OpenFreeMap and Photon), People & groups (see below),
   Export/Import, theme.
 

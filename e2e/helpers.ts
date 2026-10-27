@@ -2,6 +2,10 @@ import type { Locator } from '@playwright/test'
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
+/** Goes to a step of the trip form: Details, Route or Notes. */
+export const toStep = (dialog: Locator, name: 'Details' | 'Route' | 'Notes') =>
+  dialog.getByRole('navigation', { name: 'Steps' }).getByRole('button', { name, exact: true }).click()
+
 /** A date range picker, found by its label ("Trip dates", "Dates at Zion National Park"). */
 export const dateRange = (scope: Locator, label: string) => scope.getByRole('group', { name: new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`) })
 

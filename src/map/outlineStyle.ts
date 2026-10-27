@@ -113,7 +113,9 @@ export function themedPaint(p: MapPalette): { layer: string; prop: PaintProp; va
     { layer: 'pin-badge-count', prop: 'text-color', value: p.badgeText },
     { layer: 'pin-labels', prop: 'text-color', value: p.label },
     { layer: 'pin-labels', prop: 'text-halo-color', value: p.labelHalo },
-    { layer: 'route-line', prop: 'line-color', value: p.route },
+    { layer: 'route-ground', prop: 'line-color', value: p.route },
+    { layer: 'route-unknown', prop: 'line-color', value: p.route },
+    { layer: 'route-flight', prop: 'line-color', value: p.pin },
     { layer: 'route-bends', prop: 'circle-color', value: p.pinCenter },
     { layer: 'route-bends', prop: 'circle-stroke-color', value: p.route },
     { layer: 'route-stops', prop: 'circle-color', value: p.route },
@@ -248,14 +250,31 @@ export function outlineStyle(data: OutlineData, palette: MapPalette, glyphsUrl: 
         paint: { 'text-color': p.park, 'text-halo-color': p.labelHalo, 'text-halo-width': 1.4 },
       },
 
-      // The selected trip's route: a dashed line through its stops in visit order.
+      // The selected trip's route, leg by leg in visit order: solid on the ground, a dashed arc for
+      // a flight, dotted when you're not sure.
       {
-        id: 'route-line',
+        id: 'route-ground',
         type: 'line',
         source: 'route',
-        filter: ['==', ['geometry-type'], 'LineString'],
+        filter: ['all', ['==', ['geometry-type'], 'LineString'], ['==', ['get', 'style'], 'ground']],
         layout: { 'line-join': 'round', 'line-cap': 'round' },
-        paint: { 'line-color': p.route, 'line-width': 3, 'line-dasharray': [0.1, 2.2] },
+        paint: { 'line-color': p.route, 'line-width': 3 },
+      },
+      {
+        id: 'route-flight',
+        type: 'line',
+        source: 'route',
+        filter: ['all', ['==', ['geometry-type'], 'LineString'], ['==', ['get', 'style'], 'flight']],
+        layout: { 'line-join': 'round' },
+        paint: { 'line-color': p.pin, 'line-width': 2.5, 'line-dasharray': [3, 2] },
+      },
+      {
+        id: 'route-unknown',
+        type: 'line',
+        source: 'route',
+        filter: ['all', ['==', ['geometry-type'], 'LineString'], ['==', ['get', 'style'], 'unknown']],
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': p.route, 'line-width': 2.5, 'line-dasharray': [0.1, 2.2] },
       },
       {
         id: 'route-bends',

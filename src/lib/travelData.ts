@@ -1,7 +1,8 @@
 import { isPartialDate } from './partialDate.ts'
 import { insertCheapest } from './route.ts'
-import { builtInGroups } from './travelActions.ts'
-import { FAMILY_GROUP_ID, FRIENDS_GROUP_ID, type Avatar, type Destination, type Group, type HikeEdit, type LngLat, type Person, type Place, type Synced, type TravelData, type Trip } from './types.ts'
+import { isLegMode } from './legs.ts'
+import { asList, builtInGroups } from './travelActions.ts'
+import { FAMILY_GROUP_ID, FRIENDS_GROUP_ID, type Avatar, type Destination, type Group, type HikeEdit, type Home, type LegMode, type LngLat, type Person, type Place, type Synced, type TravelData, type Trip } from './types.ts'
 
 /**
  * Combines two copies of your data record by record: the newer updatedAt wins, and deletes travel
@@ -16,6 +17,7 @@ export function mergeData(a: TravelData, b: TravelData): TravelData {
     people: newestById(a.people, b.people),
     groups: newestById(a.groups, b.groups),
     hikeEdits: newestById(a.hikeEdits, b.hikeEdits),
+    home: newestById(asList(a.home), asList(b.home))[0] ?? null,
   }
 }
 
@@ -43,7 +45,7 @@ const stable = (v: unknown): string =>
 
 /** Content equality, ignoring record order, key order and the top-level timestamp. */
 export function sameContent(a: TravelData, b: TravelData): boolean {
-  const canon = (d: TravelData) => stable([d.trips, d.places, d.people, d.groups, d.hikeEdits].map((records) => [...records].sort((x, y) => x.id.localeCompare(y.id))))
+  const canon = (d: TravelData) => stable([d.trips, d.places, d.people, d.groups, d.hikeEdits, asList(d.home)].map((records) => [...records].sort((x, y) => x.id.localeCompare(y.id))))
   return canon(a) === canon(b)
 }
 
@@ -113,6 +115,7 @@ export function parseTravelData(input: unknown): TravelData {
     endDate: dateOrNull(d.endDate),
     note: str(d.note),
     via: Array.isArray(d.via) ? d.via.filter(isLngLat).map(([lng, lat]) => [lng, lat] as LngLat) : [],
+    legMode: isLegMode(d.legMode) ? d.legMode : null,
   })
 
   /**
@@ -129,7 +132,7 @@ export function parseTravelData(input: unknown): TravelData {
       listed.isMain = true
       return stops
     }
-    const main: Destination = { placeId: x.mainPlaceId, isMain: true, startDate: null, endDate: null, note: '', via: [] }
+    const main: Destination = { placeId: x.mainPlaceId, isMain: true, startDate: null, endDate: null, note: '', via: [], legMode: null }
     const at = (d: Destination) => placeById.get(d.placeId) ?? { lat: 0, lng: 0 }
     const located = stops.map((d) => ({ ...at(d), d }))
     return insertCheapest(located, { ...at(main), d: main }).map((l) => l.d)
@@ -145,6 +148,16 @@ export function parseTravelData(input: unknown): TravelData {
       : fromMainAndStops(x)
     if (!destinations?.length) return null
     if (!destinations.some((d) => d.isMain)) destinations[0].isMain = true
+    destinations[0].legMode = null
+    const legMode = (v: unknown): LegMode | null => (isLegMode(v) ? v : null)
+    let homeLegs: Trip['homeLegs'] = isObject(x.homeLegs) ? { to: legMode(x.homeLegs.to), back: legMode(x.homeLegs.back) } : null
+    // Trips saved with one "how you traveled" for the whole trip: carried over onto the legs.
+    const pick = (mode: LegMode) => destinations.forEach((d, i) => i > 0 && !d.legMode && (d.legMode = mode))
+    if (x.travelMode === 'road-trip') {
+      pick('drive')
+      homeLegs = { to: 'drive', back: 'drive' }
+    } else if (x.travelMode === 'cruise') pick('cruise')
+    else if (x.travelMode === 'flight') homeLegs = { to: 'flight', back: 'flight' }
     return {
       ...base,
       title: str(x.title, 'Trip'),
@@ -164,7 +177,7 @@ export function parseTravelData(input: unknown): TravelData {
       hikes: (Array.isArray(x.hikes) ? x.hikes : [])
         .filter((h): h is Record<string, unknown> => isObject(h) && typeof h.parkId === 'string' && typeof h.name === 'string')
         .map((h) => ({ parkId: h.parkId as string, hikeId: typeof h.hikeId === 'string' ? h.hikeId : null, name: h.name as string, date: dateOrNull(h.date) })),
-      travelMode: x.travelMode === 'road-trip' || x.travelMode === 'flight' || x.travelMode === 'cruise' ? x.travelMode : null,
+      homeLegs,
       description: str(x.description),
       highlights: str(x.highlights),
       rating: typeof x.rating === 'number' && x.rating >= 1 && x.rating <= 5 ? Math.round(x.rating) : null,
@@ -201,5 +214,13 @@ export function parseTravelData(input: unknown): TravelData {
       : null,
   )
 
-  return { schemaVersion: 1, updatedAt: str(o.updatedAt, new Date(0).toISOString()), trips, places, people, groups, hikeEdits }
+  // Added later: older files have none.
+  const h = isObject(o.home) ? o.home : null
+  const homeBase = h && synced(h)
+  const home: Home | null =
+    h && homeBase && typeof h.lat === 'number' && typeof h.lng === 'number' && isLngLat([h.lng, h.lat])
+      ? { ...homeBase, name: str(h.name, 'Home'), lat: h.lat, lng: h.lng }
+      : null
+
+  return { schemaVersion: 1, updatedAt: str(o.updatedAt, new Date(0).toISOString()), trips, places, people, groups, hikeEdits, home }
 }

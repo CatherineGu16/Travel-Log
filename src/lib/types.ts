@@ -39,7 +39,12 @@ export interface Destination {
    * tapped so the dotted line follows the way you went. Not places, so no pins.
    */
   via: LngLat[]
+  /** How you got here from the previous destination. Null: guessed (see legs.ts). */
+  legMode: LegMode | null
 }
+
+/** How you traveled one leg of a trip. "unknown" is "not sure", which you can pick on purpose. */
+export type LegMode = 'drive' | 'flight' | 'train' | 'cruise' | 'boat' | 'walk' | 'unknown'
 
 export type LngLat = [number, number]
 
@@ -50,8 +55,6 @@ export interface TripHike {
   name: string
   date: PartialDate | null
 }
-
-export type TravelMode = 'road-trip' | 'flight' | 'cruise'
 
 export interface Trip extends Synced {
   title: string
@@ -65,8 +68,11 @@ export interface Trip extends Synced {
   /** Groups that went, as a tag ("Friends"), without listing each person. */
   companionGroupIds: string[]
   hikes: TripHike[]
-  /** How you traveled: road trip, flight or cruise. */
-  travelMode: TravelMode | null
+  /**
+   * Travel from home to the first destination and back from the last, shown on the map and counted
+   * as legs. Null: not shown. A null mode is guessed.
+   */
+  homeLegs: { to: LegMode | null; back: LegMode | null } | null
   description: string
   highlights: string
   rating: number | null
@@ -102,6 +108,14 @@ export interface TravelData {
   groups: Group[]
   /** Your corrections to the NPS hike suggestions (shared to the public list by its owner). */
   hikeEdits: HikeEdit[]
+  /** Where trips start and end (Settings → Home). One record, so it syncs like the others. */
+  home: Home | null
+}
+
+export interface Home extends Synced {
+  name: string
+  lat: number
+  lng: number
 }
 
 export type HikeDifficulty = 'Easy' | 'Moderate' | 'Strenuous'

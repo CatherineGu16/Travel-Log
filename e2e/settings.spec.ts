@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { toStep } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -6,6 +7,7 @@ const DEST = /^Add (a|another) destination$/
 async function addTrip(page: Page, query: string, option: RegExp) {
   await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await toStep(dialog, 'Route')
   await dialog.getByRole('combobox', { name: DEST }).fill(query)
   await dialog.getByRole('option', { name: option }).first().click()
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
@@ -104,6 +106,7 @@ test('the detailed map setting adds OpenFreeMap tiles and Photon search; outline
   // Place search now also finds landmarks online.
   await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await toStep(dialog, 'Route')
   await dialog.getByRole('combobox', { name: DEST }).fill('Angels Landing')
   await dialog.getByRole('option', { name: /Angels Landing.*Washington, UT.*OSM/ }).click()
   const row = dialog.getByRole('listitem', { name: 'Angels Landing' })

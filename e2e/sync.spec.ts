@@ -1,4 +1,5 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test'
+import { toStep } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -57,8 +58,10 @@ async function connect(page: Page, device: string) {
 async function addTrip(page: Page, main: [string, RegExp], who?: string) {
   await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await toStep(dialog, 'Route')
   await dialog.getByRole('combobox', { name: DEST }).fill(main[0])
   await dialog.getByRole('option', { name: main[1] }).first().click()
+  await toStep(dialog, 'Details')
   if (who) {
     await dialog.getByRole('searchbox', { name: 'Add a person' }).fill(who)
     await dialog.getByRole('button', { name: who, exact: true }).click()

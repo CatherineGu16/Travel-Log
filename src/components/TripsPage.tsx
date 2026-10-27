@@ -6,7 +6,6 @@ import type { TravelData, Trip } from '../lib/types.ts'
 import { usePersistentState } from '../ui/usePersistentState.ts'
 import { WhoWent } from './WhoWent.tsx'
 import { PinGlyph } from './PlacePicker.tsx'
-import { TravelModeBadge } from './TravelMode.tsx'
 
 const GROUPINGS: { id: TripGrouping; label: string }[] = [
   { id: 'year', label: 'Year' },
@@ -77,10 +76,7 @@ function TripRow({ trip, data, onOpen }: { trip: Trip; data: TravelData; onOpen:
       <button onClick={onOpen} className="flex min-h-16 w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-raised">
         <PinGlyph park={!!mains[0]?.parkId} className="size-6" />
         <span className="min-w-0 flex-1">
-          <span className="flex items-baseline gap-2">
-            <span className="truncate font-bold">{trip.title}</span>
-              <TravelModeBadge mode={trip.travelMode} />
-          </span>
+          <span className="block truncate font-bold">{trip.title}</span>
           <span className="block truncate text-sm text-muted">
             {formatDateRange(trip.startDate, trip.endDate, trip.approximate)}
             {mains.length > 0 && ` · ${mains.map((m) => m.name).join(' & ')}`}

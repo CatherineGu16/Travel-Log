@@ -1,16 +1,18 @@
-import { useId, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { describeRef, type ChosenPlace } from '../lib/chosenPlace.ts'
 import { comparePartialDates, formatDateRange, todayIso, yearOf } from '../lib/partialDate.ts'
 import { addPerson, saveTrip, type PlaceInput, type TripInput } from '../lib/travelActions.ts'
-import { FAMILY_GROUP_ID, type LngLat, type PartialDate, type TravelData, type TravelMode, type Trip, type TripHike } from '../lib/types.ts'
+import { distanceMeters } from '../lib/geo.ts'
+import { endOfHome, FLIGHT_GUESS_M, legMemory, makeLeg, type LegEnd } from '../lib/legs.ts'
+import { FAMILY_GROUP_ID, type LegMode, type LngLat, type PartialDate, type TravelData, type Trip, type TripHike } from '../lib/types.ts'
 import { newId, useStore, useTravelState } from '../store/useTravel.ts'
 import { DateRangeField } from './DateRangeField.tsx'
 import { HikesField } from './HikesField.tsx'
 import { PeoplePicker } from './PeoplePicker.tsx'
 import { ParkSuggestion, PinGlyph, PlacePicker } from './PlacePicker.tsx'
 import { Sheet } from './Sheet.tsx'
+import { HomeGlyph, LegRow } from './LegRow.tsx'
 import { useToast } from './toastContext.ts'
-import { TRAVEL_MODES } from '../lib/travelModes.ts'
 
 interface DestinationDraft {
   key: string
@@ -22,6 +24,8 @@ interface DestinationDraft {
   note: string
   /** Bends in the route from the previous destination. */
   via: LngLat[]
+  /** How you got here from the previous destination; null is guessed. */
+  legMode: LegMode | null
   open: boolean
 }
 
@@ -43,6 +47,15 @@ function endOf(place: ChosenPlace, data: TravelData): RouteEnd | null {
   return p ? { name: place.label, lng: p.lng, lat: p.lat } : null
 }
 
+/** A destination as one end of a leg. Places not saved yet get an id of their own, so they're never remembered. */
+function legEndOf(d: DestinationDraft, data: TravelData): LegEnd | null {
+  const end = endOf(d.place, data)
+  return end && { id: 'placeId' in d.place.ref ? d.place.ref.placeId : `new:${d.key}`, ...end }
+}
+
+const STEPS = ['Details', 'Route', 'Notes'] as const
+type Step = 0 | 1 | 2
+
 /** Compares partial dates at the coarser of the two precisions ("2024-05" contains "2024-05-03"). */
 const compareLoose = (a: PartialDate, b: PartialDate) => {
   const n = Math.min(a.length, b.length)
@@ -50,9 +63,10 @@ const compareLoose = (a: PartialDate, b: PartialDate) => {
 }
 
 /**
- * Add or edit a trip: where it went (destinations in order, any of them main, each with its own
- * dates, and the way the route went between them), the trip's dates, how you traveled, and who
- * went. The sheet hides (keeping everything you've entered) while you shape a route on the map.
+ * Add or edit a trip in three steps: Details (title, dates, who went), Route (destinations in
+ * order, any of them main, each with its own dates; how you went between them; travel to and from
+ * home), and Notes (hikes, description, rating, tags). The sheet hides (keeping everything you've
+ * entered) while you shape a route on the map.
  */
 export function TripForm({
   trip,
@@ -89,25 +103,44 @@ export function TripForm({
         endDate: d.endDate,
         note: d.note,
         via: d.via,
+        legMode: d.legMode,
         open: false,
       }))
     if (initialMain)
-      return [{ key: newId(), place: describeRef({ place: initialMain }, data), isMain: true, startDate: null, endDate: null, note: '', via: [], open: false }]
+      return [
+        { key: newId(), place: describeRef({ place: initialMain }, data), isMain: true, startDate: null, endDate: null, note: '', via: [], legMode: null, open: false },
+      ]
     return []
   })
-  const [travelMode, setTravelMode] = useState<TravelMode | null>(trip?.travelMode ?? null)
+  const [step, setStep] = useState<Step>(0)
+  // On a new trip, travel from home is on while the first destination is within driving distance,
+  // until you switch it yourself.
+  const [homeLegsChoice, setHomeLegsChoice] = useState<Trip['homeLegs'] | undefined>(trip ? trip.homeLegs : undefined)
   const [companions, setCompanions] = useState<string[]>(trip?.companions ?? [])
   const [companionGroupIds, setCompanionGroupIds] = useState<string[]>(trip?.companionGroupIds ?? [])
   const [description, setDescription] = useState(trip?.description ?? '')
   const [highlights, setHighlights] = useState(trip?.highlights ?? '')
   const [rating, setRating] = useState<number | null>(trip?.rating ?? null)
-  const [notesOpen, setNotesOpen] = useState(() => !!(trip && (trip.description || trip.highlights || trip.rating || trip.tags.length)))
-  const formId = useId()
   const [tags, setTags] = useState((trip?.tags ?? []).join(', '))
   const [hikes, setHikes] = useState<TripHike[]>(trip?.hikes ?? [])
   const [error, setError] = useState<string | null>(null)
 
   const mains = destinations.filter((d) => d.isMain)
+
+  // Modes you picked on your other trips, so a route you've corrected before is guessed right.
+  const memory = useMemo(() => legMemory({ ...data, trips: data.trips.filter((t) => t.id !== trip?.id) }), [data, trip?.id])
+  const home = data.home && !data.home.deleted ? endOfHome(data.home) : null
+  const ends = destinations.map((d) => legEndOf(d, data))
+  const legBefore = (i: number) => {
+    const [from, to] = [ends[i - 1], ends[i]]
+    return from && to ? makeLeg(from, to, destinations[i].via, destinations[i].legMode, memory) : null
+  }
+  const first = ends[0]
+  const last = ends.at(-1)
+  const homeLegs: Trip['homeLegs'] =
+    homeLegsChoice !== undefined ? homeLegsChoice : home && first && distanceMeters(home, first) <= FLIGHT_GUESS_M ? { to: null, back: null } : null
+  const homeLeg = (dir: 'to' | 'back') =>
+    home && homeLegs && first && last ? (dir === 'to' ? makeLeg(home, first, [], homeLegs.to, memory) : makeLeg(last, home, [], homeLegs.back, memory)) : null
   // National parks on this trip: their hikes can be checked off.
   const parkIds = [...new Set(destinations.map((d) => d.place.parkId).filter((id): id is string => !!id))]
 
@@ -126,14 +159,14 @@ export function TripForm({
   )
 
   /**
-   * Destination edits. A route's bends are dropped when the place before it changes (reordered or
-   * removed), since they were for a different leg. On a new trip whose dates you haven't set, the
+   * Destination edits. A leg's bends and mode are dropped when the place before it changes
+   * (reordered or removed), since they were for a different leg. On a new trip whose dates you haven't set, the
    * trip spans the destinations' dates.
    */
   const updateDestinations = (fn: (d: DestinationDraft[]) => DestinationDraft[]) =>
     setDestinations((current) => {
       const before = new Map(current.map((d, i) => [d.key, current[i - 1]?.key]))
-      const next = fn(current).map((d, i, all) => (d.via.length && before.get(d.key) !== all[i - 1]?.key ? { ...d, via: [] } : d))
+      const next = fn(current).map((d, i, all) => (before.get(d.key) !== all[i - 1]?.key ? { ...d, via: [], legMode: null } : d))
       if (!datesTouched) {
         const starts = next.map((d) => d.startDate).filter((d): d is string => !!d)
         const ends = next.map((d) => d.endDate ?? d.startDate).filter((d): d is string => !!d)
@@ -146,7 +179,7 @@ export function TripForm({
     })
 
   const addDestination = (place: ChosenPlace) =>
-    updateDestinations((d) => [...d, { key: newId(), place, isMain: d.length === 0, startDate: null, endDate: null, note: '', via: [], open: false }])
+    updateDestinations((d) => [...d, { key: newId(), place, isMain: d.length === 0, startDate: null, endDate: null, note: '', via: [], legMode: null, open: false }])
 
   /** Hides the form while you tap out the way you went from the previous destination to this one. */
   const shapeLeg = async (i: number) => {
@@ -174,24 +207,44 @@ export function TripForm({
       return next
     })
 
+  /** Shows a problem on the step where it can be fixed. */
+  const fail = (at: Step, message: string) => {
+    setStep(at)
+    setError(message)
+  }
+  const goTo = (next: Step) => {
+    if (next > 0 && compareLoose(endDate, startDate) < 0) return fail(0, 'The end date is before the start date.')
+    if (next > 1 && destinations.length === 0) return fail(1, 'Add where the trip went.')
+    setError(null)
+    setStep(next)
+  }
+
   const save = () => {
-    if (destinations.length === 0) return setError('Add where the trip went.')
-    if (compareLoose(endDate, startDate) < 0) return setError('The end date is before the start date.')
+    if (compareLoose(endDate, startDate) < 0) return fail(0, 'The end date is before the start date.')
+    if (destinations.length === 0) return fail(1, 'Add where the trip went.')
     for (const d of destinations) {
       if (!d.startDate) continue
       const end = d.endDate ?? d.startDate
-      if (compareLoose(end, d.startDate) < 0) return setError(`${d.place.label}: you left before you arrived.`)
-      if (compareLoose(d.startDate, startDate) < 0 || compareLoose(end, endDate) > 0) return setError(`${d.place.label}'s dates are outside the trip's dates.`)
+      if (compareLoose(end, d.startDate) < 0) return fail(1, `${d.place.label}: you left before you arrived.`)
+      if (compareLoose(d.startDate, startDate) < 0 || compareLoose(end, endDate) > 0) return fail(1, `${d.place.label}'s dates are outside the trip's dates.`)
     }
     const input: TripInput = {
       title: title.trim() || suggestedTitle,
       startDate,
       endDate,
       approximate,
-      destinations: destinations.map((d) => ({ place: d.place.ref, isMain: d.isMain, startDate: d.startDate, endDate: d.endDate, note: d.note, via: d.via })),
+      destinations: destinations.map((d) => ({
+        place: d.place.ref,
+        isMain: d.isMain,
+        startDate: d.startDate,
+        endDate: d.endDate,
+        note: d.note,
+        via: d.via,
+        legMode: d.legMode,
+      })),
       companions,
       companionGroupIds,
-      travelMode,
+      homeLegs,
       description,
       highlights,
       rating,
@@ -207,7 +260,15 @@ export function TripForm({
   }
 
   const input = 'w-full rounded-lg border border-line bg-bg px-3 text-base'
+  const secondary = 'min-h-11 rounded-lg px-4 font-bold text-muted hover:text-fg'
+  const primary = 'min-h-11 rounded-lg bg-primary px-5 font-bold text-on-primary'
+  const saveLabel = trip ? 'Save' : 'Add trip'
+  // Editing saves from any step; a new trip once it has somewhere to go. Notes are optional.
+  const canSave = !!trip || step > 0 || destinations.length > 0
   let stopNumber = 0
+  const toLeg = homeLeg('to')
+  const backLeg = homeLeg('back')
+  const setHomeMode = (dir: 'to' | 'back', mode: LegMode | null) => setHomeLegsChoice({ ...(homeLegs ?? { to: null, back: null }), [dir]: mode })
 
   return (
     <Sheet
@@ -216,251 +277,286 @@ export function TripForm({
       title={trip ? 'Edit trip' : 'Add trip'}
       accent="var(--primary)"
       footer={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {error && (
             <p role="alert" className="mr-auto text-sm text-danger">
               {error}
             </p>
           )}
-          <button type="button" onClick={onClose} className="ml-auto min-h-11 rounded-lg px-4 font-bold text-muted hover:text-fg">
-            Cancel
-          </button>
-          <button type="button" onClick={save} className="min-h-11 rounded-lg bg-primary px-5 font-bold text-on-primary">
-            {trip ? 'Save' : 'Add trip'}
-          </button>
+          {step === 0 ? (
+            <button type="button" onClick={onClose} className={`ml-auto ${secondary}`}>
+              Cancel
+            </button>
+          ) : (
+            <button type="button" onClick={() => goTo((step - 1) as Step)} className={`ml-auto ${secondary}`}>
+              Back
+            </button>
+          )}
+          {step < 2 && (
+            <button type="button" onClick={() => goTo((step + 1) as Step)} className={canSave ? secondary : primary}>
+              Next: {STEPS[step + 1]}
+            </button>
+          )}
+          {canSave && (
+            <button type="button" onClick={save} className={primary}>
+              {saveLabel}
+            </button>
+          )}
         </div>
       }
     >
+      <nav aria-label="Steps" className="-mt-1 mb-4 flex gap-1">
+        {STEPS.map((name, i) => (
+          <button
+            key={name}
+            type="button"
+            aria-current={step === i ? 'step' : undefined}
+            onClick={() => goTo(i as Step)}
+            className={`flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border-b-2 text-sm ${step === i ? 'border-primary font-bold text-fg' : 'border-line text-muted hover:text-fg'}`}
+          >
+            <span
+              aria-hidden
+              className={`grid size-5 place-items-center rounded-full text-xs font-bold ${step === i ? 'bg-primary text-on-primary' : 'bg-raised text-muted'}`}
+            >
+              {i + 1}
+            </span>
+            {name}
+          </button>
+        ))}
+      </nav>
       <form
         className="flex flex-col gap-5"
         onSubmit={(e) => {
           e.preventDefault()
-          save()
+          if (!canSave) goTo((step + 1) as Step)
+          else save()
         }}
       >
-        <section aria-label="Where you went">
-          <h3 className="text-sm font-bold">Where you went</h3>
-          <p className="mb-2 text-xs text-muted">
-            In order. Tap a pin to make that place a main destination; each main destination gets a pin on the map. Between two places, shape the dotted route
-            to follow the way you went.
-          </p>
-          {destinations.length > 0 && (
-            <ol className="mb-2 flex flex-col">
-              {destinations.map((d, i) => {
-                const number = d.isMain ? null : ++stopNumber
-                const onlyMain = d.isMain && mains.length === 1
-                return (
-                  <li key={d.key} aria-label={d.place.label}>
-                    {i > 0 && (
-                      <div className="flex min-h-9 items-center gap-2 pl-[1.15rem] text-xs text-muted">
-                        <span aria-hidden className="h-7 border-l-2 border-dotted border-[var(--route)]" />
-                        <button
-                          type="button"
-                          onClick={() => void shapeLeg(i)}
-                          aria-label={`Shape the route from ${destinations[i - 1].place.label} to ${d.place.label} on the map`}
-                          className="min-h-9 rounded-md px-1.5 font-bold text-[var(--route)] hover:bg-raised"
-                        >
-                          {d.via.length ? `Route bends ${d.via.length === 1 ? 'once' : `${d.via.length} times`} · Edit` : 'Shape the route on the map'}
-                        </button>
-                        {d.via.length > 0 && (
-                          <button type="button" onClick={() => patch(d.key, { via: [] })} className="min-h-9 rounded-md px-1.5 hover:bg-raised hover:text-fg">
-                            Straighten
+        {step === 0 && (
+          <>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-bold">Title</span>
+              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={suggestedTitle || 'e.g. Utah Parks 2023'} className={`${input} h-11`} />
+              {!title && !suggestedTitle && <span className="mt-1 block text-xs text-muted">Leave it empty to name it after where you went.</span>}
+            </label>
+
+            <DateRangeField
+              label="Trip dates"
+              start={startDate}
+              end={endDate}
+              onChange={(s, e) => {
+                setDatesTouched(true)
+                setStartDate(s)
+                setEndDate(e)
+              }}
+            />
+            <label className="-mt-2 flex min-h-9 items-center gap-2 text-sm">
+              <input type="checkbox" checked={approximate} onChange={(e) => setApproximate(e.target.checked)} className="size-4" />
+              Dates are approximate
+            </label>
+
+            <PeoplePicker
+              data={data}
+              value={companions}
+              onChange={setCompanions}
+              groupIds={companionGroupIds}
+              onGroupsChange={setCompanionGroupIds}
+              onAddPerson={(name, inFamily) => {
+                const id = newId()
+                const ok = store.apply((d, c) => addPerson(d, c, id, { name, groupIds: inFamily ? [FAMILY_GROUP_ID] : [] }), `Added ${name}`)
+                return ok === null ? null : id
+              }}
+            />
+          </>
+        )}
+
+        {step === 1 && (
+          <section aria-label="Where you went">
+            <h3 className="text-sm font-bold">Where you went</h3>
+            <p className="mb-2 text-xs text-muted">
+              In order. Tap a pin to make that place a main destination; each main destination gets a pin on the map. Between two places, tap how you went to
+              change it, and shape a drive to follow the road.
+            </p>
+            {home ? (
+              <label className="mb-2 flex min-h-11 items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={!!homeLegs}
+                  onChange={(e) => setHomeLegsChoice(e.target.checked ? { to: null, back: null } : null)}
+                  className="size-4"
+                />
+                Show travel from and back to home ({home.name})
+              </label>
+            ) : (
+              <p className="mb-2 text-xs text-muted">Set your home in Settings to show travel from and back to home.</p>
+            )}
+            {toLeg && (
+              <div aria-label="From home">
+                <div className="flex min-h-11 items-center gap-2 pl-2">
+                  <HomeGlyph className="size-6" />
+                  <span className="font-bold">Home</span>
+                </div>
+                <LegRow leg={toLeg} onPick={(mode) => setHomeMode('to', mode)} />
+              </div>
+            )}
+            {destinations.length > 0 && (
+              <ol className="mb-2 flex flex-col">
+                {destinations.map((d, i) => {
+                  const number = d.isMain ? null : ++stopNumber
+                  const onlyMain = d.isMain && mains.length === 1
+                  const leg = i > 0 ? legBefore(i) : null
+                  return (
+                    <li key={d.key} aria-label={d.place.label}>
+                      {leg && (
+                        <LegRow leg={leg} onPick={(legMode) => patch(d.key, { legMode })}>
+                          {leg.mode !== 'flight' && (
+                            <button
+                              type="button"
+                              onClick={() => void shapeLeg(i)}
+                              aria-label={`Shape the route from ${destinations[i - 1].place.label} to ${d.place.label} on the map`}
+                              className="min-h-11 rounded-md px-1.5 font-bold text-[var(--route)] hover:bg-raised"
+                            >
+                              {d.via.length ? `Bends ${d.via.length}× · Edit` : 'Shape on map'}
+                            </button>
+                          )}
+                          {d.via.length > 0 && (
+                            <button type="button" onClick={() => patch(d.key, { via: [] })} className="min-h-11 rounded-md px-1.5 hover:bg-raised hover:text-fg">
+                              Straighten
+                            </button>
+                          )}
+                        </LegRow>
+                      )}
+                      <div className="rounded-lg border border-line bg-bg">
+                        <div className="flex items-center gap-1 py-1 pr-1 pl-1">
+                          <button
+                            type="button"
+                            aria-label={d.isMain ? `${d.place.label} is a main destination` : `Make ${d.place.label} a main destination`}
+                            aria-pressed={d.isMain}
+                            disabled={onlyMain}
+                            title={
+                              onlyMain
+                                ? 'A trip needs at least one main destination'
+                                : d.isMain
+                                  ? 'Main destination: tap to make it a stop'
+                                  : 'Stop: tap to make it a main destination'
+                            }
+                            onClick={() => patch(d.key, { isMain: !d.isMain })}
+                            className="grid size-10 shrink-0 place-items-center rounded-md hover:bg-raised disabled:cursor-default disabled:hover:bg-transparent"
+                          >
+                            {d.isMain ? (
+                              <PinGlyph park={d.place.isPark} className="size-6" />
+                            ) : (
+                              <span className="grid size-6 place-items-center rounded-full bg-[var(--route)] text-xs font-bold text-[var(--route-text)]">
+                                {number}
+                              </span>
+                            )}
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => patch(d.key, { open: !d.open })}
+                            aria-expanded={d.open}
+                            className="min-h-10 min-w-0 flex-1 px-1 text-left"
+                          >
+                            <span className="block truncate">
+                              <span className={d.isMain ? 'font-bold' : ''}>{d.place.label}</span>
+                              {d.place.detail && <span className="ml-1.5 text-xs text-muted">{d.place.detail}</span>}
+                            </span>
+                            <span className="block text-xs text-muted">
+                              {d.startDate ? formatDateRange(d.startDate, d.endDate) : 'Add dates'}
+                              {d.note && ` · ${d.note}`}
+                            </span>
+                          </button>
+                          <IconButton label={`Move ${d.place.label} up`} disabled={i === 0} onClick={() => move(i, -1)} d="M6 12l4-4 4 4" />
+                          <IconButton label={`Move ${d.place.label} down`} disabled={i === destinations.length - 1} onClick={() => move(i, 1)} d="M6 8l4 4 4-4" />
+                          <IconButton label={`Remove ${d.place.label}`} onClick={() => remove(d.key)} d="M6 6l8 8M14 6l-8 8" />
+                        </div>
+                        <div className="px-2 empty:hidden">
+                          <ParkSuggestion
+                            value={d.place}
+                            onLink={(park) =>
+                              'place' in d.place.ref &&
+                              patch(d.key, { place: describeRef({ place: { ...d.place.ref.place, parkId: park.id, name: park.fullName } }, data) })
+                            }
+                          />
+                        </div>
+                        {d.open && (
+                          <div className="flex flex-col gap-3 border-t border-line p-3">
+                            {'place' in d.place.ref && !d.place.ref.place.parkId && (
+                              <label className="block">
+                                <span className="mb-1 block text-sm font-bold">Name</span>
+                                <input
+                                  aria-label={`${d.place.label} name`}
+                                  value={d.place.label}
+                                  onChange={(e) =>
+                                    'place' in d.place.ref &&
+                                    patch(d.key, { place: { ...d.place, label: e.target.value, ref: { place: { ...d.place.ref.place, name: e.target.value } } } })
+                                  }
+                                  className={`${input} h-10`}
+                                />
+                              </label>
+                            )}
+                            <label className="flex min-h-9 items-center gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={!!d.startDate}
+                                onChange={(e) =>
+                                  patch(
+                                    d.key,
+                                    e.target.checked
+                                      ? { startDate: startDate, endDate: endDate === startDate ? null : endDate }
+                                      : { startDate: null, endDate: null },
+                                  )
+                                }
+                                className="size-4"
+                              />
+                              I know when I was here
+                            </label>
+                            {d.startDate && (
+                              <DateRangeField
+                                label={`Dates at ${d.place.label}`}
+                                start={d.startDate}
+                                end={d.endDate ?? d.startDate}
+                                onChange={(startDate, endDate) => patch(d.key, { startDate, endDate })}
+                              />
+                            )}
+                            <label className="block">
+                              <span className="mb-1 block text-sm font-bold">Note</span>
+                              <input value={d.note} onChange={(e) => patch(d.key, { note: e.target.value })} className={`${input} h-10`} />
+                            </label>
+                          </div>
                         )}
                       </div>
-                    )}
-                    <div className="rounded-lg border border-line bg-bg">
-                      <div className="flex items-center gap-1 py-1 pr-1 pl-1">
-                        <button
-                          type="button"
-                          aria-label={d.isMain ? `${d.place.label} is a main destination` : `Make ${d.place.label} a main destination`}
-                          aria-pressed={d.isMain}
-                          disabled={onlyMain}
-                          title={
-                            onlyMain
-                              ? 'A trip needs at least one main destination'
-                              : d.isMain
-                                ? 'Main destination: tap to make it a stop'
-                                : 'Stop: tap to make it a main destination'
-                          }
-                          onClick={() => patch(d.key, { isMain: !d.isMain })}
-                          className="grid size-10 shrink-0 place-items-center rounded-md hover:bg-raised disabled:cursor-default disabled:hover:bg-transparent"
-                        >
-                          {d.isMain ? (
-                            <PinGlyph park={d.place.isPark} className="size-6" />
-                          ) : (
-                            <span className="grid size-6 place-items-center rounded-full bg-[var(--route)] text-xs font-bold text-[var(--route-text)]">
-                              {number}
-                            </span>
-                          )}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => patch(d.key, { open: !d.open })}
-                          aria-expanded={d.open}
-                          className="min-h-10 min-w-0 flex-1 px-1 text-left"
-                        >
-                          <span className="block truncate">
-                            <span className={d.isMain ? 'font-bold' : ''}>{d.place.label}</span>
-                            {d.place.detail && <span className="ml-1.5 text-xs text-muted">{d.place.detail}</span>}
-                          </span>
-                          <span className="block text-xs text-muted">
-                            {d.startDate ? formatDateRange(d.startDate, d.endDate) : 'Add dates'}
-                            {d.note && ` · ${d.note}`}
-                          </span>
-                        </button>
-                        <IconButton label={`Move ${d.place.label} up`} disabled={i === 0} onClick={() => move(i, -1)} d="M6 12l4-4 4 4" />
-                        <IconButton label={`Move ${d.place.label} down`} disabled={i === destinations.length - 1} onClick={() => move(i, 1)} d="M6 8l4 4 4-4" />
-                        <IconButton label={`Remove ${d.place.label}`} onClick={() => remove(d.key)} d="M6 6l8 8M14 6l-8 8" />
-                      </div>
-                      <div className="px-2 empty:hidden">
-                        <ParkSuggestion
-                          value={d.place}
-                          onLink={(park) =>
-                            'place' in d.place.ref &&
-                            patch(d.key, { place: describeRef({ place: { ...d.place.ref.place, parkId: park.id, name: park.fullName } }, data) })
-                          }
-                        />
-                      </div>
-                      {d.open && (
-                        <div className="flex flex-col gap-3 border-t border-line p-3">
-                          {'place' in d.place.ref && !d.place.ref.place.parkId && (
-                            <label className="block">
-                              <span className="mb-1 block text-sm font-bold">Name</span>
-                              <input
-                                aria-label={`${d.place.label} name`}
-                                value={d.place.label}
-                                onChange={(e) =>
-                                  'place' in d.place.ref &&
-                                  patch(d.key, { place: { ...d.place, label: e.target.value, ref: { place: { ...d.place.ref.place, name: e.target.value } } } })
-                                }
-                                className={`${input} h-10`}
-                              />
-                            </label>
-                          )}
-                          <label className="flex min-h-9 items-center gap-2 text-sm">
-                            <input
-                              type="checkbox"
-                              checked={!!d.startDate}
-                              onChange={(e) =>
-                                patch(
-                                  d.key,
-                                  e.target.checked
-                                    ? { startDate: startDate, endDate: endDate === startDate ? null : endDate }
-                                    : { startDate: null, endDate: null },
-                                )
-                              }
-                              className="size-4"
-                            />
-                            I know when I was here
-                          </label>
-                          {d.startDate && (
-                            <DateRangeField
-                              label={`Dates at ${d.place.label}`}
-                              start={d.startDate}
-                              end={d.endDate ?? d.startDate}
-                              onChange={(startDate, endDate) => patch(d.key, { startDate, endDate })}
-                            />
-                          )}
-                          <label className="block">
-                            <span className="mb-1 block text-sm font-bold">Note</span>
-                            <input value={d.note} onChange={(e) => patch(d.key, { note: e.target.value })} className={`${input} h-10`} />
-                          </label>
-                        </div>
-                      )}
-                    </div>
-                  </li>
-                )
-              })}
-            </ol>
-          )}
-          <PlacePicker
-            label={destinations.length ? 'Add another destination' : 'Add a destination'}
-            data={data}
-            near={near}
-            value={null}
-            onChange={(p) => {
-              if (p) addDestination(p)
-              setError(null)
-            }}
-            autoFocus={!trip && !initialMain && !matchMedia('(pointer: coarse)').matches}
-          />
-        </section>
+                    </li>
+                  )
+                })}
+              </ol>
+            )}
+            {backLeg && (
+              <div aria-label="Back home">
+                <LegRow leg={backLeg} onPick={(mode) => setHomeMode('back', mode)} />
+                <div className="mb-2 flex min-h-11 items-center gap-2 pl-2">
+                  <HomeGlyph className="size-6" />
+                  <span className="font-bold">Home</span>
+                </div>
+              </div>
+            )}
+            <PlacePicker
+              label={destinations.length ? 'Add another destination' : 'Add a destination'}
+              data={data}
+              near={near}
+              value={null}
+              onChange={(p) => {
+                if (p) addDestination(p)
+                setError(null)
+              }}
+              autoFocus={destinations.length === 0 && !matchMedia('(pointer: coarse)').matches}
+            />
+          </section>
+        )}
 
-        <DateRangeField
-          label="Trip dates"
-          start={startDate}
-          end={endDate}
-          onChange={(s, e) => {
-            setDatesTouched(true)
-            setStartDate(s)
-            setEndDate(e)
-          }}
-        />
-        <label className="-mt-2 flex min-h-9 items-center gap-2 text-sm">
-          <input type="checkbox" checked={approximate} onChange={(e) => setApproximate(e.target.checked)} className="size-4" />
-          Dates are approximate
-        </label>
-
-        <fieldset>
-          <legend className="mb-1.5 text-sm font-bold">How you traveled</legend>
-          <div className="flex flex-wrap gap-2">
-            {TRAVEL_MODES.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                aria-pressed={travelMode === m.id}
-                onClick={() => setTravelMode(travelMode === m.id ? null : m.id)}
-                className={`flex min-h-10 items-center gap-1.5 rounded-full border px-3 text-sm ${travelMode === m.id ? 'border-primary bg-primary font-bold text-on-primary' : 'border-line hover:bg-raised'}`}
-              >
-                <span aria-hidden>{m.icon}</span>
-                {m.label}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-bold">Title</span>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={suggestedTitle || 'e.g. Utah Parks 2023'} className={`${input} h-11`} />
-        </label>
-
-        <HikesField parkIds={parkIds} data={data} value={hikes} onChange={setHikes} />
-
-        <PeoplePicker
-          data={data}
-          value={companions}
-          onChange={setCompanions}
-          groupIds={companionGroupIds}
-          onGroupsChange={setCompanionGroupIds}
-          onAddPerson={(name, inFamily) => {
-            const id = newId()
-            const ok = store.apply((d, c) => addPerson(d, c, id, { name, groupIds: inFamily ? [FAMILY_GROUP_ID] : [] }), `Added ${name}`)
-            return ok === null ? null : id
-          }}
-        />
-
-        <section className="rounded-lg border border-line">
-          <button
-            type="button"
-            aria-expanded={notesOpen}
-            aria-controls={`${formId}-notes`}
-            onClick={() => {
-              setNotesOpen(!notesOpen)
-              // Opened at the bottom of the form: bring the fields into view.
-              if (!notesOpen) requestAnimationFrame(() => document.getElementById(`${formId}-notes`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }))
-            }}
-            className="flex min-h-11 w-full items-center gap-2 px-3 text-left text-sm font-bold"
-          >
-            <span className="flex-1">
-              Notes, rating and tags
-              <span className="block text-xs font-normal text-muted">A description and highlights for the trip page, stars, and tags you can filter by</span>
-            </span>
-            <svg viewBox="0 0 20 20" className={`size-4 shrink-0 text-muted transition-transform ${notesOpen ? 'rotate-180' : ''}`} aria-hidden="true">
-              <path d="M6 8l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-          <div id={`${formId}-notes`} hidden={!notesOpen} className="flex flex-col gap-4 border-t border-line p-3">
+        {step === 2 && (
+          <>
+            <HikesField parkIds={parkIds} data={data} value={hikes} onChange={setHikes} />
             <label className="block">
               <span className="mb-1 block text-sm font-bold">Description</span>
               <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className={`${input} py-2`} />
@@ -491,8 +587,8 @@ export function TripForm({
               <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="camping, beach" className={`${input} h-10`} />
               <span className="mt-1 block text-xs text-muted">Separate with commas. Filter the map and lists by a tag.</span>
             </label>
-          </div>
-        </section>
+          </>
+        )}
         <button type="submit" hidden />
       </form>
     </Sheet>

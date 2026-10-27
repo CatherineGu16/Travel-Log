@@ -2,7 +2,8 @@ import { byNewest, tripPeopleIds, tripPlaceIds } from './derive.ts'
 import { formatDateRange, yearOf } from './partialDate.ts'
 import { regionName } from './states.ts'
 import { live } from './travelActions.ts'
-import type { TravelData, TravelMode, Trip } from './types.ts'
+import { legMemory, legsOf, matchesMode, tripKind, type ModeFilter } from './legs.ts'
+import type { TravelData, Trip } from './types.ts'
 
 /** Filters shared by the map and the lists, remembered per device. */
 export interface TripFilter {
@@ -12,8 +13,8 @@ export interface TripFilter {
   personIds: string[]
   year: string | null
   tag: string | null
-  /** Road trip, flight or cruise. */
-  mode: TravelMode | null
+  /** Road trip (all drives), flight (any leg) or cruise (any leg), from the trip's legs. */
+  mode: ModeFilter | null
 }
 
 export const NO_FILTER: TripFilter = { groupIds: [], personIds: [], year: null, tag: null, mode: null }
@@ -50,7 +51,7 @@ export function matchesFilter(trip: Trip, f: TripFilter, data?: TravelData): boo
   if (f.year && yearOf(trip.startDate) !== f.year && !(trip.endDate && yearOf(trip.startDate) < f.year && yearOf(trip.endDate) >= f.year))
     return false
   if (f.tag && !trip.tags.includes(f.tag)) return false
-  if (f.mode && trip.travelMode !== f.mode) return false
+  if (f.mode && !matchesMode(legsOf(trip, data ?? { places: [], home: null }, data && legMemory(data)), f.mode)) return false
   return true
 }
 
@@ -84,13 +85,20 @@ export function matchesSearch(trip: Trip, data: TravelData, query: string): bool
       ...people,
       ...groups,
       ...trip.tags,
-      trip.travelMode === 'road-trip' ? 'road trip' : (trip.travelMode ?? ''),
+      ...legWords(trip, data),
       formatDateRange(trip.startDate, trip.endDate),
     ]
       .filter(Boolean)
       .join(' \n '),
   )
   return words.every((w) => haystack.includes(w))
+}
+
+/** "road trip", "cruise" and the leg modes, so searching "flight" finds trips that flew. */
+function legWords(trip: Trip, data: TravelData): string[] {
+  const legs = legsOf(trip, data, legMemory(data))
+  const kind = tripKind(legs)
+  return [kind === 'road-trip' ? 'road trip' : (kind ?? ''), ...new Set(legs.map((l) => l.mode))]
 }
 
 export type TripGrouping = 'year' | 'state' | 'who'

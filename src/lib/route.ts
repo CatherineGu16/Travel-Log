@@ -1,28 +1,40 @@
 import { distanceMeters } from './geo.ts'
-import type { LngLat, Place, Trip } from './types.ts'
+import { legsOf, type Leg, type LegMemory } from './legs.ts'
+import type { Home, LngLat, Place, Trip } from './types.ts'
 
 export interface RoutePoint {
   place: Place
-  /** Main destinations are drawn as pins; stops get numbered dots. */
-  role: 'main' | 'stop'
-  /** 1-based visit order among the stops (main destinations have none). */
+  /** Main destinations are drawn as pins; stops get numbered dots; home starts and ends the trip. */
+  role: 'main' | 'stop' | 'home'
+  /** 1-based visit order among the stops (main destinations and home have none). */
   number: number | null
   /** Bends in the line on the way here from the previous point, [lng, lat]. */
   via: LngLat[]
   /** Shown in place of the number ("A", "B" while you shape one leg of a route). */
   marker?: string
+  /** How you got here from the previous point; null for the first. */
+  leg: Leg | null
 }
 
-/** A trip's route: its destinations in the order you entered them. Empty for a single place. */
-export function routeOf(trip: Trip, places: Place[]): RoutePoint[] {
+/** Home as a route point's place (it isn't one of your places, so it never gets a pin). */
+const homePlace = (h: Home): Place => ({ ...h, city: null, countryCode: 'US', regionCode: null, parkId: null })
+
+/**
+ * A trip's route: its destinations in the order you entered them, from and back to home when the
+ * trip shows that. Empty when there's nowhere to go between (a single place).
+ */
+export function routeOf(trip: Trip, places: Place[], opts: { home?: Home | null; memory?: LegMemory } = {}): RoutePoint[] {
+  const home = opts.home && !opts.home.deleted ? opts.home : null
+  const legs = legsOf(trip, { places, home }, opts.memory)
+  if (!legs.length) return []
   const byId = new Map(places.map((p) => [p.id, p]))
-  const points = trip.destinations.flatMap((d) => {
-    const place = byId.get(d.placeId)
-    return place ? [{ place, isMain: d.isMain, via: d.via }] : []
-  })
-  if (points.length < 2) return []
   let n = 0
-  return points.map(({ place, isMain, via }, i) => ({ place, role: isMain ? 'main' : 'stop', number: isMain ? null : ++n, via: i === 0 ? [] : via }))
+  const stops: Omit<RoutePoint, 'leg'>[] = trip.destinations.flatMap((d) => {
+    const place = byId.get(d.placeId)
+    return place ? [{ place, role: d.isMain ? ('main' as const) : ('stop' as const), number: d.isMain ? null : ++n, via: d.via }] : []
+  })
+  const atHome: Omit<RoutePoint, 'leg'>[] = home && trip.homeLegs ? [{ place: homePlace(home), role: 'home', number: null, via: [] }] : []
+  return [...atHome, ...stops, ...atHome].map((p, i) => ({ ...p, via: i === 0 ? [] : p.via, leg: i === 0 ? null : legs[i - 1] }))
 }
 
 /** The line through a route: each point, after the bends on the way to it. */

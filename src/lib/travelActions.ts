@@ -11,7 +11,8 @@ import {
   type Person,
   type Place,
   type Destination,
-  type TravelMode,
+  type Home,
+  type LegMode,
   type Synced,
   type TravelData,
   type Trip,
@@ -42,6 +43,7 @@ export function emptyData(now: string): TravelData {
     people: [],
     groups: builtInGroups(),
     hikeEdits: [],
+    home: null,
   }
 }
 
@@ -109,6 +111,8 @@ export interface DestinationInput {
   note: string
   /** Bends in the route from the previous destination (see Destination.via). */
   via?: LngLat[]
+  /** How you got here from the previous destination; null or omitted is guessed. */
+  legMode?: LegMode | null
 }
 
 export interface TripInput {
@@ -121,7 +125,8 @@ export interface TripInput {
   companions: string[]
   /** Groups tagged on the trip as a whole ("Friends"). */
   companionGroupIds?: string[]
-  travelMode?: TravelMode | null
+  /** Travel from and back to home (see Trip.homeLegs). */
+  homeLegs?: Trip['homeLegs']
   description: string
   highlights: string
   rating: number | null
@@ -148,6 +153,7 @@ export function saveTrip(data: TravelData, ctx: EditContext, input: TripInput, t
       note: d.note.trim(),
       // A destination that's now first has no route leading to it.
       via: destinations.length ? (d.via ?? []) : [],
+      legMode: destinations.length ? (d.legMode ?? null) : null,
     })
   }
   if (!destinations.some((d) => d.isMain)) destinations[0].isMain = true
@@ -159,7 +165,7 @@ export function saveTrip(data: TravelData, ctx: EditContext, input: TripInput, t
     destinations,
     companions: [...new Set(input.companions)],
     companionGroupIds: [...new Set(input.companionGroupIds ?? [])],
-    travelMode: input.travelMode ?? null,
+    homeLegs: input.homeLegs ?? null,
     description: input.description.trim(),
     highlights: input.highlights.trim(),
     rating: input.rating,
@@ -335,6 +341,19 @@ export function resetHikeEdit(data: TravelData, ctx: EditContext, parkId: string
   return { ...data, updatedAt: ctx.now, hikeEdits: tombstone(data.hikeEdits, hikeEditId(parkId, hikeId), ctx.now) }
 }
 
+// ---------- Home ----------
+
+export const HOME_RECORD_ID = 'home'
+
+/** Sets where trips start and end, or clears it (a tombstone, so the clear syncs). */
+export function setHome(data: TravelData, ctx: EditContext, home: { name: string; lat: number; lng: number } | null): TravelData {
+  const createdAt = data.home?.createdAt ?? ctx.now
+  const record: Home | null = home
+    ? { id: HOME_RECORD_ID, name: home.name.trim() || 'Home', lat: home.lat, lng: home.lng, createdAt, updatedAt: ctx.now }
+    : data.home && { ...data.home, deleted: true, updatedAt: ctx.now }
+  return { ...data, updatedAt: ctx.now, home: record }
+}
+
 // ---------- Undo ----------
 
 /**
@@ -350,8 +369,12 @@ export function revertTo(current: TravelData, snapshot: TravelData, ctx: EditCon
     people: revertRecords(current.people, snapshot.people, ctx.now),
     groups: revertRecords(current.groups, snapshot.groups, ctx.now),
     hikeEdits: revertRecords(current.hikeEdits, snapshot.hikeEdits, ctx.now),
+    home: revertRecords(asList(current.home), asList(snapshot.home), ctx.now)[0] ?? null,
   }
 }
+
+/** The single home record as a list, so it merges and reverts like the other records. */
+export const asList = <T,>(record: T | null): T[] => (record ? [record] : [])
 
 function revertRecords<T extends Synced>(current: T[], snapshot: T[], now: string): T[] {
   const before = new Map(snapshot.map((x) => [x.id, x]))
