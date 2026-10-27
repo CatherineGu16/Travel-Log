@@ -1,6 +1,6 @@
 import { distanceMeters } from './geo.ts'
-import { legsOf, type Leg, type LegMemory } from './legs.ts'
-import type { Home, LngLat, Place, Trip } from './types.ts'
+import { legsOf, tripStart, type Leg, type LegMemory } from './legs.ts'
+import type { Home, LngLat, Place, Trip, TripStart } from './types.ts'
 
 export interface RoutePoint {
   place: Place
@@ -18,17 +18,17 @@ export interface RoutePoint {
   returning?: boolean
 }
 
-/** Home as a route point's place (it isn't one of your places, so it never gets a pin). */
-const homePlace = (h: Home): Place => ({ ...h, city: null, countryCode: 'US', regionCode: null, parkId: null })
+/** Where the trip started as a route point's place (not one of your places, so it never gets a pin). */
+const homePlace = (s: TripStart): Place => ({ id: 'home', name: s.name, lat: s.lat, lng: s.lng, city: null, countryCode: 'US', regionCode: null, parkId: null, createdAt: '', updatedAt: '' })
 
 /**
  * A trip's route: its destinations in the order you entered them, back through them when you came
- * back the same way, and from and back to home when you drove from home. Empty when there's
+ * back the same way, and from and back to where it started (usually home). Empty when there's
  * nowhere to go between (a single place).
  */
 export function routeOf(trip: Trip, places: Place[], opts: { home?: Home | null; memory?: LegMemory } = {}): RoutePoint[] {
-  const home = opts.home && !opts.home.deleted ? opts.home : null
-  const legs = legsOf(trip, { places, home }, opts.memory)
+  const legs = legsOf(trip, { places, home: opts.home ?? null }, opts.memory)
+  const start = tripStart(trip, { home: opts.home ?? null })
   if (!legs.length) return []
   const byId = new Map(places.map((p) => [p.id, p]))
   let n = 0
@@ -36,7 +36,7 @@ export function routeOf(trip: Trip, places: Place[], opts: { home?: Home | null;
     const place = byId.get(d.placeId)
     return place ? [{ place, role: d.isMain ? ('main' as const) : ('stop' as const), number: d.isMain ? null : ++n, via: d.via }] : []
   })
-  const atHome: Omit<RoutePoint, 'leg'>[] = home && trip.fromHome && stops.length ? [{ place: homePlace(home), role: 'home', number: null, via: [] }] : []
+  const atHome: Omit<RoutePoint, 'leg'>[] = start && stops.length ? [{ place: homePlace(start), role: 'home', number: null, via: [] }] : []
   // On the way back, each stop is reached along the reversed leg that left it.
   const back: Omit<RoutePoint, 'leg'>[] =
     trip.returnSameWay && stops.length > 1 ? stops.slice(0, -1).reverse().map((p) => ({ ...p, returning: true })) : []

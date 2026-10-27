@@ -12,6 +12,8 @@ import {
   type Place,
   type Destination,
   type Home,
+  type HomeMode,
+  type TripStart,
   type LegMode,
   type Synced,
   type TravelData,
@@ -125,8 +127,10 @@ export interface TripInput {
   companions: string[]
   /** Groups tagged on the trip as a whole ("Friends"). */
   companionGroupIds?: string[]
-  /** Drove from home and back (see Trip.fromHome). */
-  fromHome?: boolean
+  /** Flew (the default) or drove from the start and back. */
+  homeMode?: HomeMode
+  /** Where the trip started and ended (see Trip.start). */
+  start?: TripStart | null
   /** Came back the same way (see Trip.returnSameWay). */
   returnSameWay?: boolean
   description: string
@@ -167,7 +171,8 @@ export function saveTrip(data: TravelData, ctx: EditContext, input: TripInput, t
     destinations,
     companions: [...new Set(input.companions)],
     companionGroupIds: [...new Set(input.companionGroupIds ?? [])],
-    fromHome: input.fromHome ?? false,
+    homeMode: input.homeMode ?? 'flight',
+    start: input.start ? { name: input.start.name, lat: input.start.lat, lng: input.start.lng } : null,
     // Only meaningful with two or more places to go back through.
     returnSameWay: !!input.returnSameWay && destinations.length > 1,
     description: input.description.trim(),
@@ -349,13 +354,19 @@ export function resetHikeEdit(data: TravelData, ctx: EditContext, parkId: string
 
 export const HOME_RECORD_ID = 'home'
 
-/** Sets where trips start and end, or clears it (a tombstone, so the clear syncs). */
+/**
+ * Sets where new trips start and end, or clears it (a tombstone, so the clear syncs). Trips keep
+ * their own start, so earlier trips don't move: trips saved before they kept one get the old home
+ * copied onto them first. (With no home yet, those trips start at the first one you set.)
+ */
 export function setHome(data: TravelData, ctx: EditContext, home: { name: string; lat: number; lng: number } | null): TravelData {
+  const old = data.home && !data.home.deleted ? { name: data.home.name, lat: data.home.lat, lng: data.home.lng } : null
+  const trips = old ? data.trips.map((t) => (t.start === undefined && !t.deleted ? { ...t, start: old, updatedAt: ctx.now } : t)) : data.trips
   const createdAt = data.home?.createdAt ?? ctx.now
   const record: Home | null = home
     ? { id: HOME_RECORD_ID, name: home.name.trim() || 'Home', lat: home.lat, lng: home.lng, createdAt, updatedAt: ctx.now }
     : data.home && { ...data.home, deleted: true, updatedAt: ctx.now }
-  return { ...data, updatedAt: ctx.now, home: record }
+  return { ...data, updatedAt: ctx.now, trips, home: record }
 }
 
 // ---------- Undo ----------

@@ -3,7 +3,7 @@ import { describeRef, type ChosenPlace } from '../lib/chosenPlace.ts'
 import { comparePartialDates, formatDateRange, todayIso, yearOf } from '../lib/partialDate.ts'
 import { addPerson, saveTrip, type PlaceInput, type TripInput } from '../lib/travelActions.ts'
 import { endOfHome, homeLeg, legMemory, makeLeg, returnLegs, type Leg, type LegEnd } from '../lib/legs.ts'
-import { FAMILY_GROUP_ID, type LegMode, type LngLat, type PartialDate, type TravelData, type Trip, type TripHike } from '../lib/types.ts'
+import { FAMILY_GROUP_ID, type HomeMode, type LegMode, type LngLat, type PartialDate, type TravelData, type Trip, type TripHike, type TripStart } from '../lib/types.ts'
 import { newId, useStore, useTravelState } from '../store/useTravel.ts'
 import { DateRangeField } from './DateRangeField.tsx'
 import { HikesField } from './HikesField.tsx'
@@ -112,7 +112,12 @@ export function TripForm({
     return []
   })
   const [step, setStep] = useState<Step>(0)
-  const [fromHome, setFromHome] = useState(trip?.fromHome ?? false)
+  // Where the trip started and ended: new trips start at Home; a trip keeps its own copy, so
+  // changing Home later doesn't move it. Trips saved before that follow Home until saved.
+  const homeNow: TripStart | null = data.home && !data.home.deleted ? { name: data.home.name, lat: data.home.lat, lng: data.home.lng } : null
+  const [start, setStart] = useState<TripStart | null>(() => (trip && trip.start !== undefined ? trip.start : homeNow))
+  const [changingStart, setChangingStart] = useState(false)
+  const [homeMode, setHomeMode] = useState<HomeMode>(trip?.homeMode ?? 'flight')
   const [returnSameWay, setReturnSameWay] = useState(trip?.returnSameWay ?? false)
   const [companions, setCompanions] = useState<string[]>(trip?.companions ?? [])
   const [companionGroupIds, setCompanionGroupIds] = useState<string[]>(trip?.companionGroupIds ?? [])
@@ -127,7 +132,7 @@ export function TripForm({
 
   // Modes you picked on your other trips, so a route you've corrected before is guessed right.
   const memory = useMemo(() => legMemory({ ...data, trips: data.trips.filter((t) => t.id !== trip?.id) }), [data, trip?.id])
-  const home = data.home && !data.home.deleted ? endOfHome(data.home) : null
+  const home = start ? endOfHome(start) : null
   const ends = destinations.map((d) => legEndOf(d, data))
   const legBefore = (i: number) => {
     const [from, to] = [ends[i - 1], ends[i]]
@@ -138,8 +143,8 @@ export function TripForm({
   const backThrough = comesBack ? returnLegs(destinations.slice(1).flatMap((_, k) => legBefore(k + 1) ?? [])) : []
   const first = ends[0]
   const end = comesBack ? first : ends.at(-1)
-  const toLeg: Leg | null = home && fromHome && first ? homeLeg(home, first) : null
-  const backLeg: Leg | null = home && fromHome && end ? homeLeg(end, home) : null
+  const toLeg: Leg | null = home && first ? homeLeg(home, first, homeMode) : null
+  const backLeg: Leg | null = home && end ? homeLeg(end, home, homeMode) : null
   // National parks on this trip: their hikes can be checked off.
   const parkIds = [...new Set(destinations.map((d) => d.place.parkId).filter((id): id is string => !!id))]
 
@@ -243,7 +248,8 @@ export function TripForm({
       })),
       companions,
       companionGroupIds,
-      fromHome,
+      start,
+      homeMode,
       returnSameWay: comesBack,
       description,
       highlights,
@@ -352,6 +358,79 @@ export function TripForm({
               Dates are approximate
             </label>
 
+            <fieldset>
+              <legend className="mb-1.5 text-sm font-bold">Started and ended at</legend>
+              {start && !changingStart ? (
+                <div className="flex min-h-11 items-center gap-2">
+                  <HomeGlyph className="size-5" />
+                  <span className="min-w-0 truncate font-bold">{start.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => setChangingStart(true)}
+                    aria-label={`Change where the trip started (${start.name})`}
+                    className="min-h-10 rounded-lg px-2 text-sm font-bold text-primary hover:bg-raised"
+                  >
+                    Change
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  <PlacePicker
+                    label="Where the trip started"
+                    data={data}
+                    value={null}
+                    onChange={(p) => {
+                      const at = p && endOf(p, data)
+                      if (!at) return
+                      setStart({ name: at.name, lat: at.lat, lng: at.lng })
+                      setChangingStart(false)
+                    }}
+                  />
+                  <div className="flex flex-wrap gap-1 text-sm">
+                    {homeNow && (homeNow.lat !== start?.lat || homeNow.lng !== start?.lng) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStart(homeNow)
+                          setChangingStart(false)
+                        }}
+                        className="min-h-10 rounded-lg px-2 font-bold text-primary hover:bg-raised"
+                      >
+                        Use home ({homeNow.name})
+                      </button>
+                    )}
+                    {changingStart && (
+                      <button type="button" onClick={() => setChangingStart(false)} className="min-h-10 rounded-lg px-2 text-muted hover:bg-raised hover:text-fg">
+                        Keep {start?.name}
+                      </button>
+                    )}
+                  </div>
+                  {!homeNow && <p className="text-xs text-muted">Set your home in Settings and new trips will start there.</p>}
+                </div>
+              )}
+              {start && (
+                <div role="radiogroup" aria-label="How you got there and back" className="mt-1 flex w-fit rounded-lg bg-bg p-0.5">
+                  {(
+                    [
+                      ['flight', '✈️ Flew'],
+                      ['drive', '🚗 Drove'],
+                    ] as const
+                  ).map(([mode, label]) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      role="radio"
+                      aria-checked={homeMode === mode}
+                      onClick={() => setHomeMode(mode)}
+                      className={`min-h-10 rounded-md px-3 text-sm ${homeMode === mode ? 'bg-raised font-bold text-fg' : 'text-muted hover:text-fg'}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </fieldset>
+
             <PeoplePicker
               data={data}
               value={companions}
@@ -374,19 +453,11 @@ export function TripForm({
               In order. Choose <b>Main</b> for each place that gets a pin on the map; the rest are stops along the way. Between two places, tap how you went to
               change it, and shape a drive to follow the road.
             </p>
-            {home ? (
-              <label className="mb-2 flex min-h-11 items-center gap-2 text-sm">
-                <input type="checkbox" checked={fromHome} onChange={(e) => setFromHome(e.target.checked)} className="size-4" />
-                Drove from home ({home.name}) and back
-              </label>
-            ) : (
-              <p className="mb-2 text-xs text-muted">For a road trip from home, set your home in Settings.</p>
-            )}
             {toLeg && (
-              <div aria-label="From home">
+              <div aria-label={`From ${start?.name}`}>
                 <div className="flex min-h-11 items-center gap-2 pl-2">
                   <HomeGlyph className="size-6" />
-                  <span className="font-bold">Home</span>
+                  <span className="font-bold">{start?.name}</span>
                 </div>
                 <LegRow leg={toLeg} />
               </div>
@@ -532,11 +603,11 @@ export function TripForm({
             )}
             {comesBack && <ReturnRow legs={backThrough} />}
             {backLeg && (
-              <div aria-label="Back home">
+              <div aria-label={`Back to ${start?.name}`}>
                 <LegRow leg={backLeg} />
                 <div className="mb-2 flex min-h-11 items-center gap-2 pl-2">
                   <HomeGlyph className="size-6" />
-                  <span className="font-bold">Home</span>
+                  <span className="font-bold">{start?.name}</span>
                 </div>
               </div>
             )}

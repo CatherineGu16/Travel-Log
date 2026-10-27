@@ -310,6 +310,13 @@ test('a road trip from home that comes back the same way, with two main pins', a
 
   await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  // New trips start at home; flew is the default, drove the other choice.
+  await expect(dialog.getByRole('group', { name: 'Started and ended at' })).toContainText('Pasadena')
+  const how = dialog.getByRole('radiogroup', { name: 'How you got there and back' })
+  await expect(how.getByRole('radio')).toHaveText([/Flew/, /Drove/])
+  await expect(how.getByRole('radio', { name: /Flew/ })).toHaveAttribute('aria-checked', 'true')
+  await how.getByRole('radio', { name: /Drove/ }).click()
+
   await toStep(dialog, 'Route')
   await choosePlace(page, DEST, 'Las Vegas', /^Las Vegas\s*NV$/)
   await choosePlace(page, DEST, 'zion', /Zion National Park/)
@@ -320,7 +327,6 @@ test('a road trip from home that comes back the same way, with two main pins', a
   await zion.click()
   await expect(dialog.getByRole('button', { name: 'Zion National Park is a main destination' })).toHaveText(/Main/)
 
-  await dialog.getByRole('checkbox', { name: 'Drove from home (Pasadena) and back' }).check()
   await expect(dialog.getByLabel(/^Drive from Pasadena to Las Vegas/)).toBeVisible()
   await dialog.getByRole('checkbox', { name: 'Came back the same way' }).check()
   await expect(dialog).toContainText('Back the same way')
@@ -339,4 +345,25 @@ test('a road trip from home that comes back the same way, with two main pins', a
   await page.getByRole('dialog', { name: /Filter/ }).getByRole('button', { name: /Road trip/ }).click()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('button', { name: /Las Vegas & Zion/ })).toHaveCount(1)
+
+  // Moving home doesn't move this trip; new trips start at the new home.
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await settings.getByRole('combobox', { name: 'Change home' }).fill('Denver')
+  await settings.getByRole('option', { name: /^Denver\s*CO$/ }).first().click()
+  await expect(settings).toContainText('Trips can start and end at Denver')
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: /Las Vegas & Zion/ }).click()
+  const card = page.getByRole('region', { name: 'Las Vegas trips' })
+  await expect(card.getByRole('list', { name: 'Route' })).toContainText('Pasadena')
+  await expect(card.getByRole('list', { name: 'Route' })).not.toContainText('Denver')
+
+  // Editing: the trip shows its own start, and can switch to the new home.
+  await card.getByRole('button', { name: /^Edit/ }).click()
+  const edit = page.getByRole('dialog', { name: 'Edit trip' })
+  await expect(edit.getByRole('group', { name: 'Started and ended at' })).toContainText('Pasadena')
+  await expect(edit.getByRole('radio', { name: /Drove/ })).toHaveAttribute('aria-checked', 'true')
+  await edit.getByRole('button', { name: /^Change where the trip started/ }).click()
+  await edit.getByRole('button', { name: 'Use home (Denver)' }).click()
+  await edit.getByRole('button', { name: 'Save' }).click()
+  await expect(card.getByRole('list', { name: 'Route' })).toContainText('Denver')
 })

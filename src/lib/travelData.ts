@@ -2,7 +2,7 @@ import { isPartialDate } from './partialDate.ts'
 import { insertCheapest } from './route.ts'
 import { isLegMode } from './legs.ts'
 import { asList, builtInGroups } from './travelActions.ts'
-import { FAMILY_GROUP_ID, FRIENDS_GROUP_ID, type Avatar, type Destination, type Group, type HikeEdit, type Home, type LegMode, type LngLat, type Person, type Place, type Synced, type TravelData, type Trip } from './types.ts'
+import { FAMILY_GROUP_ID, FRIENDS_GROUP_ID, type Avatar, type Destination, type Group, type HikeEdit, type Home, type HomeMode, type LegMode, type LngLat, type Person, type Place, type Synced, type TravelData, type Trip, type TripStart } from './types.ts'
 
 /**
  * Combines two copies of your data record by record: the newer updatedAt wins, and deletes travel
@@ -150,11 +150,28 @@ export function parseTravelData(input: unknown): TravelData {
     if (!destinations.some((d) => d.isMain)) destinations[0].isMain = true
     destinations[0].legMode = null
     // Trips saved with one "how you traveled" for the whole trip: carried over onto the legs, and a
-    // road trip was driven from home. So were trips saved with drives to and from home.
+    // road trip was driven from home, a flight flown. Versions since stored whether the trip was
+    // from home as a yes/no, a mode each way, or a mode; those trips follow Home (no `start` yet).
     const pick = (mode: LegMode) => destinations.forEach((d, i) => i > 0 && !d.legMode && (d.legMode = mode))
     if (x.travelMode === 'road-trip') pick('drive')
     else if (x.travelMode === 'cruise') pick('cruise')
-    const droveHome = isObject(x.homeLegs) && [x.homeLegs.to, x.homeLegs.back].every((m) => m == null || m === 'drive')
+    const each = isObject(x.homeLegs) ? (x.homeLegs.to === 'flight' || x.homeLegs.back === 'flight' ? 'flight' : 'drive') : null
+    const earlier: HomeMode | null =
+      x.fromHome === 'drive' || x.fromHome === 'flight'
+        ? x.fromHome
+        : x.fromHome === true || x.travelMode === 'road-trip'
+          ? 'drive'
+          : x.travelMode === 'flight'
+            ? 'flight'
+            : each
+    const homeMode: HomeMode = x.homeMode === 'drive' || x.homeMode === 'flight' ? x.homeMode : (earlier ?? 'flight')
+    const s = isObject(x.start) ? x.start : null
+    const start: TripStart | null | undefined =
+      s && typeof s.lat === 'number' && typeof s.lng === 'number' && isLngLat([s.lng, s.lat])
+        ? { name: str(s.name, 'Home'), lat: s.lat, lng: s.lng }
+        : 'start' in x || !earlier
+          ? null
+          : undefined
     return {
       ...base,
       title: str(x.title, 'Trip'),
@@ -174,7 +191,8 @@ export function parseTravelData(input: unknown): TravelData {
       hikes: (Array.isArray(x.hikes) ? x.hikes : [])
         .filter((h): h is Record<string, unknown> => isObject(h) && typeof h.parkId === 'string' && typeof h.name === 'string')
         .map((h) => ({ parkId: h.parkId as string, hikeId: typeof h.hikeId === 'string' ? h.hikeId : null, name: h.name as string, date: dateOrNull(h.date) })),
-      fromHome: x.fromHome === true || x.travelMode === 'road-trip' || droveHome,
+      homeMode,
+      ...(start === undefined ? {} : { start }),
       returnSameWay: x.returnSameWay === true && destinations.length > 1,
       description: str(x.description),
       highlights: str(x.highlights),

@@ -93,7 +93,7 @@ export function TripDetail({
             {showHome && (
               <li className="flex items-center gap-3">
                 <HomeGlyph className="size-6" />
-                <span className="font-bold">Home</span>
+                <span className="font-bold">{legs[0].from.name}</span>
               </li>
             )}
             {stops.map(({ place: p, destination: stop, number }, i) => {
@@ -145,7 +145,7 @@ export function TripDetail({
                 <LegRow leg={legs.at(-1)!} />
                 <div className="flex items-center gap-3">
                   <HomeGlyph className="size-6" />
-                  <span className="font-bold">Home</span>
+                  <span className="font-bold">{legs[0].from.name}</span>
                 </div>
               </li>
             )}

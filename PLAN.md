@@ -85,6 +85,14 @@ Same rules as Watchlist-Tracker, plus map rules:
   trip whose legs are **all drives is a road trip**, and a trip with **a cruise leg anywhere is a
   cruise**. Both are worked out from the legs, never stored, and only used to filter. See
   **Legs**.
+- **Started and ended at**: a new trip starts at Home (Settings), saved as the trip's own copy,
+  with **Change** to pick another place for this trip (or "Use home" to go back to the current
+  Home). Then **✈️ Flew / 🚗 Drove** (Flew is first and the default): the way there and back, drawn
+  on the map (a dashed arc when you flew, which the map lets run off the edge). No on/off switch;
+  older trips without a start can be given one with the same place search. A single-stop drive
+  counts as a road trip; a flight counts for the Flight filter.
+- **Editing a trip** shows its own start, not the current Home: changing Home moves new trips only.
+  To move an older trip (e.g. you lived elsewhere then), use Change.
 - **Who went**: group tags (Family, Friends, your own groups) and individual people. Filtering and
   grouping by Family / Friends uses these tags. (An earlier Family switch and Family / Friends /
   Work type were replaced by the tags; old Family and Friends trips keep them as tags.)
@@ -216,7 +224,8 @@ units (monuments, seashores, historic sites — 400+ total) could be added later
                                note,
                                via: [[lng, lat]],       // bends in the route from the previous destination
                                legMode | null } ],      // how you got here from the previous one; null = guessed
-             fromHome,                       // drove from home and back: drives at both ends, always drawn
+             start: { name, lat, lng } | null,  // where it started and ended: a copy of Home when made
+             homeMode,                       // "flight" (default) | "drive": how you got there and back
              returnSameWay,                  // came back through the same stops in reverse (2+ stops)
              companions: [personId],         // people who went, one by one
              companionGroupIds: [groupId],   // groups tagged as a whole ("Friends")
@@ -251,8 +260,10 @@ units (monuments, seashores, historic sites — 400+ total) could be added later
 
 Leg modes (`legMode`): `"drive" | "flight" | "train" | "cruise" | "boat" | "walk" | "unknown"`,
 or null for "use the guess". Trips saved with the old trip-level `travelMode` are converted when
-read: a road trip's legs become drives and it's marked as driven from home, and a cruise's legs
-become cruises. (A single-stop "Flight" trip has no legs left to say so.)
+read: a road trip's legs become drives and it's marked as driven from home, a flight trip as
+flown from home, and a cruise's legs become cruises. Trips saved before trips kept their own
+`start` have none: they follow Home until Home is changed or cleared, when the old Home is copied
+onto them (a normal edit, so it syncs). With no Home yet, they start at the first one you set.
 
 **Avatar photos** (`travel-data/avatars/`, optional):
 
@@ -293,7 +304,8 @@ no file. A photo avatar is one small file per person. At ~20 KB each, even 200 p
 - **National park pin**: the pin's place has a `parkId`.
 - **A leg's mode**: the mode you picked; else the mode you last picked for the same two places on
   any trip (either direction); else over 250 mi straight-line is a flight, under is a drive.
-- **Road trip / cruise**: every leg (including the drives from and back to home) is a drive → road
+- **Where a trip starts**: its own `start`, so changing Home never moves earlier trips.
+- **Road trip / cruise**: every leg (including the way from and back to the start) is a drive → road
   trip; any leg is a cruise → cruise (a cruise wins over a road trip). A trip with no legs is
   neither.
 - **The built-in Family group** is stamped at the epoch, so a new device's empty copy never wins a
@@ -359,8 +371,8 @@ Same engine as Watchlist-Tracker (`src/sync/`).
 ### Add / edit trip
 
 A **three-step stepper**, so trip details and mapping out the route are on separate pages: **1.
-Details** (title, dates, who went), **2. Route** (destinations in order, the leg between each pair,
-driving from home, coming back the same way), **3. Notes** (hikes, description, highlights, rating, tags). Back and
+Details** (title, dates, who went, where it started and how you got there), **2. Route** (destinations in order, the leg between
+each pair, coming back the same way), **3. Notes** (hikes, description, highlights, rating, tags). Back and
 Next keep everything; Save works from the Route step on, since Notes is optional. Editing a trip
 opens the same steps with tabs to jump straight to one.
 
@@ -383,15 +395,13 @@ opens the same steps with tabs to jump straight to one.
     target of at least 44 px that opens a one-step mode picker. Ground legs also have **"Shape the
     route on the map"** (see Shaping a route); this is how a drive follows the real road, since
     the app uses no routing service.
-  - **Drove from home and back** (when Home is set in Settings; off by default): adds a drive from
-    home to the first place and one back home at the end, always drawn on the map. Home legs only
-    exist on trips you drove from home, so they're always drives (no mode picker, no guess), and a
-    single-stop drive from home counts as a road trip. Fly-in trips just leave it off.
+  - The Route step shows where the trip started at the top and bottom, with the way there and
+    back.
   - **Came back the same way** (two or more places; chosen over reusing bends automatically): the
     trip returns from the last place through the same places in reverse, with the same bends and
     modes, without listing them twice. One row in the Route step ("↩ Back the same way · 470 mi")
     and "↩ same way back" on the pin card. Not drawn again on the map, since it runs over the way
-    there. With "Drove from home", the way home starts from the first place.
+    there. The way back to the start then leaves from the first place.
 - **Trip dates**: a **date range picker**: tap the first day, then the last, on a calendar (Date),
   a month grid (Month) or a year grid (Year). The month and year menus above the calendar jump to
   any date. Plus "Dates are approximate".
@@ -452,7 +462,7 @@ opens the same steps with tabs to jump straight to one.
   trip** is a large colored circle in the center: raised above the bottom tab bar on phones, in the
   middle of the header's page links on wider screens.
 - **Settings**: Sync across devices (same as Watchlist), **Home** (pick your town from the bundled
-  place search; synced in `travel.json`; trips can be marked as driven from it), **Map detail** (Outline · Detailed, with a
+  place search; synced in `travel.json`; new trips start from it; earlier trips keep the start they were made with), **Map detail** (Outline · Detailed, with a
   note that Detailed contacts OpenFreeMap and Photon), People & groups (see below),
   Export/Import, theme.
 
