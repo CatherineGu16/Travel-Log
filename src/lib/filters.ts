@@ -79,7 +79,7 @@ export function matchesSearch(trip: Trip, data: TravelData, query: string): bool
   const haystack = normalize(
     [
       trip.title,
-      ...places.flatMap((p) => [p?.name, p?.city, regionName(p?.regionCode ?? null)]),
+      ...places.flatMap((p) => [p?.name, p?.city, p && regionName(p.regionCode, p.countryCode)]),
       trip.description,
       trip.highlights,
       ...people,
@@ -129,8 +129,8 @@ export function groupTrips(trips: Trip[], data: TravelData, grouping: TripGroupi
       return tagged ? [`${tagged.isFamily ? 0 : 1}${tagged.name}`, tagged.name] : ['9', 'Other']
     }
     const firstMain = t.destinations.find((d) => d.isMain)?.placeId
-    const region = data.places.find((p) => p.id === firstMain)?.regionCode ?? null
-    const name = regionName(region)
+    const place = data.places.find((p) => p.id === firstMain)
+    const name = regionName(place?.regionCode ?? null, place?.countryCode)
     return [name, name]
   }
   const groups = new Map<string, TripGroup>()

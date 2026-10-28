@@ -26,7 +26,7 @@ export function PlacesPage({ data, toolbar, onOpenTrip }: { data: TravelData; to
       live(data.places)
         .map((place) => ({ place, visits: visitsTo(data, place.id) }))
         .filter((r) => r.visits.length > 0)
-        .filter((r) => !q || `${r.place.name} ${r.place.city ?? ''} ${regionName(r.place.regionCode)}`.toLowerCase().includes(q)),
+        .filter((r) => !q || `${r.place.name} ${r.place.city ?? ''} ${regionName(r.place.regionCode, r.place.countryCode)}`.toLowerCase().includes(q)),
     [data, q],
   )
 
@@ -36,7 +36,7 @@ export function PlacesPage({ data, toolbar, onOpenTrip }: { data: TravelData; to
     if (order === 'az') return [{ label: null, rows: [...rows].sort(byName) }]
     const map = new Map<string, typeof rows>()
     for (const r of rows) {
-      const name = regionName(r.place.regionCode)
+      const name = regionName(r.place.regionCode, r.place.countryCode)
       map.set(name, [...(map.get(name) ?? []), r])
     }
     return [...map].sort(([a], [b]) => a.localeCompare(b)).map(([label, rs]) => ({ label, rows: rs.sort(byName) }))

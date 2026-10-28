@@ -3,6 +3,7 @@
 //
 //   node scripts/build-map-data.mjs            uses cached downloads when present
 //   node scripts/build-map-data.mjs --refresh  re-downloads everything
+//   node scripts/build-map-data.mjs --only=world-cities   rebuilds just that file
 //
 // Sources (all public domain or free to redistribute):
 //   us-states.json        us-atlas states-10m (US Census), tagged with ISO 3166-2 region codes
@@ -14,6 +15,8 @@
 //   us-cities.json        Natural Earth populated places in the US, for map labels
 //   us-lakes.json         Natural Earth 50m lakes in and around the US
 //   world-countries.json  Natural Earth 50m countries (TopoJSON), so neighbors show as land
+//   world-cities.json     GeoNames cities over 15,000 people outside the US (CC BY 4.0, credited
+//                         as "GeoNames" on the map), for offline place search ranked by size
 //   public/fonts/         Noto Sans glyphs (SIL OFL) so map labels render without any outside request
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
@@ -28,6 +31,7 @@ const CACHE = join(ROOT, 'scripts', '.cache')
 const DATA = join(ROOT, 'src', 'data')
 const FONTS = join(ROOT, 'public', 'fonts')
 const REFRESH = process.argv.includes('--refresh')
+const ONLY = process.argv.find((a) => a.startsWith('--only='))?.slice('--only='.length)
 
 const NPS_BOUNDARIES =
   'https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/NPS_Land_Resources_Division_Boundary_and_Tract_Data_Service/FeatureServer/2/query'
@@ -36,6 +40,7 @@ const WIKI =
 const GAZETTEER = 'https://www2.census.gov/geo/docs/maps-data/data/gazetteer/2024_Gazetteer/2024_Gaz_place_national.zip'
 const POPULATION = 'https://www2.census.gov/programs-surveys/popest/datasets/2020-2024/cities/totals/sub-est2024.csv'
 const NE = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson'
+const GEONAMES = 'https://download.geonames.org/export/dump'
 const GLYPHS = 'https://tiles.openfreemap.org/fonts'
 const FONT_STACKS = ['Noto Sans Regular', 'Noto Sans Bold', 'Noto Sans Italic']
 // Basic Latin, Latin-1, Latin Extended-A (ā, ō), spacing modifiers (ʻokina), punctuation (– ’).
@@ -284,6 +289,43 @@ async function buildCountries() {
   await writeJson('world-countries.json', topo)
 }
 
+// ---------- World cities (search) ----------
+
+// The US and its territories come from the Census list instead.
+const US_AND_TERRITORIES = new Set(['US', 'PR', 'GU', 'VI', 'AS', 'MP', 'UM'])
+// Parts of a city (neighborhoods) and places that no longer exist clutter the search.
+const SKIP_FEATURES = new Set(['PPLX', 'PPLH', 'PPLQ', 'PPLW'])
+
+async function buildWorldCities() {
+  console.log('World cities (GeoNames)')
+  const zipPath = join(CACHE, 'geonames-cities15000.zip')
+  await download(`${GEONAMES}/cities15000.zip`, 'geonames-cities15000.zip', { binary: true })
+  const tsv = execFileSync('unzip', ['-p', zipPath], { maxBuffer: 64 * 1024 * 1024 }).toString('utf8')
+  const countries = {}
+  for (const line of (await download(`${GEONAMES}/countryInfo.txt`, 'geonames-countries.txt')).split('\n')) {
+    if (!line || line.startsWith('#')) continue
+    const cols = line.split('\t')
+    countries[cols[0]] = cols[4]
+  }
+  const regions = new Map()
+  for (const line of (await download(`${GEONAMES}/admin1CodesASCII.txt`, 'geonames-admin1.txt')).split('\n')) {
+    const [code, name] = line.split('\t')
+    if (code) regions.set(code, name)
+  }
+  // [name, region (state / province), country code, lat, lng, population], biggest first.
+  const cities = []
+  for (const line of tsv.split('\n')) {
+    const c = line.split('\t')
+    if (c.length < 15 || US_AND_TERRITORIES.has(c[8]) || SKIP_FEATURES.has(c[7]) || !countries[c[8]]) continue
+    cities.push([c[1], regions.get(`${c[8]}.${c[10]}`) ?? '', c[8], round(Number(c[4])), round(Number(c[5])), Number(c[14]) || 0])
+  }
+  cities.sort((a, b) => b[5] - a[5])
+  const used = new Set(cities.map((c) => c[2]))
+  const names = Object.fromEntries(Object.entries(countries).filter(([code]) => used.has(code) || code === 'US'))
+  await writeJson('world-cities.json', { countries: names, cities })
+  console.log(`  ${cities.length} cities in ${used.size} countries`)
+}
+
 // ---------- Fonts ----------
 
 async function buildFonts() {
@@ -300,10 +342,15 @@ async function buildFonts() {
 
 await mkdir(CACHE, { recursive: true })
 await mkdir(DATA, { recursive: true })
+if (ONLY === 'world-cities') {
+  await buildWorldCities()
+  process.exit(0)
+}
 await buildStates()
 const parks = await buildParks()
 await buildPlaces()
 await buildCitiesAndLakes()
 await buildCountries()
+await buildWorldCities()
 await buildFonts()
 console.log(`\nDone. ${parks.length} national parks.`)

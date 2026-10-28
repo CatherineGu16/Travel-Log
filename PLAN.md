@@ -30,7 +30,7 @@ people, which keeps sync simple and the private repo tiny.
 | Map | **MapLibre GL JS**: smooth wheel/drag/pinch zoom and pan, vector rendering, dashed route lines, scales to a world map later |
 | Base map | **Outline map by default, fully bundled**: state outlines, park boundaries, lakes and major-city labels, drawn by MapLibre from files shipped with the app. No outside map service, works fully offline |
 | Detailed map (optional) | A **Settings toggle, off by default**, adds **OpenFreeMap** tiles (free, no key, no account) under the outline layers for streets, terrain and labels. Only the visible map area is requested, and no token or personal data is sent. If the service is down or you're offline, the outline map shows as usual |
-| Place search | **Bundled by default**: searches a built-in list of US cities and towns (Census Gazetteer, public domain) plus the national parks, entirely on the device. When the detailed map is on, search also asks **Photon** (free, no key, OpenStreetMap data) for businesses, landmarks and addresses. Tapping or long-pressing the map drops a pin anywhere either way |
+| Place search | **Bundled by default**: searches a built-in list of US cities and towns (Census Gazetteer, public domain), **cities over 15,000 people worldwide** (GeoNames, CC BY 4.0, credited on the map as "Place names: GeoNames") plus the national parks, entirely on the device. Biggest first; a trailing state or country narrows it ("Springdale, UT", "Lisbon, Portugal", "london uk"). When the detailed map is on, search also asks **Photon** (free, no key, OpenStreetMap data) for businesses, landmarks and addresses. Tapping or long-pressing the map drops a pin anywhere either way |
 | Deploy | GitHub Actions workflow runs lint + tests, then publishes to Pages on push to `main`. Copied from Watchlist's `deploy.yml` |
 
 ### Free-account checks
@@ -135,6 +135,9 @@ park-boundaries.json  TopoJSON park boundaries (NPS Land Resources Division, pub
 us-places.json        [name, state, lat, lng, population] for ~32,000 US cities, towns and CDPs
                       (Census Gazetteer + 2024 population estimates; Natural Earth fills in big
                       unincorporated places like Honolulu); offline place search, biggest first
+world-cities.json     { countries: {code: name}, cities: [name, region, country, lat, lng, population] }
+                      for ~29,000 cities over 15,000 people outside the US (GeoNames), biggest
+                      first; offline place search and naming a pin dropped abroad
 us-cities.json        ~700 US cities with population and rank (Natural Earth), for map labels
 us-lakes.json         large lakes in and around the US (Natural Earth 50m)
 park-hikes.json       parkId → [ { id, name, npsUrl, difficulty, distanceMi, distanceSource,
@@ -371,7 +374,9 @@ Next keep everything; Save works from the Route step on, since Notes is optional
 opens the same steps with tabs to jump straight to one.
 
 - **Where you went**: add destinations in order: search a place (your places and parks first, then
-  cities and towns, **biggest first**; towns near the trip's main destination come first; plus
+  cities and towns in the US and abroad, **biggest first**: size on a log scale, with towns near
+  the trip's main destination counted as 20× bigger, so a nearby town beats a bigger one far away
+  but not a city many times its size ("Lisbon" is Portugal's); plus
   landmarks and addresses when the detailed map is on). Long-press (or right-click) the map to
   start a trip at that spot. Picking a place you've been to before reuses it, so the new dates
   stack onto it. A dropped pin gets its state from the bundled outlines and its nearest town from
@@ -497,7 +502,7 @@ What gets added:
 | Country borders | — | Natural Earth countries (public domain), ~150 KB low detail + ~1–2 MB sharper detail as TopoJSON. Bundled and available offline |
 | States / provinces | `us-states.json` | Natural Earth regions for every country, **split into one small file per country** (`regions/{CC}.json`). Loaded when you zoom into that country, then cached for offline |
 | City labels, lakes, coastlines | US places + US lakes | Natural Earth populated places (~7,000 cities) and world lakes/coastlines, all small |
-| Offline place search | Census Gazetteer (US) | GeoNames (CC BY 4.0, needs a "data from GeoNames" credit in About): cities over 15,000 people bundled (~1 MB compressed); smaller towns **split per country** and loaded on demand |
+| Offline place search | Census Gazetteer (US) + **GeoNames cities over 15,000 people worldwide (done early)**: ~660 KB compressed, credited on the map. Places abroad have a country but no region yet: lists group them by country, and they don't count toward states | Smaller towns **split per country** and loaded on demand; regions per country |
 | Zoomed-out view | **Flat map or globe** (a 🌐 toggle, remembered per device; done early). The globe zooms out to fill 75% of the screen against a starry sky | Same |
 | Long routes | Short US hops | Dashed lines follow the great-circle path and cross the date line the short way (LA → Tokyo goes over the Pacific) |
 | Stats | States n/50, parks n/64 | Adds **countries n/195** and regions visited per country, with visited countries shaded |

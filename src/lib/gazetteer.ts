@@ -3,7 +3,7 @@ import { feature } from 'topojson-client'
 import type { GeometryCollection, Topology } from 'topojson-specification'
 import parksJson from '../data/national-parks.json'
 import { containsPoint, distanceMeters } from './geo.ts'
-import type { ParkInfo, TownRow } from './placeSearch.ts'
+import type { ParkInfo, TownRow, WorldCities } from './placeSearch.ts'
 import type { PlaceInput } from './travelActions.ts'
 import type { DistanceKind } from './types.ts'
 
@@ -18,6 +18,10 @@ type Area = Feature<Polygon | MultiPolygon, { id: string }>
 
 let towns: Promise<TownRow[]> | null = null
 export const loadTowns = () => (towns ??= import('../data/us-places.json').then((m) => m.default as unknown as TownRow[]))
+
+let world: Promise<WorldCities> | null = null
+/** Cities over 15,000 people outside the US, from GeoNames. */
+export const loadWorldCities = () => (world ??= import('../data/world-cities.json').then((m) => m.default as unknown as WorldCities))
 
 let states: Promise<Area[]> | null = null
 const loadStates = () =>
@@ -42,10 +46,41 @@ const areaAt = (areas: Area[], lng: number, lat: number) => areas.find((a) => co
 const IN_TOWN_M = 3000
 const NEAR_TOWN_M = 40000
 
+let countries: Promise<Area[]> | null = null
+const loadCountries = () =>
+  (countries ??= import('../data/world-countries.json').then((m) => {
+    const topo = m.default as unknown as Topology<{ countries: GeometryCollection<{ iso: string }> }>
+    return (feature(topo, topo.objects.countries).features as Feature<Polygon | MultiPolygon, { iso: string }>[]).map((f) => ({
+      ...f,
+      properties: { id: f.properties.iso },
+    }))
+  }))
+
+/** Names a point outside the US: the city it's in or near (GeoNames), and its country. */
+async function placeAbroad(lng: number, lat: number): Promise<PlaceInput | null> {
+  const [areas, world] = await Promise.all([loadCountries(), loadWorldCities()])
+  const country = areaAt(areas, lng, lat)
+  if (!country || country === 'US' || country === '-99') return null
+  let nearest: WorldCities['cities'][number] | null = null
+  let nearestM = Infinity
+  for (const row of world.cities) {
+    if (Math.abs(row[3] - lat) > 0.5 || Math.abs(row[4] - lng) > 0.7) continue
+    const m = distanceMeters({ lat: row[3], lng: row[4] }, { lat, lng })
+    if (m < nearestM) [nearest, nearestM] = [row, m]
+  }
+  const town = nearest && nearestM < NEAR_TOWN_M ? nearest[0] : null
+  const name = town ? (nearestM < IN_TOWN_M * 3 ? town : `Near ${town}`) : 'Dropped pin'
+  return { name, lat, lng, city: town, countryCode: country, regionCode: null, parkId: null }
+}
+
 /** Names a point on the map: the national park it's in, else the town it's in or near. */
 export async function placeAt(lng: number, lat: number): Promise<PlaceInput> {
   const [stateAreas, parks, rows] = await Promise.all([loadStates(), loadParkAreas(), loadTowns()])
   const regionCode = areaAt(stateAreas, lng, lat)
+  if (!regionCode) {
+    const abroad = await placeAbroad(lng, lat)
+    if (abroad) return abroad
+  }
   const parkId = areaAt(parks, lng, lat)
   let nearest: TownRow | null = null
   let nearestM = Infinity

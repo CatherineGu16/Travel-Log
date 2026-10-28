@@ -11,5 +11,21 @@ export const STATE_NAMES: Record<string, string> = {
   AS: 'American Samoa', GU: 'Guam', MP: 'Northern Mariana Islands', PR: 'Puerto Rico', VI: 'U.S. Virgin Islands',
 }
 
-/** "US-CA" → "California"; null or unknown → "Other". */
-export const regionName = (regionCode: string | null) => (regionCode && STATE_NAMES[regionCode.replace(/^US-/, '')]) || 'Other'
+let countryNames: Intl.DisplayNames | null = null
+
+/** "PT" → "Portugal", from the browser's own list. */
+export const countryName = (code: string) => {
+  try {
+    countryNames ??= new Intl.DisplayNames(['en'], { type: 'region' })
+    return countryNames.of(code) ?? code
+  } catch {
+    return code
+  }
+}
+
+/**
+ * For grouping and search: "US-CA" → "California"; a place abroad → its country ("Portugal"), since
+ * regions outside the US aren't tracked yet; null or unknown in the US → "Other".
+ */
+export const regionName = (regionCode: string | null, countryCode = 'US') =>
+  countryCode !== 'US' ? countryName(countryCode) : (regionCode && STATE_NAMES[regionCode.replace(/^US-/, '')]) || 'Other'

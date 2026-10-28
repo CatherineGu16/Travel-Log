@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import parks from '../data/national-parks.json'
 import towns from '../data/us-places.json'
-import { searchPlaces, type TownRow } from './placeSearch.ts'
+import world from '../data/world-cities.json'
+import { searchPlaces, type TownRow, type WorldCities } from './placeSearch.ts'
 import type { Place } from './types.ts'
 
 const sources = (yours: Place[] = []) => ({
@@ -9,6 +10,7 @@ const sources = (yours: Place[] = []) => ({
   visits: new Map(yours.map((p) => [p.id, 2])),
   parks,
   towns: towns as unknown as TownRow[],
+  world: world as unknown as WorldCities,
 })
 
 const zionPlace: Place = {
@@ -68,5 +70,23 @@ describe('searchPlaces by size', () => {
   it('still puts towns near the main destination first', () => {
     const maine = { lat: 43.86, lng: -70.1 } // Freeport, ME
     expect(searchPlaces('portland', sources(), 8, maine)[0]).toMatchObject({ label: 'Portland', detail: 'ME' })
+  })
+})
+
+describe('searchPlaces worldwide', () => {
+  it('lists big cities abroad before small US towns of the same name', () => {
+    const lisbon = searchPlaces('lisbon', sources())
+    expect(lisbon[0]).toMatchObject({ kind: 'town', label: 'Lisbon', detail: 'Portugal', ref: { place: { countryCode: 'PT', regionCode: null } } })
+    expect(lisbon.slice(1, 4).map((r) => r.detail)).toEqual(['WI', 'OH', 'IA'])
+    // Even near a small one: Lisbon, Portugal is far bigger than Lisbon, Ohio.
+    expect(searchPlaces('lisbon', sources(), 8, { lat: 40.77, lng: -80.77 })[0]).toMatchObject({ detail: 'Portugal' })
+    expect(searchPlaces('funchal', sources())[0]).toMatchObject({ label: 'Funchal', detail: 'Madeira, Portugal' })
+  })
+
+  it('narrows to a country by name, code or common alias; US state codes come first', () => {
+    expect(searchPlaces('Lisbon, Portugal', sources()).every((r) => r.detail.endsWith('Portugal'))).toBe(true)
+    expect(searchPlaces('london uk', sources())[0]).toMatchObject({ label: 'London', detail: expect.stringMatching(/United Kingdom$/) })
+    expect(searchPlaces('london ca', sources()).every((r) => r.detail === 'CA')).toBe(true)
+    expect(searchPlaces('london usa', sources()).every((r) => /^[A-Z]{2}$/.test(r.detail))).toBe(true)
   })
 })

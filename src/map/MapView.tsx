@@ -89,7 +89,7 @@ export function MapView(props: MapViewProps) {
           bounds: VIEWS.us.bounds,
           fitBoundsOptions: { padding: fitPadding() },
           maxZoom: 14,
-          attributionControl: { compact: true, customAttribution: 'National Park Service' },
+          attributionControl: { compact: true, customAttribution: ['National Park Service', 'Place names: GeoNames'] },
           dragRotate: false,
           pitchWithRotate: false,
           touchPitch: false,

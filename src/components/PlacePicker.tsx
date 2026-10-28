@@ -1,10 +1,10 @@
 import { useEffect, useId, useMemo, useState } from 'react'
 import { visitsPerPlace } from '../lib/derive.ts'
-import { loadTowns, parkAt, PARKS } from '../lib/gazetteer.ts'
+import { loadTowns, loadWorldCities, parkAt, PARKS } from '../lib/gazetteer.ts'
 import type { ParkInfo } from '../lib/placeSearch.ts'
 import { searchOnline } from '../lib/onlineSearch.ts'
 import { useMapDetail } from '../ui/mapDetail.ts'
-import { searchPlaces, type SearchResult, type TownRow } from '../lib/placeSearch.ts'
+import { searchPlaces, type SearchResult, type TownRow, type WorldCities } from '../lib/placeSearch.ts'
 import { describeRef, type ChosenPlace } from '../lib/chosenPlace.ts'
 import { live } from '../lib/travelActions.ts'
 import type { TravelData } from '../lib/types.ts'
@@ -12,7 +12,7 @@ import type { TravelData } from '../lib/types.ts'
 const NO_RESULTS: SearchResult[] = []
 
 /**
- * Pick a place: type to search your places, national parks and US towns (all offline). A chosen
+ * Pick a place: type to search your places, national parks, US towns and cities worldwide (all offline). A chosen
  * place shows as a chip; a dropped pin can be renamed.
  */
 export function PlacePicker({
@@ -34,15 +34,17 @@ export function PlacePicker({
   const id = useId()
   const [query, setQuery] = useState('')
   const [towns, setTowns] = useState<TownRow[]>([])
+  const [world, setWorld] = useState<WorldCities | null>(null)
   const [active, setActive] = useState(0)
 
   useEffect(() => {
     void loadTowns().then(setTowns)
+    void loadWorldCities().then(setWorld)
   }, [])
 
   const yours = useMemo(() => live(data.places), [data.places])
   const visits = useMemo(() => visitsPerPlace(data), [data])
-  const local = useMemo(() => searchPlaces(query, { yours, visits, parks: PARKS, towns }, 8, near), [query, yours, visits, towns, near])
+  const local = useMemo(() => searchPlaces(query, { yours, visits, parks: PARKS, towns, world }, 8, near), [query, yours, visits, towns, world, near])
 
   // With the detailed map on, landmarks and addresses from Photon follow the offline results.
   const detailed = useMapDetail() === 'detailed'
