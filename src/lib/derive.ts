@@ -83,12 +83,9 @@ export function includesFamily(data: TravelData, personIds: string[], groupIds: 
   return groupIds.includes(family.id) || personIds.some((id) => family.memberIds.includes(id))
 }
 
-/** Everyone on a trip: the people listed, plus the members of any group tagged on it. */
-export function tripPeopleIds(trip: Trip, data: TravelData): string[] {
-  const members = live(data.groups)
-    .filter((g) => trip.companionGroupIds.includes(g.id))
-    .flatMap((g) => g.memberIds)
-  return [...new Set([...trip.companions, ...members])]
+/** Everyone on a trip: the people listed (groups only sort people, so they add no one). */
+export function tripPeopleIds(trip: Trip, _data?: TravelData): string[] {
+  return [...new Set(trip.companions)]
 }
 
 export const livePeople = (data: TravelData): Person[] => live(data.people).sort((a, b) => a.name.localeCompare(b.name))

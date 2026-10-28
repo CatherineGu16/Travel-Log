@@ -124,8 +124,6 @@ export interface TripInput {
   /** In visit order. If none is marked main, the first one is. */
   destinations: DestinationInput[]
   companions: string[]
-  /** Groups tagged on the trip as a whole ("Friends"). */
-  companionGroupIds?: string[]
   /** How you got from the start to the first place, and back at the end; flight when omitted. */
   startMode?: LegMode
   endMode?: LegMode
@@ -171,7 +169,6 @@ export function saveTrip(data: TravelData, ctx: EditContext, input: TripInput, t
     approximate: input.approximate,
     destinations,
     companions: [...new Set(input.companions)],
-    companionGroupIds: [...new Set(input.companionGroupIds ?? [])],
     startMode: input.startMode ?? 'flight',
     endMode: input.endMode ?? 'flight',
     startVia: (input.startMode ?? 'flight') === 'flight' ? [] : (input.startVia ?? []),

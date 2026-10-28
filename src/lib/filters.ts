@@ -41,8 +41,7 @@ export function matchesFilter(trip: Trip, f: TripFilter, data?: TravelData): boo
   if (f.groupIds.length) {
     const groups = data ? data.groups.filter((g) => f.groupIds.includes(g.id)) : []
     const people = data ? tripPeopleIds(trip, data) : trip.companions
-    const tagged = f.groupIds.some((id) => trip.companionGroupIds.includes(id))
-    if (!tagged && !groups.some((g) => g.memberIds.some((m) => people.includes(m)))) return false
+    if (!groups.some((g) => g.memberIds.some((m) => people.includes(m)))) return false
   }
   if (f.personIds.length) {
     const people = data ? tripPeopleIds(trip, data) : trip.companions
@@ -74,7 +73,7 @@ export function matchesSearch(trip: Trip, data: TravelData, query: string): bool
   const places = tripPlaceIds(trip).map((id) => data.places.find((p) => p.id === id))
   const people = trip.companions.map((id) => data.people.find((p) => p.id === id)?.name)
   const groups = live(data.groups)
-    .filter((g) => trip.companionGroupIds.includes(g.id) || g.memberIds.some((m) => trip.companions.includes(m)))
+    .filter((g) => g.memberIds.some((m) => trip.companions.includes(m)))
     .map((g) => g.name)
   const haystack = normalize(
     [
@@ -122,9 +121,9 @@ export function groupTrips(trips: Trip[], data: TravelData, grouping: TripGroupi
   const keyOf = (t: Trip): [string, string] => {
     if (grouping === 'year') return [yearOf(t.startDate), yearOf(t.startDate)]
     if (grouping === 'who') {
-      // By the first group tagged on the trip (Family first), else "Other".
+      // By the first group with someone on the trip (Family first), else "Other".
       const tagged = live(data.groups)
-        .filter((g) => t.companionGroupIds.includes(g.id))
+        .filter((g) => g.memberIds.some((m) => t.companions.includes(m)))
         .sort((a, b) => Number(b.isFamily) - Number(a.isFamily) || a.name.localeCompare(b.name))[0]
       return tagged ? [`${tagged.isFamily ? 0 : 1}${tagged.name}`, tagged.name] : ['9', 'Other']
     }

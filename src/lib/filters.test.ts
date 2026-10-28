@@ -11,7 +11,7 @@ const input = (over: Parameters<typeof tripInput>[0]): TripInput => tripInput({ 
 
 const data = (() => {
   let d = addPerson(emptyData('t'), ctx, 'mom', { name: 'Mom', groupIds: [FAMILY_GROUP_ID] })
-  d = saveTrip(d, ctx, input({ title: 'Moab with Mom', companions: ['mom'], companionGroupIds: [FAMILY_GROUP_ID], tags: ['camping'], rating: 4 }))
+  d = saveTrip(d, ctx, input({ title: 'Moab with Mom', companions: ['mom'], tags: ['camping', 'Family'], rating: 4 }))
   d = saveTrip(d, ctx, input({ title: 'Chicago work trip', startDate: '2019-05', main: place('Chicago', 41.88, -87.63, 'US-IL'), highlights: 'Deep dish' }))
   d = saveTrip(d, ctx, input({ title: 'Denver', startDate: '2023-02', main: place('Denver', 39.74, -104.99, 'US-CO'), stops: [{ place: place('Boulder', 40.01, -105.27, 'US-CO') }], rating: 5 }))
   return d
@@ -69,9 +69,9 @@ describe('groupTrips', () => {
 })
 
 describe('group tags', () => {
-  it('counts everyone in a tagged group as on the trip, for filters and search', () => {
+  it('finds trips by the people in a group, for filters and search', () => {
     let d = addPerson(emptyData('t'), ctx, 'sam', { name: 'Sam', groupIds: ['friends'] })
-    d = saveTrip(d, ctx, input({ title: 'Beach weekend', companionGroupIds: ['friends'] }))
+    d = saveTrip(d, ctx, input({ title: 'Beach weekend', companions: ['sam'] }))
     expect(titles(filterData(d, { ...NO_FILTER, personIds: ['sam'] }))).toEqual(['Beach weekend'])
     expect(titles(filterData(d, { ...NO_FILTER, groupIds: ['friends'] }))).toEqual(['Beach weekend'])
     expect(d.trips.filter((t) => matchesSearch(t, d, 'friends')).map((t) => t.title)).toEqual(['Beach weekend'])

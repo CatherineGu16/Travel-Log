@@ -242,14 +242,13 @@ units (monuments, seashores, historic sites — 400+ total) could be added later
              startMode, endMode,             // leg modes from the start to the first place and back (flight by default)
              startVia, endVia,               // bends on the way there and back (not for a flight)
              companions: [personId],         // people who went, one by one
-             companionGroupIds: [groupId],   // groups tagged as a whole ("Friends")
              hikes: [ { parkId,              // hikes done on this trip
                         hikeId | null,       // from park-hikes.json, or null for a custom hike
                         name,                // trail name (custom hikes type their own)
                         date | null } ],
              description, highlights,        // short summary; favorite moments
              rating | null,                  // 1–5
-             tags: [],
+             tags: [],                       // "camping", "Family"… (earlier group tags became tags by name)
              createdAt, updatedAt, deleted? } ],   // deleted = tombstone for sync merges
   places: [ { id, name,                      // "Zion National Park"
               lat, lng, city,
@@ -438,11 +437,17 @@ opens the same steps with tabs to jump straight to one.
 - **Title** (suggested from the main destinations and year, e.g. "Zion & Las Vegas 2024").
 - **Hikes**: for every national park on the trip, the hikes you did there, added with the same
   **Add a hike** search box and suggestions as the park page (no checklist).
-- **Who went**: your people sorted under their groups (Family, Friends, your own, then Others),
-  each a button that's filled with a ✓ when they went; tap again to take them off. Typing narrows
-  the list, or **adds a new person** in whichever groups you tick, without leaving the form.
+- **Who went**: your **groups as chips that are on or off** (Family, Friends, your own): on brings
+  everyone in the group, off takes them all off; a group that's on stands for its people, so they
+  aren't listed one by one. **Anyone else going** shows as a chip with ×. People not in a group
+  aren't listed until you **search** for them. Typing a name that isn't anyone offers people with
+  a similar name first ("Did you mean Alexa?"), then **Add “…” as someone new**, in whichever
+  groups you tick. The trip only records the people, never the groups (so a group is "on" when
+  everyone in it went).
 - Optional (Notes step): hikes, description and highlights (the boxes grow as you type), rating,
-  tags.
+  **tags as chips**: tags on your other trips (most used first) and your group names are offered
+  as chips to tap; type a new one and press Enter or a comma; × removes one. "Family" is a tag
+  like any other, not part of who went.
 - Save, then the map flies to the new pin and shows its route.
 - **On phones**, while the on-screen keyboard is open the form fills exactly the visible part of the
   screen (iPhone Safari pans the page when you tap a field) and scrolls on its own, so the title

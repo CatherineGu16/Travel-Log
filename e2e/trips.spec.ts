@@ -165,46 +165,59 @@ test('trip dates are a range picker: tap the first day, then the last', async ({
   await expect(range).toContainText('Jul 2023')
 })
 
-test('who went: people sorted under their groups, each marked as going or not', async ({ page }) => {
+test('who went: groups are on or off, anyone else is searched for and added', async ({ page }) => {
   await page.goto('./')
   await page.getByRole('button', { name: 'People & groups' }).click()
   const people = page.getByRole('dialog', { name: 'People & groups' })
   for (const [name, group] of [
     ['Mom', 'Family'],
     ['Dad', 'Family'],
-    ['Sam', 'Friends'],
-  ]) {
+    ['Sis', 'Family'],
+    ['Alexa', 'Friends'],
+    ['Jordan', null],
+  ] as const) {
     await people.getByRole('button', { name: '+ Add person' }).click()
     const editor = page.getByRole('dialog', { name: 'Add person' })
     await editor.getByRole('textbox', { name: 'Name' }).fill(name)
-    await editor.getByRole('checkbox', { name: group }).check()
+    if (group) await editor.getByRole('checkbox', { name: group }).check()
     await editor.getByRole('button', { name: 'Save' }).click()
   }
   await page.getByRole('dialog', { name: 'People & groups' }).getByRole('button', { name: 'Close' }).click()
 
   await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
-  const family = dialog.getByRole('group', { name: 'Family' })
-  const friends = dialog.getByRole('group', { name: 'Friends' })
-  await expect(family.getByRole('button')).toHaveText([/Dad/, /Mom/])
-  await expect(friends.getByRole('button')).toHaveText([/Sam/])
-  // Groups only sort people: nothing adds a whole group.
-  await expect(dialog.getByRole('button', { name: /^\+ (Family|Friends)$/ })).toHaveCount(0)
+  const groups = dialog.getByRole('group', { name: 'Groups' })
+  const others = dialog.getByRole('list', { name: 'Also going' })
+  await expect(groups.getByRole('button')).toHaveText(['Family', 'Friends'])
+  // People not in a group aren't listed until you search for them.
+  await expect(dialog.getByRole('button', { name: 'Jordan' })).toHaveCount(0)
 
-  const mom = family.getByRole('button', { name: 'Mom' })
-  await mom.click()
-  await expect(mom).toHaveAttribute('aria-pressed', 'true')
-  await expect(family.getByRole('button', { name: 'Dad' })).toHaveAttribute('aria-pressed', 'false')
-  await expect(dialog).toContainText('1 person')
-  await mom.click()
-  await expect(mom).toHaveAttribute('aria-pressed', 'false')
+  // A group is one chip: on brings everyone in it, without listing them one by one; off takes them off.
+  const family = groups.getByRole('button', { name: 'Family' })
+  await family.click()
+  await expect(family).toHaveAttribute('aria-pressed', 'true')
+  await expect(dialog).toContainText('3 people')
+  await expect(others).toHaveCount(0)
+  await family.click()
+  await expect(family).toHaveAttribute('aria-pressed', 'false')
+  await expect(dialog).not.toContainText('3 people')
 
-  // Someone new goes in whichever groups you pick, and is marked as going.
-  await dialog.getByRole('searchbox', { name: 'Add a person' }).fill('Alex')
+  // Anyone else: search, tap, and they're listed with ×.
+  const search = dialog.getByRole('searchbox', { name: 'Add a person' })
+  await search.fill('jor')
+  await dialog.getByRole('group', { name: 'Matching people' }).getByRole('button', { name: 'Jordan' }).click()
+  await search.fill('')
+  await expect(others.getByRole('listitem')).toHaveText([/Jordan/])
+
+  // A near miss is offered before adding someone new; someone new goes in the groups you pick.
+  await search.fill('Alexx')
+  await expect(dialog.getByRole('group', { name: 'Did you mean' }).getByRole('button', { name: 'Alexa' })).toBeVisible()
+  await search.fill('Robin')
   await dialog.getByRole('checkbox', { name: 'Friends' }).check()
-  await dialog.getByRole('button', { name: 'Add “Alex”' }).click()
-  await expect(friends.getByRole('button')).toHaveText([/Alex/, /Sam/])
-  await expect(friends.getByRole('button', { name: 'Alex' })).toHaveAttribute('aria-pressed', 'true')
+  await dialog.getByRole('button', { name: 'Add “Robin” as someone new' }).click()
+  await expect(others.getByRole('listitem')).toHaveText([/Jordan/, /Robin/])
+  await others.getByRole('button', { name: 'Remove Jordan' }).click()
+  await expect(others.getByRole('listitem')).toHaveText([/Robin/])
 })
 
 test('shaping the route between two places bends the dotted line through your taps', async ({ page }) => {
@@ -262,7 +275,12 @@ test('notes, rating and tags are their own step and show on the trip', async ({ 
   expect((await description.boundingBox())!.height).toBeGreaterThan(before * 1.5)
   await dialog.getByRole('textbox', { name: 'Highlights' }).fill('Sunrise at Canyon Overlook')
   await dialog.getByRole('button', { name: '4 stars' }).click()
-  await dialog.getByRole('textbox', { name: 'Tags' }).fill('camping, desert')
+  // Tags are chips: type one and press Enter (or a comma).
+  const tag = dialog.getByRole('textbox', { name: 'Add a tag' })
+  await tag.fill('camping')
+  await tag.press('Enter')
+  await tag.pressSequentially('desert,')
+  await expect(dialog.getByRole('list', { name: 'Tags on this trip' }).getByRole('listitem')).toHaveText(['camping', 'desert'])
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(dialog).toBeHidden()
 
@@ -474,7 +492,8 @@ test('stop dates from a strip of the trip days, shown as day numbers; details li
   await bryceDays.getByRole('button', { name: /^Day 6,/ }).click()
   await expect(bryce.getByRole('button', { name: /^Dates at Bryce/ })).toHaveText(/Days 3–6/)
   await dialog.getByRole('button', { name: 'Next: Notes' }).click()
-  await dialog.getByRole('textbox', { name: 'Tags' }).fill('canyons')
+  await dialog.getByRole('textbox', { name: 'Add a tag' }).fill('canyons')
+  await dialog.getByRole('textbox', { name: 'Add a tag' }).press('Enter')
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(dialog).toBeHidden()
 
@@ -525,4 +544,49 @@ test('shaping a leg can follow the way you came, then take more taps', async ({ 
   await banner.getByRole('button', { name: 'Undo' }).click()
   await banner.getByRole('button', { name: 'Done' }).click()
   await expect(dialog.getByRole('button', { name: /^Shape the route from Bryce Canyon National Park to St/ })).toHaveText('Bends 1× · Edit')
+})
+
+test('tags you have used before are chips to add; who went in the details is just people', async ({ page }) => {
+  await page.goto('./')
+  await page.getByRole('button', { name: 'People & groups' }).click()
+  const people = page.getByRole('dialog', { name: 'People & groups' })
+  for (const name of ['Mom', 'Dad']) {
+    await people.getByRole('button', { name: '+ Add person' }).click()
+    const editor = page.getByRole('dialog', { name: 'Add person' })
+    await editor.getByRole('textbox', { name: 'Name' }).fill(name)
+    await editor.getByRole('checkbox', { name: 'Family' }).check()
+    await editor.getByRole('button', { name: 'Save' }).click()
+  }
+  await page.getByRole('dialog', { name: 'People & groups' }).getByRole('button', { name: 'Close' }).click()
+
+  for (const [query, option, title] of [
+    ['moab', /^Moab/, 'First'],
+    ['chicago', /^Chicago/, 'Second'],
+  ] as const) {
+    await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
+    const dialog = page.getByRole('dialog', { name: 'Add trip' })
+    await dialog.getByRole('textbox', { name: 'Title' }).fill(title)
+    await dialog.getByRole('group', { name: 'Groups' }).getByRole('button', { name: /^Family/ }).click()
+    await toStep(dialog, 'Route')
+    await choosePlace(page, DEST, query, option)
+    await toStep(dialog, 'Notes')
+    if (title === 'First') {
+      // Your group names are offered as tags; new ones are typed.
+      await dialog.getByRole('group', { name: "Tags you've used" }).getByRole('button', { name: '+ Family' }).click()
+      await dialog.getByRole('textbox', { name: 'Add a tag' }).fill('road food')
+      await dialog.getByRole('textbox', { name: 'Add a tag' }).press('Enter')
+    } else {
+      // The second trip is offered the tags from the first.
+      await dialog.getByRole('group', { name: "Tags you've used" }).getByRole('button', { name: '+ road food' }).click()
+    }
+    await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+    await expect(dialog).toBeHidden()
+  }
+
+  await page.getByRole('region', { name: 'Chicago trips' }).getByRole('button', { name: /^Details/ }).click()
+  const detail = page.getByRole('dialog', { name: 'Second' })
+  await expect(detail.getByRole('list', { name: 'Tags' })).toHaveText(/road food/)
+  // Who went lists the people, not the group they're in.
+  const who = detail.getByRole('heading', { name: 'Who went' }).locator('xpath=../following-sibling::ul')
+  await expect(who.getByRole('listitem')).toHaveText([/Mom/, /Dad/])
 })

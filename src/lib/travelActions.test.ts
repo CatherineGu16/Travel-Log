@@ -240,12 +240,11 @@ describe('trips with more than one main destination', () => {
 })
 
 describe('who went', () => {
-  it('tags groups without listing people, and a Family tag counts as family', () => {
+  it('records only the people on a trip; groups add no one', () => {
     let data = addPerson(emptyData('t0'), ctx(), 'mom', { name: 'Mom', groupIds: [FAMILY_GROUP_ID] })
-    data = saveTrip(data, ctx(), trip({ companionGroupIds: [FAMILY_GROUP_ID, 'friends', FAMILY_GROUP_ID] }))
-    expect(data.trips[0].companionGroupIds).toEqual([FAMILY_GROUP_ID, 'friends'])
+    data = saveTrip(data, ctx(), trip({ companions: ['mom', 'mom'] }))
     expect(tripPeopleIds(data.trips[0], data)).toEqual(['mom'])
-    expect(includesFamily(data, [], ['friends'])).toBe(false)
-    expect(includesFamily(data, [], [FAMILY_GROUP_ID])).toBe(true)
+    expect(includesFamily(data, ['mom'])).toBe(true)
+    expect(includesFamily(data, [])).toBe(false)
   })
 })

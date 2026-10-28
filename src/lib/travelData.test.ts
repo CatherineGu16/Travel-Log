@@ -81,7 +81,7 @@ describe('trips saved before destinations', () => {
     ])
     expect(parsed.trips[0]).toMatchObject({ startMode: 'flight', endMode: 'flight', start: null })
     expect(parsed.trips[0].destinations.map((d) => d.legMode)).toEqual([null, null, null])
-    expect(parsed.trips[0].companionGroupIds).toEqual([])
+    expect(parsed.trips[0].tags).toEqual([])
   })
 })
 
@@ -98,7 +98,19 @@ describe('earlier trip types', () => {
       people: [],
       groups: [],
     })
-    expect(parsed.trips.map((t) => t.companionGroupIds)).toEqual([['family'], ['friends'], []])
+    expect(parsed.trips.map((t) => t.tags)).toEqual([['Family'], ['Friends'], []])
+  })
+
+  it('turn a group tagged on a trip into a tag with its name, next to the trip’s own tags', () => {
+    const parsed = parseTravelData({
+      schemaVersion: 1,
+      places: [{ id: 'p', name: 'Moab', lat: 38.5, lng: -109.5, updatedAt: 't' }],
+      trips: [{ id: 'a', updatedAt: 't', startDate: '2020', destinations: [{ placeId: 'p', isMain: true }], companionGroupIds: ['g1', 'friends'], tags: ['camping'] }],
+      people: [],
+      groups: [{ id: 'g1', updatedAt: 't', name: 'College crew', memberIds: [] }],
+    })
+    expect(parsed.trips[0].tags).toEqual(['camping', 'College crew', 'Friends'])
+    expect('companionGroupIds' in parsed.trips[0]).toBe(false)
   })
 })
 

@@ -138,7 +138,15 @@ export function parseTravelData(input: unknown): TravelData {
     return insertCheapest(located, { ...at(main), d: main }).map((l) => l.d)
   }
 
+  // Groups tagged on a trip as a whole by earlier versions, turned into tags by name once groups are read.
+  const groupTags = new Map<string, string[]>()
   const trips = records<Trip>('trips', (x, base) => {
+    groupTags.set(base.id, [
+      ...strings(x.companionGroupIds),
+      // The earlier Family switch and Family / Friends trip type.
+      ...(x.isFamily === true || x.tripType === 'family' ? [FAMILY_GROUP_ID] : []),
+      ...(x.tripType === 'friends' ? [FRIENDS_GROUP_ID] : []),
+    ])
     const startDate = dateOrNull(x.startDate)
     if (!startDate) return null
     const destinations = Array.isArray(x.destinations)
@@ -183,14 +191,6 @@ export function parseTravelData(input: unknown): TravelData {
       approximate: x.approximate === true,
       destinations,
       companions: strings(x.companions),
-      companionGroupIds: [
-        ...new Set([
-          ...strings(x.companionGroupIds),
-          // Trips marked with the earlier Family switch or Family / Friends type keep it as a tag.
-          ...(x.isFamily === true || x.tripType === 'family' ? [FAMILY_GROUP_ID] : []),
-          ...(x.tripType === 'friends' ? [FRIENDS_GROUP_ID] : []),
-        ]),
-      ],
       hikes: (Array.isArray(x.hikes) ? x.hikes : [])
         .filter((h): h is Record<string, unknown> => isObject(h) && typeof h.parkId === 'string' && typeof h.name === 'string')
         .map((h) => ({ parkId: h.parkId as string, hikeId: typeof h.hikeId === 'string' ? h.hikeId : null, name: h.name as string, date: dateOrNull(h.date) })),
@@ -216,6 +216,11 @@ export function parseTravelData(input: unknown): TravelData {
   }))
   // Every copy has the built-in Family and Friends groups, even an old or hand-made file.
   for (const g of builtInGroups()) if (!groups.some((x) => x.id === g.id)) groups.push(g)
+  // A group tagged on a trip is now just a tag ("Family"): groups only sort people.
+  for (const t of trips) {
+    const names = (groupTags.get(t.id) ?? []).map((id) => groups.find((g) => g.id === id)?.name).filter((n): n is string => !!n)
+    if (names.length) t.tags = [...new Set([...t.tags, ...names])]
+  }
 
   // Added later: older files have none.
   if (!Array.isArray(o.hikeEdits)) o.hikeEdits = []

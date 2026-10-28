@@ -12,6 +12,7 @@ import { PeoplePicker } from './PeoplePicker.tsx'
 import { ParkSuggestion, PinGlyph, PlacePicker } from './PlacePicker.tsx'
 import { Sheet } from './Sheet.tsx'
 import { StopDates } from './StopDates.tsx'
+import { TagsField } from './TagsField.tsx'
 import { HomeGlyph, LegRow } from './LegRow.tsx'
 import { useToast } from './toastContext.ts'
 
@@ -138,11 +139,17 @@ export function TripForm({
   const startVia = startShape.key === destinations[0]?.key && startShape.at === startKey(start) ? startShape.via : []
   const endVia = endShape.key === destinations.at(-1)?.key && endShape.at === startKey(start) ? endShape.via : []
   const [companions, setCompanions] = useState<string[]>(trip?.companions ?? [])
-  const [companionGroupIds, setCompanionGroupIds] = useState<string[]>(trip?.companionGroupIds ?? [])
   const [description, setDescription] = useState(trip?.description ?? '')
   const [highlights, setHighlights] = useState(trip?.highlights ?? '')
   const [rating, setRating] = useState<number | null>(trip?.rating ?? null)
-  const [tags, setTags] = useState((trip?.tags ?? []).join(', '))
+  const [tags, setTags] = useState<string[]>(trip?.tags ?? [])
+  // Tags offered as chips: the ones on your other trips, most used first, and your group names.
+  const usedTags = useMemo(() => {
+    const count = new Map<string, number>()
+    for (const t of data.trips) if (!t.deleted) for (const tag of t.tags) count.set(tag, (count.get(tag) ?? 0) + 1)
+    for (const g of data.groups) if (!g.deleted && !count.has(g.name)) count.set(g.name, 0)
+    return [...count].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([tag]) => tag)
+  }, [data.trips, data.groups])
   const [hikes, setHikes] = useState<TripHike[]>(trip?.hikes ?? [])
   const [error, setError] = useState<string | null>(null)
   // The stop whose dates are open for picking (one at a time).
@@ -309,7 +316,6 @@ export function TripForm({
         legMode: d.legMode,
       })),
       companions,
-      companionGroupIds,
       start,
       startMode,
       endMode,
@@ -318,7 +324,7 @@ export function TripForm({
       description,
       highlights,
       rating,
-      tags: tags.split(','),
+      tags,
       // Hikes in parks that are no longer on the trip are dropped.
       hikes: hikes.filter((h) => parkIds.includes(h.parkId)),
     }
@@ -478,8 +484,6 @@ export function TripForm({
               data={data}
               value={companions}
               onChange={setCompanions}
-              groupIds={companionGroupIds}
-              onGroupsChange={setCompanionGroupIds}
               onAddPerson={(name, groupIds) => {
                 const id = newId()
                 const ok = store.apply((d, c) => addPerson(d, c, id, { name, groupIds }), `Added ${name}`)
@@ -686,11 +690,7 @@ export function TripForm({
                 ))}
               </div>
             </fieldset>
-            <label className="block">
-              <span className="mb-1 block text-sm font-bold">Tags</span>
-              <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="camping, beach" className={`${input} h-10`} />
-              <span className="mt-1 block text-xs text-muted">Separate with commas. Filter the map and lists by a tag.</span>
-            </label>
+            <TagsField value={tags} suggestions={usedTags} onChange={setTags} />
           </>
         )}
         <button type="submit" hidden />

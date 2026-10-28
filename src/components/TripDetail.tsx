@@ -8,7 +8,6 @@ import { deleteTrip } from '../lib/travelActions.ts'
 import type { LegMode, TravelData, Trip } from '../lib/types.ts'
 import { useStore } from '../store/useTravel.ts'
 import { Avatar } from './Avatar.tsx'
-import { GroupIcon } from './PeoplePicker.tsx'
 import { PinGlyph } from './PlacePicker.tsx'
 import { Sheet } from './Sheet.tsx'
 import { useToast } from './toastContext.ts'
@@ -79,7 +78,6 @@ export function TripDetail({
     return p ? [{ place: p, destination: d, number: d.isMain ? null : ++n }] : []
   })
   const people = trip.companions.map((id) => data.people.find((p) => p.id === id)).filter((p) => p !== undefined)
-  const tagged = data.groups.filter((g) => !g.deleted && trip.companionGroupIds.includes(g.id))
   const hikesByPark = [...new Set(trip.hikes.map((h) => h.parkId))].map((parkId) => ({
     parkId,
     park: PARKS.find((p) => p.id === parkId)?.fullName ?? parkId,
@@ -113,16 +111,10 @@ export function TripDetail({
             <RouteMap route={route} label={`Map of the route: ${route.map((r) => r.place.name).join(', ')}`} />
           </Suspense>
         )}
-        {(people.length > 0 || tagged.length > 0) && (
+        {people.length > 0 && (
           <section>
             {heading('Who went', 'Details', 'who went')}
             <ul className="flex flex-wrap gap-2">
-              {tagged.map((g) => (
-                <li key={g.id} className="flex items-center gap-1.5 rounded-full bg-raised py-1.5 pr-3 pl-2.5 text-sm font-bold">
-                  <GroupIcon />
-                  {g.name}
-                </li>
-              ))}
               {people.map((p) => (
                 <li key={p.id} className="flex items-center gap-1.5 rounded-full bg-raised py-1 pr-3 pl-1 text-sm">
                   <Avatar person={p} size={26} />

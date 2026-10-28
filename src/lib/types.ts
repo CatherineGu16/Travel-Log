@@ -72,8 +72,6 @@ export interface Trip extends Synced {
   destinations: Destination[]
   /** People who went, one by one. */
   companions: string[]
-  /** Groups that went, as a tag ("Friends"), without listing each person. */
-  companionGroupIds: string[]
   hikes: TripHike[]
   /** How you got from where the trip started to the first place, and back at the end (flight by default). */
   startMode: LegMode
