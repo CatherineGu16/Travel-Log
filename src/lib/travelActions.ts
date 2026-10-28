@@ -131,8 +131,6 @@ export interface TripInput {
   endMode?: LegMode
   /** Where the trip started and ended (see Trip.start). */
   start?: TripStart | null
-  /** Came back the same way (see Trip.returnSameWay). */
-  returnSameWay?: boolean
   description: string
   highlights: string
   rating: number | null
@@ -174,8 +172,6 @@ export function saveTrip(data: TravelData, ctx: EditContext, input: TripInput, t
     startMode: input.startMode ?? 'flight',
     endMode: input.endMode ?? 'flight',
     start: input.start ? { name: input.start.name, lat: input.start.lat, lng: input.start.lng } : null,
-    // Only meaningful with two or more places to go back through.
-    returnSameWay: !!input.returnSameWay && destinations.length > 1,
     description: input.description.trim(),
     highlights: input.highlights.trim(),
     rating: input.rating,

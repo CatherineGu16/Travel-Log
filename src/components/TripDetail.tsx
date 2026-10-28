@@ -110,7 +110,7 @@ export function TripDetail({
       <div className="flex flex-col gap-6">
         {route.length > 1 && (
           <Suspense fallback={<div className="h-44 rounded-xl border border-line bg-raised" />}>
-            <RouteMap route={route} label={`Map of the route: ${route.filter((r) => !r.returning).map((r) => r.place.name).join(', ')}`} />
+            <RouteMap route={route} label={`Map of the route: ${route.map((r) => r.place.name).join(', ')}`} />
           </Suspense>
         )}
         {(people.length > 0 || tagged.length > 0) && (

@@ -11,7 +11,7 @@ const places = [place('la', 34.05, -118.24), place('vegas', 36.17, -115.14), pla
 const home: Home = { id: 'home', name: 'Home', lat: 34.15, lng: -118.14, createdAt: '', updatedAt: '' }
 const dest = (placeId: string, legMode: LegMode | null = null): Destination => ({ placeId, isMain: true, startDate: null, endDate: null, note: '', via: [], legMode })
 const trip = (id: string, destinations: Destination[], extra: Partial<Trip> = {}): Trip =>
-  ({ id, destinations, startMode: 'flight', endMode: 'flight', start: null, returnSameWay: false, updatedAt: id, createdAt: id, ...extra }) as Trip
+  ({ id, destinations, startMode: 'flight', endMode: 'flight', start: null, updatedAt: id, createdAt: id, ...extra }) as Trip
 const data = (trips: Trip[], withHome = false) => ({ trips, places, home: withHome ? home : null }) as TravelData
 
 describe('legs', () => {
@@ -80,20 +80,14 @@ describe('legs', () => {
     expect(tripKind(legs)).toBeNull()
   })
 
-  it('comes back the same way: the legs reversed, bends and modes included, then home from the first stop', () => {
-    const t = trip('a', [dest('la'), { ...dest('vegas', 'train'), via: [[-117, 35]] }, dest('honolulu')], { startMode: 'drive', endMode: 'drive', start: home, returnSameWay: true })
-    const legs = legsOf(t, data([t]))
-    expect(legs.map((l) => `${l.from.name}>${l.to.name} ${l.mode} ${l.role}`)).toEqual([
+  it('goes back to where it started from the last place', () => {
+    const t = trip('a', [dest('la'), { ...dest('vegas', 'train'), via: [[-117, 35]] }], { startMode: 'drive', endMode: 'drive', start: home })
+    expect(legsOf(t, data([t])).map((l) => `${l.from.name}>${l.to.name} ${l.mode} ${l.role}`)).toEqual([
       'Home>la drive home',
       'la>vegas train stop',
-      'vegas>honolulu flight stop',
-      'honolulu>vegas flight return',
-      'vegas>la train return',
-      'la>Home drive home',
+      'vegas>Home drive home',
     ])
-    expect(legs[4].via).toEqual([[-117, 35]])
-    const route = routeOf(t, places)
-    expect(route.map((r) => `${r.place.id}${r.returning ? '↩' : ''}`)).toEqual(['home', 'la', 'vegas', 'honolulu', 'vegas↩', 'la↩', 'home'])
+    expect(routeOf(t, places).map((r) => r.role)).toEqual(['home', 'main', 'main', 'home'])
   })
 
   it('makes an all-drive trip a road trip and any cruise a cruise', () => {

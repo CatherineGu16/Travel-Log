@@ -197,7 +197,6 @@ export function parseTravelData(input: unknown): TravelData {
       startMode,
       endMode,
       ...(start === undefined ? {} : { start }),
-      returnSameWay: x.returnSameWay === true && destinations.length > 1,
       description: str(x.description),
       highlights: str(x.highlights),
       rating: typeof x.rating === 'number' && x.rating >= 1 && x.rating <= 5 ? Math.round(x.rating) : null,

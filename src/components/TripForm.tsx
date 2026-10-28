@@ -3,7 +3,7 @@ import { describeRef, type ChosenPlace } from '../lib/chosenPlace.ts'
 import { comparePartialDates, dayLabel, formatDateRange, todayIso, yearOf } from '../lib/partialDate.ts'
 import { addPerson, saveTrip, type PlaceInput, type TripInput } from '../lib/travelActions.ts'
 import { followTraveledBends, legPaths, type RoutePoint } from '../lib/route.ts'
-import { endOfHome, homeLeg, legMemory, returnLegs, stopLegs, type Leg, type LegEnd } from '../lib/legs.ts'
+import { endOfHome, homeLeg, legMemory, stopLegs, type Leg, type LegEnd } from '../lib/legs.ts'
 import { type LegMode, type LngLat, type PartialDate, type Place, type TravelData, type Trip, type TripHike, type TripStart } from '../lib/types.ts'
 import { newId, useStore, useTravelState } from '../store/useTravel.ts'
 import { DateRangeField } from './DateRangeField.tsx'
@@ -12,7 +12,7 @@ import { PeoplePicker } from './PeoplePicker.tsx'
 import { ParkSuggestion, PinGlyph, PlacePicker } from './PlacePicker.tsx'
 import { Sheet } from './Sheet.tsx'
 import { StopDates } from './StopDates.tsx'
-import { HomeGlyph, LegRow, ReturnRow } from './LegRow.tsx'
+import { HomeGlyph, LegRow } from './LegRow.tsx'
 import { useToast } from './toastContext.ts'
 
 interface DestinationDraft {
@@ -130,7 +130,6 @@ export function TripForm({
   const [changingStart, setChangingStart] = useState<'top' | 'bottom' | null>(null)
   const [startMode, setStartMode] = useState<LegMode>(trip?.startMode ?? 'flight')
   const [endMode, setEndMode] = useState<LegMode>(trip?.endMode ?? 'flight')
-  const [returnSameWay, setReturnSameWay] = useState(trip?.returnSameWay ?? false)
   const [companions, setCompanions] = useState<string[]>(trip?.companions ?? [])
   const [companionGroupIds, setCompanionGroupIds] = useState<string[]>(trip?.companionGroupIds ?? [])
   const [description, setDescription] = useState(trip?.description ?? '')
@@ -157,11 +156,8 @@ export function TripForm({
       )
     : []
   const legBefore = (i: number) => stopsLegs[i - 1] ?? null
-  // Coming back the same way needs somewhere to come back through.
-  const comesBack = returnSameWay && destinations.length > 1
-  const backThrough = comesBack ? returnLegs(destinations.slice(1).flatMap((_, k) => legBefore(k + 1) ?? [])) : []
   const first = ends[0]
-  const end = comesBack ? first : ends.at(-1)
+  const end = ends.at(-1)
   const toLeg: Leg | null = home && first ? homeLeg(home, first, startMode) : null
   const backLeg: Leg | null = home && end ? homeLeg(end, home, endMode) : null
   // National parks on this trip: their hikes can be checked off.
@@ -290,7 +286,6 @@ export function TripForm({
       start,
       startMode,
       endMode,
-      returnSameWay: comesBack,
       description,
       highlights,
       rating,
@@ -600,13 +595,6 @@ export function TripForm({
               }}
               autoFocus={destinations.length === 0 && !matchMedia('(pointer: coarse)').matches}
             />
-            {destinations.length > 1 && (
-              <label className="mt-1 flex min-h-11 items-center gap-2 text-sm">
-                <input type="checkbox" checked={returnSameWay} onChange={(e) => setReturnSameWay(e.target.checked)} className="size-4" />
-                Came back the same way
-              </label>
-            )}
-            {comesBack && <ReturnRow legs={backThrough} />}
             {backLeg && (
               <>
                 <LegRow leg={backLeg} allowGuess={false} onPick={(mode) => mode && setEndMode(mode)} />

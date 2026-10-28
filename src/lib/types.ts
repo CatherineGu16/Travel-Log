@@ -84,8 +84,6 @@ export interface Trip extends Synced {
    * trips kept their own start: those follow Home until it changes, when it's copied onto them.
    */
   start?: TripStart | null
-  /** You came back through the same stops in reverse, the same way you went. */
-  returnSameWay: boolean
   description: string
   highlights: string
   rating: number | null

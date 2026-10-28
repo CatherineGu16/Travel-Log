@@ -85,16 +85,17 @@ test('picking a stacked date shows that trip’s route, and details show other v
   }
 
   const card = page.getByRole('region', { name: 'Moab trips' })
-  const route = card.getByRole('list', { name: 'Route' })
   await expect(card.getByRole('radio', { name: /2024/ })).toBeChecked()
-  await expect(route).toContainText('Monticello')
-  await expect(route).toContainText('Blanding')
+  const route2024 = card.getByRole('list', { name: 'Route of Moab 2024' })
+  await expect(route2024).toContainText('Monticello')
+  await expect(route2024).toContainText('Blanding')
 
   await card.getByRole('radio', { name: /2019/ }).click()
-  await expect(route).toContainText('Green River')
-  await expect(route).not.toContainText('Blanding')
+  await expect(card.getByRole('radio', { name: /2019/ })).toBeChecked()
+  await expect(card.getByRole('list', { name: 'Route of Moab 2019' })).toContainText('Green River')
+  await expect(card.getByRole('list', { name: 'Route of Moab 2019' })).not.toContainText('Blanding')
 
-  await card.getByRole('button', { name: 'Details' }).click()
+  await card.getByRole('button', { name: 'Details of Moab 2019' }).click()
   const detail = page.getByRole('dialog', { name: 'Moab 2019' })
   await expect(detail.getByText('Main destination')).toBeVisible()
   await detail.getByRole('button', { name: '2024' }).click()
@@ -311,9 +312,10 @@ test('legs between stops: guessed from distance, changed with a tap, and filtera
   await expect(dialog).toBeHidden()
 
   // The pin card shows how you went between stops.
-  const route = page.getByRole('region', { name: 'Los Angeles trips' }).getByRole('list', { name: 'Route' })
-  await expect(route).toContainText('Train to')
-  await expect(route).toContainText('Flight to')
+  // The pin card lists just the places, not how you traveled between them.
+  const route = page.getByRole('region', { name: 'Los Angeles trips' }).getByRole('list', { name: /^Route/ })
+  await expect(route.getByRole('listitem')).toHaveText([/Los Angeles/, /Las Vegas/, /Seattle/])
+  await expect(route).not.toContainText('Train')
 
   // No chip on the row; the Flight filter finds the trip, Road trip doesn't.
   await page.goto('./#/trips')
@@ -330,7 +332,7 @@ test('legs between stops: guessed from distance, changed with a tap, and filtera
   await expect(row).toHaveCount(1)
 })
 
-test('a road trip from home that comes back the same way, with two main pins', async ({ page }) => {
+test('a road trip from home with two main pins; changing home leaves it alone', async ({ page }) => {
   await page.goto('./')
   await page.getByRole('button', { name: 'Settings' }).click()
   const settings = page.getByRole('dialog', { name: 'Settings' })
@@ -357,18 +359,16 @@ test('a road trip from home that comes back the same way, with two main pins', a
   await dialog.getByRole('button', { name: /^Flight from Pasadena to Las Vegas/ }).click()
   await dialog.getByRole('group', { name: 'How you got from Pasadena to Las Vegas' }).getByRole('button', { name: 'Drive' }).click()
   await expect(dialog.getByLabel(/^Drive from Pasadena to Las Vegas/)).toBeVisible()
-  await dialog.getByRole('checkbox', { name: 'Came back the same way' }).check()
-  await expect(dialog).toContainText('Back the same way')
-  // Home is reached from the first stop, along the way back.
-  await dialog.getByRole('button', { name: /^Flight from Las Vegas to Pasadena/ }).click()
-  await dialog.getByRole('group', { name: 'How you got from Las Vegas to Pasadena' }).getByRole('button', { name: 'Drive' }).click()
-  await expect(dialog.getByLabel(/^Drive from Las Vegas to Pasadena/)).toBeVisible()
+  // Home again from the last place (the drive back follows the way there on the map).
+  await dialog.getByRole('button', { name: /^Flight from Zion National Park to Pasadena/ }).click()
+  await dialog.getByRole('group', { name: 'How you got from Zion National Park to Pasadena' }).getByRole('button', { name: 'Drive' }).click()
+  await expect(dialog.getByLabel(/^Drive from Zion National Park to Pasadena/)).toBeVisible()
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(dialog).toBeHidden()
 
-  const route = page.getByRole('region', { name: 'Las Vegas trips' }).getByRole('list', { name: 'Route' })
-  await expect(route).toContainText('Pasadena')
-  await expect(route).toContainText('same way back')
+  // The pin card lists the places, without home.
+  const route = page.getByRole('region', { name: 'Las Vegas trips' }).getByRole('list', { name: /^Route/ })
+  await expect(route.getByRole('listitem')).toHaveText([/Las Vegas/, /Zion National Park/])
 
   // Every leg a drive, home included: a road trip.
   await page.goto('./#/trips')
@@ -385,10 +385,8 @@ test('a road trip from home that comes back the same way, with two main pins', a
   await page.keyboard.press('Escape')
   await page.getByRole('button', { name: /Las Vegas & Zion/ }).click()
   const card = page.getByRole('region', { name: 'Las Vegas trips' })
-  await expect(card.getByRole('list', { name: 'Route' })).toContainText('Pasadena')
-  await expect(card.getByRole('list', { name: 'Route' })).not.toContainText('Denver')
 
-  // Editing: the trip shows its own start, and can switch to the new home.
+  // Editing: the trip shows its own start, not the new home, and can switch to it.
   await card.getByRole('button', { name: /^Edit/ }).click()
   const edit = page.getByRole('dialog', { name: 'Edit trip' })
   await toStep(edit, 'Route')
@@ -396,7 +394,9 @@ test('a road trip from home that comes back the same way, with two main pins', a
   await edit.getByRole('button', { name: 'Change where the trip started (Pasadena)' }).click()
   await edit.getByRole('button', { name: 'Use home (Denver)' }).click()
   await edit.getByRole('button', { name: 'Save' }).click()
-  await expect(card.getByRole('list', { name: 'Route' })).toContainText('Denver')
+  await card.getByRole('button', { name: /^Edit/ }).click()
+  await toStep(page.getByRole('dialog', { name: 'Edit trip' }), 'Route')
+  await expect(page.getByRole('dialog', { name: 'Edit trip' }).getByRole('button', { name: 'Change where the trip started (Denver)' })).toBeVisible()
 })
 
 test('a destination can be swapped for another place from its row', async ({ page }) => {

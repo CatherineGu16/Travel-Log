@@ -105,17 +105,3 @@ export function HomeGlyph({ className = '' }: { className?: string }) {
     </svg>
   )
 }
-
-/** The way back through the same stops, as one row: "↩ Back the same way · 470 mi". */
-export function ReturnRow({ legs }: { legs: Leg[] }) {
-  if (!legs.length) return null
-  const miles = formatDistance(legs.reduce((sum, l) => sum + l.distanceM, 0))
-  return (
-    <div className="flex min-h-11 items-stretch gap-x-2 pl-[1.15rem] text-xs text-muted">
-      <Rail mode={legs.every((l) => l.mode === 'flight') ? 'flight' : 'drive'} />
-      <span className="flex items-center px-1.5">
-        <span aria-hidden>↩</span>&nbsp;<span className="font-bold text-fg">Back the same way</span>&nbsp;· {miles}
-      </span>
-    </div>
-  )
-}

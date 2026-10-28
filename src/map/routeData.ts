@@ -26,22 +26,14 @@ export function routeCollection(route: RoutePoint[], showBends = false, context:
         properties: { style: 'context' },
         geometry: { type: 'LineString' as const, coordinates: unwrapLngs(coordinates) },
       })),
-      // The way back the same way runs over the way there, so it isn't drawn twice.
-      ...route.slice(1).flatMap((r, i) =>
-        r.leg?.role === 'return'
-          ? []
-          : [
-              {
-                type: 'Feature' as const,
-                properties: { style: legStyle(r) },
-                geometry: { type: 'LineString' as const, coordinates: unwrapLngs(paths[i + 1] ?? flightArc(route[i], r)) },
-              },
-            ],
-      ),
-      // Home starts and ends the trip at the same spot, and stops passed on the way back are
-      // already marked: one marker each.
+      ...route.slice(1).map((r, i) => ({
+        type: 'Feature' as const,
+        properties: { style: legStyle(r) },
+        geometry: { type: 'LineString' as const, coordinates: unwrapLngs(paths[i + 1] ?? flightArc(route[i], r)) },
+      })),
+      // Home starts and ends the trip at the same spot: one marker.
       ...route
-        .filter((r, i) => !r.returning && (r.number !== null || r.marker || (r.role === 'home' && i === 0)))
+        .filter((r, i) => r.number !== null || r.marker || (r.role === 'home' && i === 0))
         .map((r) => ({
           type: 'Feature' as const,
           properties: { number: r.marker ?? r.number ?? 'H', name: r.place.name },

@@ -40,7 +40,7 @@ export default function RouteMap({ route, label }: { route: RoutePoint[]; label:
         map.getSource<GeoJSONSource>('pins')?.setData({
           type: 'FeatureCollection',
           features: route
-            .filter((r) => r.role === 'main' && !r.returning)
+            .filter((r) => r.role === 'main')
             .map((r) => ({
               type: 'Feature',
               properties: { placeId: r.place.id, name: r.place.name, isPark: !!r.place.parkId, count: 1, selected: false, dim: false },

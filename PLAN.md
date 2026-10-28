@@ -127,7 +127,9 @@ Same rules as Watchlist-Tracker, plus map rules:
 - **Stacked dates**: if you've been to a major location more than once (Chicago 2018, Chicago
   2022), it stays **one pin with a ×2 badge**. Its preview card stacks each visit's dates (that
   place's own dates when you gave them), newest first, with the newest selected: on a phone as
-  **cards you swipe between** (with dots), on wider screens as a list above the chosen trip.
+  **cards you swipe between** (with dots), on wider screens as **cards stacked in a column** that
+  scrolls, the one on the map outlined ("On the map"); click a card to show its route. Each card
+  lists the places in order (no travel modes, no home: those are on the map).
   **Picking a different trip redraws the route for that trip.** Any place, including a stop, shows every visit
   date stacked on its own detail view, and the parks checklist uses the dates you were at the park,
   not the whole trip's.
@@ -238,7 +240,6 @@ units (monuments, seashores, historic sites — 400+ total) could be added later
                                legMode | null } ],      // how you got here from the previous one; null = guessed
              start: { name, lat, lng } | null,  // where it started and ended: a copy of Home when made
              startMode, endMode,             // leg modes from the start to the first place and back (flight by default)
-             returnSameWay,                  // came back through the same stops in reverse (2+ stops)
              companions: [personId],         // people who went, one by one
              companionGroupIds: [groupId],   // groups tagged as a whole ("Friends")
              hikes: [ { parkId,              // hikes done on this trip
@@ -425,11 +426,8 @@ opens the same steps with tabs to jump straight to one.
     swaps the place, keeping its dates, note and pin, and resets the legs to and from it; then its
     own dates and note.
   - **Add another destination** sits right after the last place, above the way back.
-  - **Came back the same way** (two or more places; chosen over reusing bends automatically): the
-    trip returns from the last place through the same places in reverse, with the same bends and
-    modes, without listing them twice. One row in the Route step ("↩ Back the same way · 470 mi")
-    and "↩ same way back" on the pin card. Not drawn again on the map, since it runs over the way
-    there. The way back to the start then leaves from the first place.
+  - (A "Came back the same way" switch was removed: the drive back follows the way there on its
+    own, with any stops on the way back, and "Follow the way you came" covers the rest.)
 - **Trip dates**: a **date range picker**: tap the first day, then the last, on a calendar (Date),
   a month grid (Month) or a year grid (Year). The month and year menus above the calendar jump to
   any date. Folded to one row showing the dates until you tap it, and folded again once you tap
@@ -463,7 +461,7 @@ opens the same steps with tabs to jump straight to one.
 - Your **main destinations** (the places with pins; stops along the way aren't listed), A–Z, by
   state or country, or most visited, each with its visit count and latest dates. No trip chips:
   **opening a place shows it on the map** with its pin selected, where its trips are swipeable
-  cards on a phone and a list on wider screens.
+  cards on a phone and stacked cards on wider screens.
 
 ### National parks checklist
 - All 64 national parks as a checklist, A–Z or by state, with Visited / Not visited / All and a
