@@ -1,5 +1,5 @@
 import { distanceMeters } from './geo.ts'
-import type { HomeMode, LegMode, LngLat, Place, TravelData, Trip, TripStart } from './types.ts'
+import type { LegMode, LngLat, Place, TravelData, Trip, TripStart } from './types.ts'
 
 /** Leg modes in the order the picker shows them, with the icon and label used everywhere. */
 export const LEG_MODES: { id: LegMode; label: string; icon: string }[] = [
@@ -76,8 +76,8 @@ export function makeLeg(from: LegEnd, to: LegEnd, via: LngLat[], picked: LegMode
   return { from, to, via, mode: picked ?? guessMode(from, to, memory), guessed: !picked, distanceM, role: 'stop' }
 }
 
-/** The way from or back to where the trip started, the way you left it (Trip.homeMode). */
-export const homeLeg = (from: LegEnd, to: LegEnd, mode: HomeMode): Leg => ({ ...makeLeg(from, to, [], mode), role: 'home' })
+/** The way from or back to where the trip started (Trip.startMode, Trip.endMode); never guessed. */
+export const homeLeg = (from: LegEnd, to: LegEnd, mode: LegMode): Leg => ({ ...makeLeg(from, to, [], mode), role: 'home' })
 
 /** The legs back through the same stops: each outbound leg reversed, same bends and mode. */
 export const returnLegs = (legs: Leg[]): Leg[] =>
@@ -110,7 +110,7 @@ export function legsOf(trip: Trip, data: Pick<TravelData, 'places' | 'home'>, me
   const home = endOfHome(start)
   // Back home from wherever the trip ended: the first stop when you came back the same way.
   const end = legs.at(-1)?.to ?? stops[0].end
-  return [homeLeg(home, stops[0].end, trip.homeMode), ...legs, homeLeg(end, home, trip.homeMode)]
+  return [homeLeg(home, stops[0].end, trip.startMode), ...legs, homeLeg(end, home, trip.endMode)]
 }
 
 /** A trip that's all drives is a road trip; a cruise anywhere makes it a cruise. Never stored. */

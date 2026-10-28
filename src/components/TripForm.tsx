@@ -3,7 +3,7 @@ import { describeRef, type ChosenPlace } from '../lib/chosenPlace.ts'
 import { comparePartialDates, formatDateRange, todayIso, yearOf } from '../lib/partialDate.ts'
 import { addPerson, saveTrip, type PlaceInput, type TripInput } from '../lib/travelActions.ts'
 import { endOfHome, homeLeg, legMemory, makeLeg, returnLegs, type Leg, type LegEnd } from '../lib/legs.ts'
-import { FAMILY_GROUP_ID, type HomeMode, type LegMode, type LngLat, type PartialDate, type TravelData, type Trip, type TripHike, type TripStart } from '../lib/types.ts'
+import { FAMILY_GROUP_ID, type LegMode, type LngLat, type PartialDate, type TravelData, type Trip, type TripHike, type TripStart } from '../lib/types.ts'
 import { newId, useStore, useTravelState } from '../store/useTravel.ts'
 import { DateRangeField } from './DateRangeField.tsx'
 import { HikesField } from './HikesField.tsx'
@@ -91,7 +91,8 @@ export function TripForm({
   const [endDate, setEndDate] = useState<PartialDate>(trip?.endDate ?? trip?.startDate ?? todayIso())
   // On a new trip, destination dates fill in the trip's dates until you set them yourself.
   const [datesTouched, setDatesTouched] = useState(!!trip)
-  const [approximate, setApproximate] = useState(trip?.approximate ?? false)
+  // No longer asked; kept as it was on trips that have it.
+  const approximate = trip?.approximate ?? false
   const [destinations, setDestinations] = useState<DestinationDraft[]>(() => {
     if (trip)
       return trip.destinations.map((d) => ({
@@ -116,8 +117,10 @@ export function TripForm({
   // changing Home later doesn't move it. Trips saved before that follow Home until saved.
   const homeNow: TripStart | null = data.home && !data.home.deleted ? { name: data.home.name, lat: data.home.lat, lng: data.home.lng } : null
   const [start, setStart] = useState<TripStart | null>(() => (trip && trip.start !== undefined ? trip.start : homeNow))
-  const [changingStart, setChangingStart] = useState(false)
-  const [homeMode, setHomeMode] = useState<HomeMode>(trip?.homeMode ?? 'flight')
+  // Which end of the route is showing the place search to change where the trip started.
+  const [changingStart, setChangingStart] = useState<'top' | 'bottom' | null>(null)
+  const [startMode, setStartMode] = useState<LegMode>(trip?.startMode ?? 'flight')
+  const [endMode, setEndMode] = useState<LegMode>(trip?.endMode ?? 'flight')
   const [returnSameWay, setReturnSameWay] = useState(trip?.returnSameWay ?? false)
   const [companions, setCompanions] = useState<string[]>(trip?.companions ?? [])
   const [companionGroupIds, setCompanionGroupIds] = useState<string[]>(trip?.companionGroupIds ?? [])
@@ -127,6 +130,7 @@ export function TripForm({
   const [tags, setTags] = useState((trip?.tags ?? []).join(', '))
   const [hikes, setHikes] = useState<TripHike[]>(trip?.hikes ?? [])
   const [error, setError] = useState<string | null>(null)
+  const [datesJustAdded, setDatesJustAdded] = useState<string | null>(null)
 
   const mains = destinations.filter((d) => d.isMain)
 
@@ -143,8 +147,8 @@ export function TripForm({
   const backThrough = comesBack ? returnLegs(destinations.slice(1).flatMap((_, k) => legBefore(k + 1) ?? [])) : []
   const first = ends[0]
   const end = comesBack ? first : ends.at(-1)
-  const toLeg: Leg | null = home && first ? homeLeg(home, first, homeMode) : null
-  const backLeg: Leg | null = home && end ? homeLeg(end, home, homeMode) : null
+  const toLeg: Leg | null = home && first ? homeLeg(home, first, startMode) : null
+  const backLeg: Leg | null = home && end ? homeLeg(end, home, endMode) : null
   // National parks on this trip: their hikes can be checked off.
   const parkIds = [...new Set(destinations.map((d) => d.place.parkId).filter((id): id is string => !!id))]
 
@@ -195,6 +199,12 @@ export function TripForm({
     const via = await requestShape(from, to, destinations[i].via)
     if (via) patch(key, { via })
   }
+
+  /** Swaps a destination's place, keeping its dates, note and pin; the legs to and from it start over. */
+  const changePlace = (key: string, place: ChosenPlace) =>
+    updateDestinations((ds) =>
+      ds.map((x, i) => (x.key === key ? { ...x, place, via: [], legMode: null } : ds[i - 1]?.key === key ? { ...x, via: [], legMode: null } : x)),
+    )
 
   const move = (i: number, by: -1 | 1) =>
     updateDestinations((d) => {
@@ -249,7 +259,8 @@ export function TripForm({
       companions,
       companionGroupIds,
       start,
-      homeMode,
+      startMode,
+      endMode,
       returnSameWay: comesBack,
       description,
       highlights,
@@ -272,6 +283,52 @@ export function TripForm({
   // Editing saves from any step; a new trip once it has somewhere to go. Notes are optional.
   const canSave = !!trip || step > 0 || destinations.length > 0
   let stopNumber = 0
+  const pickStart = (p: ChosenPlace | null) => {
+    const at = p && endOf(p, data)
+    if (!at) return
+    setStart({ name: at.name, lat: at.lat, lng: at.lng })
+    setChangingStart(null)
+  }
+  /** Where the trip started, at the top and again at the end: tap it to pick another place. */
+  const startRow = (where: 'top' | 'bottom') =>
+    changingStart === where || (!start && where === 'top') ? (
+      <div className="flex flex-col gap-1.5 py-1">
+        <PlacePicker
+          label={start ? `Change where the trip started (${start.name})` : 'Where the trip started'}
+          data={data}
+          value={null}
+          onChange={pickStart}
+          autoFocus={!!start && !matchMedia('(pointer: coarse)').matches}
+        />
+        <div className="flex flex-wrap gap-1 text-sm empty:hidden">
+          {homeNow && (homeNow.lat !== start?.lat || homeNow.lng !== start?.lng) && (
+            <button type="button" onClick={() => {
+                setStart(homeNow)
+                setChangingStart(null)
+              }} className="min-h-10 rounded-lg px-2 font-bold text-primary hover:bg-raised">
+              Use home ({homeNow.name})
+            </button>
+          )}
+          {changingStart && (
+            <button type="button" onClick={() => setChangingStart(null)} className="min-h-10 rounded-lg px-2 text-muted hover:bg-raised hover:text-fg">
+              Keep {start?.name}
+            </button>
+          )}
+        </div>
+        {!homeNow && !start && <p className="text-xs text-muted">Set your home in Settings and new trips will start and end there.</p>}
+      </div>
+    ) : start ? (
+      <button
+        type="button"
+        onClick={() => setChangingStart(where)}
+        aria-label={`Change where the trip ${where === 'top' ? 'started' : 'ended'} (${start.name})`}
+        className="flex min-h-11 w-full items-center gap-2 rounded-lg pl-2 text-left hover:bg-raised"
+      >
+        <HomeGlyph className="size-6" />
+        <span className="min-w-0 truncate font-bold">{start.name}</span>
+        <span className="ml-auto pr-2 text-xs text-muted">{where === 'top' ? 'Start' : 'End'}</span>
+      </button>
+    ) : null
 
   return (
     <Sheet
@@ -279,6 +336,8 @@ export function TripForm({
       onOpenChange={(open) => !open && onClose()}
       title={trip ? 'Edit trip' : 'Add trip'}
       accent="var(--primary)"
+      tall
+      toolbar={<Steps step={step} onGo={goTo} />}
       footer={
         <div className="flex flex-wrap items-center gap-2">
           {error && (
@@ -308,25 +367,6 @@ export function TripForm({
         </div>
       }
     >
-      <nav aria-label="Steps" className="-mt-1 mb-4 flex gap-1">
-        {STEPS.map((name, i) => (
-          <button
-            key={name}
-            type="button"
-            aria-current={step === i ? 'step' : undefined}
-            onClick={() => goTo(i as Step)}
-            className={`flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border-b-2 text-sm ${step === i ? 'border-primary font-bold text-fg' : 'border-line text-muted hover:text-fg'}`}
-          >
-            <span
-              aria-hidden
-              className={`grid size-5 place-items-center rounded-full text-xs font-bold ${step === i ? 'bg-primary text-on-primary' : 'bg-raised text-muted'}`}
-            >
-              {i + 1}
-            </span>
-            {name}
-          </button>
-        ))}
-      </nav>
       <form
         className="flex flex-col gap-5"
         onSubmit={(e) => {
@@ -353,83 +393,6 @@ export function TripForm({
                 setEndDate(e)
               }}
             />
-            <label className="-mt-2 flex min-h-9 items-center gap-2 text-sm">
-              <input type="checkbox" checked={approximate} onChange={(e) => setApproximate(e.target.checked)} className="size-4" />
-              Dates are approximate
-            </label>
-
-            <fieldset>
-              <legend className="mb-1.5 text-sm font-bold">Started and ended at</legend>
-              {start && !changingStart ? (
-                <div className="flex min-h-11 items-center gap-2">
-                  <HomeGlyph className="size-5" />
-                  <span className="min-w-0 truncate font-bold">{start.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => setChangingStart(true)}
-                    aria-label={`Change where the trip started (${start.name})`}
-                    className="min-h-10 rounded-lg px-2 text-sm font-bold text-primary hover:bg-raised"
-                  >
-                    Change
-                  </button>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-1.5">
-                  <PlacePicker
-                    label="Where the trip started"
-                    data={data}
-                    value={null}
-                    onChange={(p) => {
-                      const at = p && endOf(p, data)
-                      if (!at) return
-                      setStart({ name: at.name, lat: at.lat, lng: at.lng })
-                      setChangingStart(false)
-                    }}
-                  />
-                  <div className="flex flex-wrap gap-1 text-sm">
-                    {homeNow && (homeNow.lat !== start?.lat || homeNow.lng !== start?.lng) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setStart(homeNow)
-                          setChangingStart(false)
-                        }}
-                        className="min-h-10 rounded-lg px-2 font-bold text-primary hover:bg-raised"
-                      >
-                        Use home ({homeNow.name})
-                      </button>
-                    )}
-                    {changingStart && (
-                      <button type="button" onClick={() => setChangingStart(false)} className="min-h-10 rounded-lg px-2 text-muted hover:bg-raised hover:text-fg">
-                        Keep {start?.name}
-                      </button>
-                    )}
-                  </div>
-                  {!homeNow && <p className="text-xs text-muted">Set your home in Settings and new trips will start there.</p>}
-                </div>
-              )}
-              {start && (
-                <div role="radiogroup" aria-label="How you got there and back" className="mt-1 flex w-fit rounded-lg bg-bg p-0.5">
-                  {(
-                    [
-                      ['flight', '✈️ Flew'],
-                      ['drive', '🚗 Drove'],
-                    ] as const
-                  ).map(([mode, label]) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      role="radio"
-                      aria-checked={homeMode === mode}
-                      onClick={() => setHomeMode(mode)}
-                      className={`min-h-10 rounded-md px-3 text-sm ${homeMode === mode ? 'bg-raised font-bold text-fg' : 'text-muted hover:text-fg'}`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </fieldset>
 
             <PeoplePicker
               data={data}
@@ -453,15 +416,8 @@ export function TripForm({
               In order. Choose <b>Main</b> for each place that gets a pin on the map; the rest are stops along the way. Between two places, tap how you went to
               change it, and shape a drive to follow the road.
             </p>
-            {toLeg && (
-              <div aria-label={`From ${start?.name}`}>
-                <div className="flex min-h-11 items-center gap-2 pl-2">
-                  <HomeGlyph className="size-6" />
-                  <span className="font-bold">{start?.name}</span>
-                </div>
-                <LegRow leg={toLeg} />
-              </div>
-            )}
+            {startRow('top')}
+            {toLeg && <LegRow leg={toLeg} allowGuess={false} onPick={(mode) => mode && setStartMode(mode)} />}
             {destinations.length > 0 && (
               <ol className="mb-2 flex flex-col">
                 {destinations.map((d, i) => {
@@ -545,6 +501,7 @@ export function TripForm({
                         </div>
                         {d.open && (
                           <div className="flex flex-col gap-3 border-t border-line p-3">
+                            <PlacePicker label="Change to another place" data={data} near={near} value={null} onChange={(p) => p && changePlace(d.key, p)} />
                             {'place' in d.place.ref && !d.place.ref.place.parkId && (
                               <label className="block">
                                 <span className="mb-1 block text-sm font-bold">Name</span>
@@ -563,20 +520,23 @@ export function TripForm({
                               <input
                                 type="checkbox"
                                 checked={!!d.startDate}
-                                onChange={(e) =>
+                                onChange={(e) => {
+                                  // Just asked to add dates: their calendar opens right away.
+                                  setDatesJustAdded(e.target.checked ? d.key : null)
                                   patch(
                                     d.key,
                                     e.target.checked
                                       ? { startDate: startDate, endDate: endDate === startDate ? null : endDate }
                                       : { startDate: null, endDate: null },
                                   )
-                                }
+                                }}
                                 className="size-4"
                               />
                               I know when I was here
                             </label>
                             {d.startDate && (
                               <DateRangeField
+                                defaultOpen={datesJustAdded === d.key}
                                 label={`Dates at ${d.place.label}`}
                                 start={d.startDate}
                                 end={d.endDate ?? d.startDate}
@@ -595,22 +555,6 @@ export function TripForm({
                 })}
               </ol>
             )}
-            {destinations.length > 1 && (
-              <label className="flex min-h-11 items-center gap-2 text-sm">
-                <input type="checkbox" checked={returnSameWay} onChange={(e) => setReturnSameWay(e.target.checked)} className="size-4" />
-                Came back the same way
-              </label>
-            )}
-            {comesBack && <ReturnRow legs={backThrough} />}
-            {backLeg && (
-              <div aria-label={`Back to ${start?.name}`}>
-                <LegRow leg={backLeg} />
-                <div className="mb-2 flex min-h-11 items-center gap-2 pl-2">
-                  <HomeGlyph className="size-6" />
-                  <span className="font-bold">{start?.name}</span>
-                </div>
-              </div>
-            )}
             <PlacePicker
               label={destinations.length ? 'Add another destination' : 'Add a destination'}
               data={data}
@@ -622,6 +566,19 @@ export function TripForm({
               }}
               autoFocus={destinations.length === 0 && !matchMedia('(pointer: coarse)').matches}
             />
+            {destinations.length > 1 && (
+              <label className="mt-1 flex min-h-11 items-center gap-2 text-sm">
+                <input type="checkbox" checked={returnSameWay} onChange={(e) => setReturnSameWay(e.target.checked)} className="size-4" />
+                Came back the same way
+              </label>
+            )}
+            {comesBack && <ReturnRow legs={backThrough} />}
+            {backLeg && (
+              <>
+                <LegRow leg={backLeg} allowGuess={false} onPick={(mode) => mode && setEndMode(mode)} />
+                {startRow('bottom')}
+              </>
+            )}
           </section>
         )}
 
@@ -663,6 +620,53 @@ export function TripForm({
         <button type="submit" hidden />
       </form>
     </Sheet>
+  )
+}
+
+/** The three steps as connected dots: done steps checked, the current one filled. Any step can be opened. */
+function Steps({ step, onGo }: { step: Step; onGo: (step: Step) => void }) {
+  return (
+    <nav aria-label="Steps">
+      <ol className="flex items-start">
+        {STEPS.map((name, i) => {
+          const done = i < step
+          const current = i === step
+          return (
+            <li key={name} className="flex flex-1 items-start last:flex-none">
+              <button
+                type="button"
+                aria-current={current ? 'step' : undefined}
+                onClick={() => onGo(i as Step)}
+                className="group flex min-h-11 min-w-16 flex-col items-center gap-1 rounded-lg px-1 pb-1"
+              >
+                <span
+                  aria-hidden
+                  className={`grid size-7 place-items-center rounded-full text-xs font-bold transition-colors ${
+                    current
+                      ? 'bg-primary text-on-primary ring-4 ring-primary/20'
+                      : done
+                        ? 'bg-primary/15 text-primary group-hover:bg-primary/25'
+                        : 'border-2 border-line bg-surface text-muted group-hover:border-muted'
+                  }`}
+                >
+                  {done ? (
+                    <svg viewBox="0 0 20 20" className="size-4">
+                      <path d="M5 10.5l3.2 3L15 7" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  ) : (
+                    i + 1
+                  )}
+                </span>
+                <span className={`text-xs ${current ? 'font-bold text-fg' : done ? 'text-fg' : 'text-muted group-hover:text-fg'}`}>{name}</span>
+              </button>
+              {i < STEPS.length - 1 && (
+                <span aria-hidden className={`mx-1 mt-3.5 h-0.5 flex-1 rounded-full transition-colors ${done ? 'bg-primary/50' : 'bg-line'}`} />
+              )}
+            </li>
+          )
+        })}
+      </ol>
+    </nav>
   )
 }
 

@@ -43,9 +43,6 @@ export interface Destination {
   legMode: LegMode | null
 }
 
-/** How a trip left where it started and came back. */
-export type HomeMode = 'flight' | 'drive'
-
 /** Where a trip started and ended (usually home at the time). */
 export interface TripStart {
   name: string
@@ -78,8 +75,9 @@ export interface Trip extends Synced {
   /** Groups that went, as a tag ("Friends"), without listing each person. */
   companionGroupIds: string[]
   hikes: TripHike[]
-  /** How you left where the trip started and came back to it. */
-  homeMode: HomeMode
+  /** How you got from where the trip started to the first place, and back at the end (flight by default). */
+  startMode: LegMode
+  endMode: LegMode
   /**
    * Where the trip started and ended: a copy of Home when the trip was made, so changing Home later
    * leaves it alone. Null: nowhere (no legs there and back). Missing only on trips saved before

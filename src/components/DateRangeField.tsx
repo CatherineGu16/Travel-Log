@@ -19,20 +19,26 @@ const ordered = (a: PartialDate, b: PartialDate): [PartialDate, PartialDate] => 
 
 /**
  * A date range: tap the first day, then the last. Date, month or year precision, for trips you
- * only half remember. The month and year menus above the grid jump straight to any date.
+ * only half remember. The month and year menus above the grid jump straight to any date. The
+ * calendar folds away to one row showing the dates, opens when you tap it, and folds again once
+ * you've tapped the last day.
  */
 export function DateRangeField({
   label,
   start,
   end,
   onChange,
+  defaultOpen = false,
 }: {
   label: string
   start: PartialDate
   end: PartialDate
   onChange: (start: PartialDate, end: PartialDate) => void
+  /** Open from the start, e.g. when the field appears because you asked to add dates. */
+  defaultOpen?: boolean
 }) {
   const id = useId()
+  const [open, setOpen] = useState(defaultOpen)
   const precision = precisionOf(start)
   // The next tap sets the start (then the range collapses to that one day) or the end.
   const [picking, setPicking] = useState<'start' | 'end'>('start')
@@ -54,6 +60,8 @@ export function DateRangeField({
     } else {
       onChange(...ordered(start, date))
       setPicking('start')
+      // The range is complete: fold the calendar away.
+      setOpen(false)
     }
   }
 
@@ -165,6 +173,30 @@ export function DateRangeField({
     )
   }
 
+  if (!open)
+    return (
+      <fieldset className="min-w-0">
+        <legend className="mb-1.5 text-sm font-bold">{label}</legend>
+        <button
+          type="button"
+          aria-expanded={false}
+          aria-label={`Change ${label} (${formatDateRange(start, end)})`}
+          onClick={() => {
+            setPicking('start')
+            setOpen(true)
+          }}
+          className="flex h-11 w-full items-center gap-2 rounded-lg border border-line bg-bg px-3 text-left text-base hover:border-muted"
+        >
+          <svg viewBox="0 0 20 20" className="size-4 shrink-0 text-muted" aria-hidden>
+            <rect x="3" y="4.5" width="14" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+            <path d="M3 8.5h14M7 3v3M13 3v3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+          <span className="min-w-0 flex-1 truncate">{formatDateRange(start, end)}</span>
+          <span className="text-sm font-bold text-primary">Change</span>
+        </button>
+      </fieldset>
+    )
+
   return (
     <fieldset className="min-w-0">
       <legend className="mb-1.5 flex w-full items-baseline gap-2 text-sm font-bold">
@@ -195,9 +227,22 @@ export function DateRangeField({
       </div>
       <div className="rounded-xl border border-line bg-bg p-2">
         {grid}
-        <p className="mt-1 px-1 text-xs text-muted">
-          {picking === 'start' ? `Tap the first ${UNIT[precision]}.` : `Now tap the last ${UNIT[precision]} (or the same one again).`}
-        </p>
+        <div className="mt-1 flex items-center gap-2 px-1">
+          <p className="min-w-0 flex-1 text-xs text-muted">
+            {picking === 'start' ? `Tap the first ${UNIT[precision]}.` : `Now tap the last ${UNIT[precision]} (or the same one again).`}
+          </p>
+          <button
+            type="button"
+            aria-expanded
+            onClick={() => {
+              setPicking('start')
+              setOpen(false)
+            }}
+            className="min-h-9 rounded-lg px-2 text-sm font-bold text-primary hover:bg-raised"
+          >
+            Done
+          </button>
+        </div>
       </div>
     </fieldset>
   )

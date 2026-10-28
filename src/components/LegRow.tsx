@@ -22,7 +22,18 @@ function Label({ leg }: { leg: Leg }) {
  * One leg between two stops. With `onPick`, tapping it opens a one-step mode picker; `children`
  * go after the label (e.g. shaping the route).
  */
-export function LegRow({ leg, onPick, children }: { leg: Leg; onPick?: (mode: LegMode | null) => void; children?: ReactNode }) {
+export function LegRow({
+  leg,
+  onPick,
+  allowGuess = true,
+  children,
+}: {
+  leg: Leg
+  onPick?: (mode: LegMode | null) => void
+  /** Offer "Use the guess" once a mode is picked (not for legs that are never guessed). */
+  allowGuess?: boolean
+  children?: ReactNode
+}) {
   const [open, setOpen] = useState(false)
   const m = legModeInfo(leg.mode)
   const spoken = `${m.label}${leg.guessed ? ' (guessed)' : ''} from ${leg.from.name} to ${leg.to.name}, ${formatDistance(leg.distanceM)}`
@@ -69,7 +80,7 @@ export function LegRow({ leg, onPick, children }: { leg: Leg; onPick?: (mode: Le
               </button>
             )
           })}
-          {!leg.guessed && (
+          {allowGuess && !leg.guessed && (
             <button
               type="button"
               onClick={() => {

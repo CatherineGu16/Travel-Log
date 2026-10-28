@@ -85,14 +85,8 @@ Same rules as Watchlist-Tracker, plus map rules:
   trip whose legs are **all drives is a road trip**, and a trip with **a cruise leg anywhere is a
   cruise**. Both are worked out from the legs, never stored, and only used to filter. See
   **Legs**.
-- **Started and ended at**: a new trip starts at Home (Settings), saved as the trip's own copy,
-  with **Change** to pick another place for this trip (or "Use home" to go back to the current
-  Home). Then **✈️ Flew / 🚗 Drove** (Flew is first and the default): the way there and back, drawn
-  on the map (a dashed arc when you flew, which the map lets run off the edge). No on/off switch;
-  older trips without a start can be given one with the same place search. A single-stop drive
-  counts as a road trip; a flight counts for the Flight filter.
 - **Editing a trip** shows its own start, not the current Home: changing Home moves new trips only.
-  To move an older trip (e.g. you lived elsewhere then), use Change.
+  To move an older trip (e.g. you lived elsewhere then), tap its start row in the Route step.
 - **Who went**: group tags (Family, Friends, your own groups) and individual people. Filtering and
   grouping by Family / Friends uses these tags. (An earlier Family switch and Family / Friends /
   Work type were replaced by the tags; old Family and Friends trips keep them as tags.)
@@ -225,7 +219,7 @@ units (monuments, seashores, historic sites — 400+ total) could be added later
                                via: [[lng, lat]],       // bends in the route from the previous destination
                                legMode | null } ],      // how you got here from the previous one; null = guessed
              start: { name, lat, lng } | null,  // where it started and ended: a copy of Home when made
-             homeMode,                       // "flight" (default) | "drive": how you got there and back
+             startMode, endMode,             // leg modes from the start to the first place and back (flight by default)
              returnSameWay,                  // came back through the same stops in reverse (2+ stops)
              companions: [personId],         // people who went, one by one
              companionGroupIds: [groupId],   // groups tagged as a whole ("Friends")
@@ -371,7 +365,7 @@ Same engine as Watchlist-Tracker (`src/sync/`).
 ### Add / edit trip
 
 A **three-step stepper**, so trip details and mapping out the route are on separate pages: **1.
-Details** (title, dates, who went, where it started and how you got there), **2. Route** (destinations in order, the leg between
+Details** (title, dates, who went), **2. Route** (where it started and ended, destinations in order, the leg between
 each pair, coming back the same way), **3. Notes** (hikes, description, highlights, rating, tags). Back and
 Next keep everything; Save works from the Route step on, since Notes is optional. Editing a trip
 opens the same steps with tabs to jump straight to one.
@@ -395,8 +389,14 @@ opens the same steps with tabs to jump straight to one.
     target of at least 44 px that opens a one-step mode picker. Ground legs also have **"Shape the
     route on the map"** (see Shaping a route); this is how a drive follows the real road, since
     the app uses no routing service.
-  - The Route step shows where the trip started at the top and bottom, with the way there and
-    back.
+  - The Route step starts and ends with where the trip started (Home by default), with the way
+    there and back as leg rows: **a flight unless you change it** (tap the leg; the same mode picker
+    as other legs, never guessed). Tap the start or end row to pick another place for this trip,
+    or "Use home" for the current Home.
+  - Tap a place's dates line to open it: **Change to another place** (the same place search)
+    swaps the place, keeping its dates, note and pin, and resets the legs to and from it; then its
+    own dates and note.
+  - **Add another destination** sits right after the last place, above the way back.
   - **Came back the same way** (two or more places; chosen over reusing bends automatically): the
     trip returns from the last place through the same places in reverse, with the same bends and
     modes, without listing them twice. One row in the Route step ("↩ Back the same way · 470 mi")
@@ -404,7 +404,8 @@ opens the same steps with tabs to jump straight to one.
     there. The way back to the start then leaves from the first place.
 - **Trip dates**: a **date range picker**: tap the first day, then the last, on a calendar (Date),
   a month grid (Month) or a year grid (Year). The month and year menus above the calendar jump to
-  any date. Plus "Dates are approximate".
+  any date. Folded to one row showing the dates until you tap it, and folded again once you tap
+  the last day. ("Dates are approximate" is no longer asked; trips that have it keep it.)
 - **Title** (suggested from the main destinations and year, e.g. "Zion & Las Vegas 2024").
 - **Hikes**: for every national park on the trip, the hikes you did there, added with the same
   **Add a hike** search box and suggestions as the park page (no checklist).

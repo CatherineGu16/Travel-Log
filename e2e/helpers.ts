@@ -6,11 +6,20 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 export const toStep = (dialog: Locator, name: 'Details' | 'Route' | 'Notes') =>
   dialog.getByRole('navigation', { name: 'Steps' }).getByRole('button', { name, exact: true }).click()
 
+const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
 /** A date range picker, found by its label ("Trip dates", "Dates at Zion National Park"). */
-export const dateRange = (scope: Locator, label: string) => scope.getByRole('group', { name: new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`) })
+export const dateRange = (scope: Locator, label: string) => scope.getByRole('group', { name: new RegExp(`^${escape(label)}`) })
+
+/** Opens a date range picker's calendar if it's folded away. */
+export async function openDates(scope: Locator, label: string) {
+  const toggle = dateRange(scope, label).getByRole('button', { name: new RegExp(`^Change ${escape(label)}`) })
+  if (await toggle.count()) await toggle.click()
+}
 
 /** Picks a range of days ("2024-05-01" to "2024-05-03") by tapping the first day, then the last. */
 export async function pickDays(scope: Locator, label: string, from: string, to: string) {
+  await openDates(scope, label)
   const picker = dateRange(scope, label)
   for (const date of [from, to]) {
     const [y, m, d] = date.split('-').map(Number)
@@ -22,6 +31,7 @@ export async function pickDays(scope: Locator, label: string, from: string, to: 
 
 /** Sets the trip's dates to one whole year, using the range picker's year mode. */
 export async function setTripYear(dialog: Locator, year: string) {
+  await openDates(dialog, 'Trip dates')
   const picker = dateRange(dialog, 'Trip dates')
   await picker.getByRole('radiogroup', { name: 'Trip dates precision' }).getByRole('radio', { name: 'Year' }).click()
   const button = picker.getByRole('button', { name: year, exact: true })

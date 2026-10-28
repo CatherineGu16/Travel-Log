@@ -11,7 +11,7 @@ const places = [place('la', 34.05, -118.24), place('vegas', 36.17, -115.14), pla
 const home: Home = { id: 'home', name: 'Home', lat: 34.15, lng: -118.14, createdAt: '', updatedAt: '' }
 const dest = (placeId: string, legMode: LegMode | null = null): Destination => ({ placeId, isMain: true, startDate: null, endDate: null, note: '', via: [], legMode })
 const trip = (id: string, destinations: Destination[], extra: Partial<Trip> = {}): Trip =>
-  ({ id, destinations, homeMode: 'flight', start: null, returnSameWay: false, updatedAt: id, createdAt: id, ...extra }) as Trip
+  ({ id, destinations, startMode: 'flight', endMode: 'flight', start: null, returnSameWay: false, updatedAt: id, createdAt: id, ...extra }) as Trip
 const data = (trips: Trip[], withHome = false) => ({ trips, places, home: withHome ? home : null }) as TravelData
 
 describe('legs', () => {
@@ -33,8 +33,8 @@ describe('legs', () => {
   })
 
   it('goes from and back to where the trip started, the way you left', () => {
-    expect(legsOf(trip('a', [dest('vegas')], { homeMode: 'drive' }), data([]))).toEqual([])
-    const t = trip('a', [dest('vegas')], { homeMode: 'drive', start: home })
+    expect(legsOf(trip('a', [dest('vegas')], { startMode: 'drive', endMode: 'drive' }), data([]))).toEqual([])
+    const t = trip('a', [dest('vegas')], { startMode: 'drive', endMode: 'drive', start: home })
     const legs = legsOf(t, data([t]))
     expect(legs.map((l) => [l.from.name, l.to.name, l.mode, l.role])).toEqual([
       ['Home', 'vegas', 'drive', 'home'],
@@ -71,7 +71,7 @@ describe('legs', () => {
   })
 
   it('comes back the same way: the legs reversed, bends and modes included, then home from the first stop', () => {
-    const t = trip('a', [dest('la'), { ...dest('vegas', 'train'), via: [[-117, 35]] }, dest('honolulu')], { homeMode: 'drive', start: home, returnSameWay: true })
+    const t = trip('a', [dest('la'), { ...dest('vegas', 'train'), via: [[-117, 35]] }, dest('honolulu')], { startMode: 'drive', endMode: 'drive', start: home, returnSameWay: true })
     const legs = legsOf(t, data([t]))
     expect(legs.map((l) => `${l.from.name}>${l.to.name} ${l.mode} ${l.role}`)).toEqual([
       'Home>la drive home',
@@ -108,12 +108,12 @@ describe('trips saved with one travel mode', () => {
     }).trips[0]
 
   it('carry the mode over onto the legs; a road trip was driven from home, a flight flown', () => {
-    expect(parse('road-trip')).toMatchObject({ homeMode: 'drive' })
+    expect(parse('road-trip')).toMatchObject({ startMode: 'drive', endMode: 'drive' })
     // It followed Home then, so it does until Home changes.
     expect('start' in parse('road-trip')).toBe(false)
     expect(parse('road-trip').destinations.map((d) => d.legMode)).toEqual([null, 'drive'])
     expect(parse('cruise').destinations.map((d) => d.legMode)).toEqual([null, 'cruise'])
-    expect(parse('flight')).toMatchObject({ homeMode: 'flight' })
+    expect(parse('flight')).toMatchObject({ startMode: 'flight', endMode: 'flight' })
     expect('travelMode' in parse('flight')).toBe(false)
   })
 })

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { dateRange, pickDays, setTripYear, toStep } from './helpers.ts'
+import { dateRange, openDates, pickDays, setTripYear, toStep } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -144,13 +144,18 @@ test('trip dates are a range picker: tap the first day, then the last', async ({
   await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
   const range = dialog.getByRole('group', { name: /^Trip dates/ })
+  // Folded away until you tap it.
+  await expect(range.getByRole('radiogroup', { name: 'Trip dates precision' })).toHaveCount(0)
+  await openDates(dialog, 'Trip dates')
   await expect(range.getByRole('radiogroup', { name: 'Trip dates precision' }).getByRole('radio')).toHaveText(['Date', 'Month', 'Year'])
 
   await range.getByRole('combobox', { name: 'Trip dates calendar month' }).selectOption('7')
   await range.getByRole('combobox', { name: 'Trip dates calendar year' }).selectOption('2023')
   await range.getByRole('button', { name: 'July 4, 2023' }).click()
   await range.getByRole('button', { name: 'July 9, 2023' }).click()
-  await expect(range).toContainText('Jul 4 – 9, 2023')
+  // The last day folds it away again, showing the range.
+  await expect(range.getByRole('button', { name: /^Change Trip dates/ })).toHaveText(/Jul 4 – 9, 2023/)
+  await openDates(dialog, 'Trip dates')
   await expect(range.getByRole('button', { name: 'July 6, 2023' })).toHaveAttribute('aria-pressed', 'true')
   await expect(range.getByRole('button', { name: 'July 10, 2023' })).toHaveAttribute('aria-pressed', 'false')
 
@@ -310,14 +315,9 @@ test('a road trip from home that comes back the same way, with two main pins', a
 
   await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
-  // New trips start at home; flew is the default, drove the other choice.
-  await expect(dialog.getByRole('group', { name: 'Started and ended at' })).toContainText('Pasadena')
-  const how = dialog.getByRole('radiogroup', { name: 'How you got there and back' })
-  await expect(how.getByRole('radio')).toHaveText([/Flew/, /Drove/])
-  await expect(how.getByRole('radio', { name: /Flew/ })).toHaveAttribute('aria-checked', 'true')
-  await how.getByRole('radio', { name: /Drove/ }).click()
-
+  // The route starts and ends at home.
   await toStep(dialog, 'Route')
+  await expect(dialog.getByRole('button', { name: 'Change where the trip started (Pasadena)' })).toBeVisible()
   await choosePlace(page, DEST, 'Las Vegas', /^Las Vegas\s*NV$/)
   await choosePlace(page, DEST, 'zion', /Zion National Park/)
 
@@ -327,10 +327,15 @@ test('a road trip from home that comes back the same way, with two main pins', a
   await zion.click()
   await expect(dialog.getByRole('button', { name: 'Zion National Park is a main destination' })).toHaveText(/Main/)
 
+  // Getting there and back is a flight unless you say otherwise: tap the leg to change it.
+  await dialog.getByRole('button', { name: /^Flight from Pasadena to Las Vegas/ }).click()
+  await dialog.getByRole('group', { name: 'How you got from Pasadena to Las Vegas' }).getByRole('button', { name: 'Drive' }).click()
   await expect(dialog.getByLabel(/^Drive from Pasadena to Las Vegas/)).toBeVisible()
   await dialog.getByRole('checkbox', { name: 'Came back the same way' }).check()
   await expect(dialog).toContainText('Back the same way')
   // Home is reached from the first stop, along the way back.
+  await dialog.getByRole('button', { name: /^Flight from Las Vegas to Pasadena/ }).click()
+  await dialog.getByRole('group', { name: 'How you got from Las Vegas to Pasadena' }).getByRole('button', { name: 'Drive' }).click()
   await expect(dialog.getByLabel(/^Drive from Las Vegas to Pasadena/)).toBeVisible()
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(dialog).toBeHidden()
@@ -360,10 +365,28 @@ test('a road trip from home that comes back the same way, with two main pins', a
   // Editing: the trip shows its own start, and can switch to the new home.
   await card.getByRole('button', { name: /^Edit/ }).click()
   const edit = page.getByRole('dialog', { name: 'Edit trip' })
-  await expect(edit.getByRole('group', { name: 'Started and ended at' })).toContainText('Pasadena')
-  await expect(edit.getByRole('radio', { name: /Drove/ })).toHaveAttribute('aria-checked', 'true')
-  await edit.getByRole('button', { name: /^Change where the trip started/ }).click()
+  await toStep(edit, 'Route')
+  await expect(edit.getByLabel(/^Drive from Pasadena to Las Vegas/)).toBeVisible()
+  await edit.getByRole('button', { name: 'Change where the trip started (Pasadena)' }).click()
   await edit.getByRole('button', { name: 'Use home (Denver)' }).click()
   await edit.getByRole('button', { name: 'Save' }).click()
   await expect(card.getByRole('list', { name: 'Route' })).toContainText('Denver')
+})
+
+test('a destination can be swapped for another place from its row', async ({ page }) => {
+  await page.goto('./')
+  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
+  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await toStep(dialog, 'Route')
+  await choosePlace(page, DEST, 'Las Vegas', /^Las Vegas\s*NV$/)
+  await choosePlace(page, DEST, 'Reno', /^Reno\s*NV$/)
+  // New places go after the last one, above the way back.
+  const places = dialog.getByRole('region', { name: 'Where you went' }).getByRole('listitem')
+  await expect(places).toHaveText([/Las Vegas/, /Reno/])
+
+  const reno = dialog.getByRole('listitem', { name: 'Reno' })
+  await reno.getByRole('button', { name: /Add dates/ }).click()
+  await reno.getByRole('combobox', { name: 'Change to another place' }).fill('Henderson, NV')
+  await reno.getByRole('option', { name: /^Henderson\s*NV$/ }).first().click()
+  await expect(places).toHaveText([/Las Vegas/, /Henderson/])
 })

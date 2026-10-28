@@ -12,7 +12,6 @@ import {
   type Place,
   type Destination,
   type Home,
-  type HomeMode,
   type TripStart,
   type LegMode,
   type Synced,
@@ -127,8 +126,9 @@ export interface TripInput {
   companions: string[]
   /** Groups tagged on the trip as a whole ("Friends"). */
   companionGroupIds?: string[]
-  /** Flew (the default) or drove from the start and back. */
-  homeMode?: HomeMode
+  /** How you got from the start to the first place, and back at the end; flight when omitted. */
+  startMode?: LegMode
+  endMode?: LegMode
   /** Where the trip started and ended (see Trip.start). */
   start?: TripStart | null
   /** Came back the same way (see Trip.returnSameWay). */
@@ -171,7 +171,8 @@ export function saveTrip(data: TravelData, ctx: EditContext, input: TripInput, t
     destinations,
     companions: [...new Set(input.companions)],
     companionGroupIds: [...new Set(input.companionGroupIds ?? [])],
-    homeMode: input.homeMode ?? 'flight',
+    startMode: input.startMode ?? 'flight',
+    endMode: input.endMode ?? 'flight',
     start: input.start ? { name: input.start.name, lat: input.start.lat, lng: input.start.lng } : null,
     // Only meaningful with two or more places to go back through.
     returnSameWay: !!input.returnSameWay && destinations.length > 1,
