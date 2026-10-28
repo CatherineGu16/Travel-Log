@@ -79,7 +79,7 @@ export function ParkSheet({
     .join(' · ')
 
   return (
-    <Sheet open onOpenChange={(o) => !o && onClose()} title={park.fullName} description={meta} accent="var(--park)">
+    <Sheet open swipeToClose onOpenChange={(o) => !o && onClose()} title={park.fullName} description={meta} accent="var(--park)">
       <div className="flex flex-col gap-6">
         <section aria-label="Visits">
           {visits.length === 0 ? (

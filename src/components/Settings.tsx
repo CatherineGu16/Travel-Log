@@ -7,7 +7,7 @@ import { ThemePicker } from './ThemePicker.tsx'
 
 export function Settings({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <Sheet open={open} onOpenChange={(o) => !o && onClose()} title="Settings">
+    <Sheet open={open} swipeToClose onOpenChange={(o) => !o && onClose()} title="Settings">
       <div className="mt-2 space-y-4">
         <SyncPanel />
         <HomePanel />

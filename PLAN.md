@@ -390,8 +390,14 @@ opens the same steps with tabs to jump straight to one.
   place a spot exactly, so tapping the map is used to shape routes instead.)
   - Each place has a **Main / Stop** pill: Main places get a pin on the map, stops get a number
     on the route. Tap it to switch. The first place starts as Main, and a trip keeps at least one.
-  - Each destination can have **its own dates** ("I know when I was here", as a date range) and a
-    note. On a new trip, these fill in the trip's start and end until you set those yourself.
+  - Each destination can have **its own dates**: its row's **📅 Add dates** opens a **strip of the
+    trip's days** ("Day 1 · Wed · May 1" …) right under it: tap the day you got there, then the day
+    you left (or the same day again), and it closes, showing "Days 2–3 · May 2 – 3". The next
+    stop's strip opens on the day the one before ended. "Other dates…" (days outside the trip),
+    trips without whole-day dates, trips over 60 days, and new trips whose dates you haven't set
+    (they follow the stops) use the calendar instead. Tap a place's name for the rest: change
+    place, rename, note. On a new trip, stop dates fill in the trip's start and end until you set
+    those yourself.
   - A place inside a national park offers to be linked to the park ("This is inside Zion National
     Park. Count it as a visit?").
   - Move up / down, remove.
@@ -462,11 +468,19 @@ opens the same steps with tabs to jump straight to one.
   destination.
 
 ### Trip detail
-- **The whole screen on a phone**; pull the top (the handle) down to close it.
-- Title, dates, who went, then **the stops** in order (each with its own dates and note, and "Also
+- **The whole screen on a phone**; pull the top (the handle) down to close it. (The park page,
+  filters and Settings close the same way.) A message showing when it opens is cleared, since it
+  would sit on the title.
+- Title, then dates, **how many days** and **roughly how far by each way of traveling** ("8 days ·
+  ~194 mi driven · ~1,200 mi flown", from the drawn lines). A **small map of the route** (still,
+  on the outline map). Who went, then **the stops** in order (each with its **day of the trip**
+  ("Days 2–3") and own dates, its note, and "Also
   here" chips for every other visit to that place, which open those trips). How you traveled
   between them isn't listed here (it's on the map and in Edit). Below the stops, the trip's
-  **notes**: hikes, description, highlights, rating and tags. Edit trip.
+  **notes**: hikes (each park opens its page), description, highlights, rating and tags (each shows
+  your trips with that tag). **Edit** next to each part opens the trip on that step (Who went →
+  Details, Stops → Route, Notes → Notes); "Add notes, a rating or tags" when there are none.
+  **Delete** with Undo, and Edit trip.
 
 ### Header, navigation, settings
 - **Header**: states n/50 and parks n/64 progress, trips this year (on wide screens), and the sync

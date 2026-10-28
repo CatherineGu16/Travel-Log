@@ -11,7 +11,7 @@ import { PinCard } from './components/PinCard.tsx'
 import { PlacesPage } from './components/PlacesPage.tsx'
 import { ToastProvider } from './components/Toast.tsx'
 import { useToast } from './components/toastContext.ts'
-import { TripDetail } from './components/TripDetail.tsx'
+import { TripDetail, type TripStep } from './components/TripDetail.tsx'
 import { TripForm, type RequestShape, type RouteEnd } from './components/TripForm.tsx'
 import { TripsPage } from './components/TripsPage.tsx'
 import parks from './data/national-parks.json'
@@ -48,7 +48,7 @@ export default function App() {
   )
 }
 
-type FormState = { trip: Trip | null; initialMain: PlaceInput | null }
+type FormState = { trip: Trip | null; initialMain: PlaceInput | null; step?: TripStep }
 /** Shaping one leg of a route on the map: the bends tapped so far, and earlier versions for Undo. */
 type ShapeRequest = { from: RouteEnd; to: RouteEnd; via: LngLat[]; history: LngLat[][]; resolve: (via: LngLat[] | null) => void }
 
@@ -349,9 +349,18 @@ function Shell() {
           trip={detailTrip}
           data={data}
           onOpenTrip={openTrip}
-          onEdit={(trip) => {
+          onEdit={(trip, step) => {
             setDetailTripId(null)
-            setForm({ trip, initialMain: null })
+            setForm({ trip, initialMain: null, step })
+          }}
+          onTag={(tag) => {
+            setDetailTripId(null)
+            setFilter({ ...filter, tag })
+            goTo('trips')
+          }}
+          onOpenPark={(parkId) => {
+            setDetailTripId(null)
+            setParkSheetId(parkId)
           }}
           onClose={() => setDetailTripId(null)}
         />
@@ -362,6 +371,7 @@ function Shell() {
           key={form.trip?.id ?? 'new'}
           trip={form.trip}
           initialMain={form.initialMain}
+          initialStep={form.step}
           hidden={shape !== null}
           requestShape={requestShape}
           onClose={() => {

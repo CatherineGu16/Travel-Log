@@ -119,8 +119,8 @@ test('a trip with two main destinations, each with its own dates', async ({ page
     ['Las Vegas', '2024-05-04', '2024-05-06'],
   ]) {
     const row = dialog.getByRole('listitem', { name })
-    await row.getByRole('button', { name: /Add dates/ }).click()
-    await row.getByRole('checkbox', { name: 'I know when I was here' }).check()
+    // A new trip's dates come from its stops, so each stop gets the calendar.
+    await row.getByRole('button', { name: /^Add dates/ }).click()
     await pickDays(row, `Dates at ${name}`, from, to)
   }
   await toStep(dialog, 'Details')
@@ -404,7 +404,7 @@ test('a destination can be swapped for another place from its row', async ({ pag
   await expect(places).toHaveText([/Las Vegas/, /Reno/])
 
   const reno = dialog.getByRole('listitem', { name: 'Reno' })
-  await reno.getByRole('button', { name: /Add dates/ }).click()
+  await reno.getByRole('button', { name: 'Reno: change place, name or note' }).click()
   await reno.getByRole('combobox', { name: 'Change to another place' }).fill('Henderson, NV')
   await reno.getByRole('option', { name: /^Henderson\s*NV$/ }).first().click()
   await expect(places).toHaveText([/Las Vegas/, /Henderson/])
@@ -430,4 +430,57 @@ test('cities abroad: biggest first, narrowed by country, and grouped by country'
   await page.goto('./#/trips')
   await page.getByRole('combobox', { name: 'Group by' }).selectOption('state')
   await expect(page.getByRole('heading', { name: /^Portugal/ })).toBeVisible()
+})
+
+test('stop dates from a strip of the trip days, shown as day numbers; details link to each step', async ({ page }) => {
+  await page.goto('./')
+  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
+  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await pickDays(dialog, 'Trip dates', '2024-05-01', '2024-05-06')
+  await toStep(dialog, 'Route')
+  await choosePlace(page, DEST, 'zion', /Zion National Park/)
+  await choosePlace(page, DEST, 'bryce', /Bryce Canyon National Park/)
+
+  // Tap the day you got there, then the day you left.
+  const zion = dialog.getByRole('listitem', { name: 'Zion National Park' })
+  await zion.getByRole('button', { name: /^Add dates/ }).click()
+  const zionDays = zion.getByRole('group', { name: 'Days at Zion National Park' })
+  await expect(zionDays.getByRole('button', { name: /^Day \d+,/ })).toHaveCount(6)
+  await zionDays.getByRole('button', { name: /^Day 1,/ }).click()
+  await zionDays.getByRole('button', { name: /^Day 3,/ }).click()
+  await expect(zionDays).toBeHidden()
+  await expect(zion.getByRole('button', { name: /^Dates at Zion/ })).toHaveText(/Days 1–3 · May 1 – 3, 2024/)
+
+  // The next stop picks up where the last left off.
+  const bryce = dialog.getByRole('listitem', { name: 'Bryce Canyon National Park' })
+  await bryce.getByRole('button', { name: /^Add dates/ }).click()
+  const bryceDays = bryce.getByRole('group', { name: 'Days at Bryce Canyon National Park' })
+  await bryceDays.getByRole('button', { name: /^Day 3,/ }).click()
+  await bryceDays.getByRole('button', { name: /^Day 6,/ }).click()
+  await expect(bryce.getByRole('button', { name: /^Dates at Bryce/ })).toHaveText(/Days 3–6/)
+  await dialog.getByRole('button', { name: 'Next: Notes' }).click()
+  await dialog.getByRole('textbox', { name: 'Tags' }).fill('canyons')
+  await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+  await expect(dialog).toBeHidden()
+
+  // Details: how long, a map, each stop's days, and Edit on each part.
+  await page.getByRole('region', { name: /trips$/ }).getByRole('button', { name: 'Details' }).click()
+  const detail = page.getByRole('dialog', { name: /Zion/ })
+  await expect(detail).toContainText('6 days')
+  await expect(detail.getByRole('img', { name: /^Map of the route/ })).toBeVisible()
+  await expect(detail).toContainText('Days 1–3 · May 1 – 3, 2024')
+  await detail.getByRole('button', { name: 'Edit the stops' }).click()
+  const edit = page.getByRole('dialog', { name: 'Edit trip' })
+  await expect(edit.getByRole('navigation', { name: 'Steps' }).getByRole('button', { name: 'Route', exact: true })).toHaveAttribute('aria-current', 'step')
+  await page.keyboard.press('Escape')
+  await expect(edit).toBeHidden()
+
+  // A tag shows your trips with that tag; Delete removes the trip, with Undo.
+  await page.getByRole('region', { name: /trips$/ }).getByRole('button', { name: 'Details' }).click()
+  await page.getByRole('dialog', { name: /Zion/ }).getByRole('button', { name: 'Show trips tagged canyons' }).click()
+  await expect(page.getByRole('button', { name: 'Filter, 1 on' }).first()).toBeVisible()
+  await page.getByRole('button', { name: /Zion 2024/ }).click()
+  await page.getByRole('region', { name: /trips$/ }).getByRole('button', { name: 'Details' }).click()
+  await page.getByRole('dialog', { name: /Zion/ }).getByRole('button', { name: 'Delete' }).click()
+  await expect(page.getByRole('status')).toContainText('Deleted')
 })

@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { describeRef, type ChosenPlace } from '../lib/chosenPlace.ts'
-import { comparePartialDates, formatDateRange, todayIso, yearOf } from '../lib/partialDate.ts'
+import { comparePartialDates, dayLabel, formatDateRange, todayIso, yearOf } from '../lib/partialDate.ts'
 import { addPerson, saveTrip, type PlaceInput, type TripInput } from '../lib/travelActions.ts'
 import { endOfHome, homeLeg, legMemory, makeLeg, returnLegs, type Leg, type LegEnd } from '../lib/legs.ts'
 import { type LegMode, type LngLat, type PartialDate, type TravelData, type Trip, type TripHike, type TripStart } from '../lib/types.ts'
@@ -10,6 +10,7 @@ import { HikesField } from './HikesField.tsx'
 import { PeoplePicker } from './PeoplePicker.tsx'
 import { ParkSuggestion, PinGlyph, PlacePicker } from './PlacePicker.tsx'
 import { Sheet } from './Sheet.tsx'
+import { StopDates } from './StopDates.tsx'
 import { HomeGlyph, LegRow, ReturnRow } from './LegRow.tsx'
 import { useToast } from './toastContext.ts'
 
@@ -70,6 +71,7 @@ const compareLoose = (a: PartialDate, b: PartialDate) => {
 export function TripForm({
   trip,
   initialMain,
+  initialStep,
   hidden,
   requestShape,
   onClose,
@@ -77,6 +79,8 @@ export function TripForm({
 }: {
   trip: Trip | null
   initialMain: PlaceInput | null
+  /** Open on this step (e.g. Edit next to a trip's stops opens Route). */
+  initialStep?: (typeof STEPS)[number]
   hidden: boolean
   requestShape: RequestShape
   onClose: () => void
@@ -112,7 +116,7 @@ export function TripForm({
       ]
     return []
   })
-  const [step, setStep] = useState<Step>(0)
+  const [step, setStep] = useState<Step>(() => Math.max(0, STEPS.indexOf(initialStep ?? 'Details')) as Step)
   // Where the trip started and ended: new trips start at Home; a trip keeps its own copy, so
   // changing Home later doesn't move it. Trips saved before that follow Home until saved.
   const homeNow: TripStart | null = data.home && !data.home.deleted ? { name: data.home.name, lat: data.home.lat, lng: data.home.lng } : null
@@ -130,7 +134,8 @@ export function TripForm({
   const [tags, setTags] = useState((trip?.tags ?? []).join(', '))
   const [hikes, setHikes] = useState<TripHike[]>(trip?.hikes ?? [])
   const [error, setError] = useState<string | null>(null)
-  const [datesJustAdded, setDatesJustAdded] = useState<string | null>(null)
+  // The stop whose dates are open for picking (one at a time).
+  const [datesFor, setDatesFor] = useState<string | null>(null)
 
   const mains = destinations.filter((d) => d.isMain)
 
@@ -283,6 +288,14 @@ export function TripForm({
   // Editing saves from any step; a new trip once it has somewhere to go. Notes are optional.
   const canSave = !!trip || step > 0 || destinations.length > 0
   let stopNumber = 0
+  /** "Days 2–3 · May 2 – 3" (the day numbers when the dates are whole days). */
+  const stopDates = (d: DestinationDraft) =>
+    d.startDate ? [dayLabel(startDate, d.startDate, d.endDate), formatDateRange(d.startDate, d.endDate)].filter(Boolean).join(' · ') : ''
+  /** Where a stop's day strip opens: the day the stop before it ended, else the trip's first day. */
+  const suggestedStart = (i: number) => {
+    const before = destinations.slice(0, i).findLast((x) => x.startDate)
+    return before ? (before.endDate ?? before.startDate) : startDate
+  }
   const pickStart = (p: ChosenPlace | null) => {
     const at = p && endOf(p, data)
     if (!at) return
@@ -471,21 +484,32 @@ export function TripForm({
                             )}
                             <span aria-hidden>{d.isMain ? 'Main' : 'Stop'}</span>
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => patch(d.key, { open: !d.open })}
-                            aria-expanded={d.open}
-                            className="min-h-10 min-w-0 flex-1 px-1 text-left"
-                          >
-                            <span className="block truncate">
+                          <div className="min-w-0 flex-1 px-1">
+                            <button
+                              type="button"
+                              onClick={() => patch(d.key, { open: !d.open })}
+                              aria-expanded={d.open}
+                              aria-label={`${d.place.label}: change place, name or note`}
+                              className="block max-w-full truncate text-left"
+                            >
                               <span className={d.isMain ? 'font-bold' : ''}>{d.place.label}</span>
                               {d.place.detail && <span className="ml-1.5 text-xs text-muted">{d.place.detail}</span>}
-                            </span>
-                            <span className="block text-xs text-muted">
-                              {d.startDate ? formatDateRange(d.startDate, d.endDate) : 'Add dates'}
-                              {d.note && ` · ${d.note}`}
-                            </span>
-                          </button>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDatesFor(datesFor === d.key ? null : d.key)}
+                              aria-expanded={datesFor === d.key}
+                              aria-label={d.startDate ? `Dates at ${d.place.label}: ${stopDates(d)}` : `Add dates at ${d.place.label}`}
+                              className={`flex max-w-full items-center gap-1 text-left text-xs ${d.startDate ? 'text-fg' : 'font-bold text-primary'}`}
+                            >
+                              <svg viewBox="0 0 20 20" className="size-3.5 shrink-0" aria-hidden>
+                                <rect x="3" y="4.5" width="14" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+                                <path d="M3 8.5h14M7 3v3M13 3v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                              </svg>
+                              <span className="truncate">{d.startDate ? stopDates(d) : 'Add dates'}</span>
+                              {d.note && <span className="truncate text-muted">· {d.note}</span>}
+                            </button>
+                          </div>
                           <IconButton label={`Move ${d.place.label} up`} disabled={i === 0} onClick={() => move(i, -1)} d="M6 12l4-4 4 4" />
                           <IconButton label={`Move ${d.place.label} down`} disabled={i === destinations.length - 1} onClick={() => move(i, 1)} d="M6 8l4 4 4-4" />
                           <IconButton label={`Remove ${d.place.label}`} onClick={() => remove(d.key)} d="M6 6l8 8M14 6l-8 8" />
@@ -499,6 +523,19 @@ export function TripForm({
                             }
                           />
                         </div>
+                        {datesFor === d.key && (
+                          <StopDates
+                            place={d.place.label}
+                            tripStart={startDate}
+                            tripEnd={endDate}
+                            start={d.startDate}
+                            end={d.endDate}
+                            suggested={suggestedStart(i)}
+                            calendarOnly={!datesTouched}
+                            onChange={(start, end) => patch(d.key, { startDate: start, endDate: end })}
+                            onDone={() => setDatesFor(null)}
+                          />
+                        )}
                         {d.open && (
                           <div className="flex flex-col gap-3 border-t border-line p-3">
                             <PlacePicker label="Change to another place" data={data} near={near} value={null} onChange={(p) => p && changePlace(d.key, p)} />
@@ -515,33 +552,6 @@ export function TripForm({
                                   className={`${input} h-10`}
                                 />
                               </label>
-                            )}
-                            <label className="flex min-h-9 items-center gap-2 text-sm">
-                              <input
-                                type="checkbox"
-                                checked={!!d.startDate}
-                                onChange={(e) => {
-                                  // Just asked to add dates: their calendar opens right away.
-                                  setDatesJustAdded(e.target.checked ? d.key : null)
-                                  patch(
-                                    d.key,
-                                    e.target.checked
-                                      ? { startDate: startDate, endDate: endDate === startDate ? null : endDate }
-                                      : { startDate: null, endDate: null },
-                                  )
-                                }}
-                                className="size-4"
-                              />
-                              I know when I was here
-                            </label>
-                            {d.startDate && (
-                              <DateRangeField
-                                defaultOpen={datesJustAdded === d.key}
-                                label={`Dates at ${d.place.label}`}
-                                start={d.startDate}
-                                end={d.endDate ?? d.startDate}
-                                onChange={(startDate, endDate) => patch(d.key, { startDate, endDate })}
-                              />
                             )}
                             <label className="block">
                               <span className="mb-1 block text-sm font-bold">Note</span>

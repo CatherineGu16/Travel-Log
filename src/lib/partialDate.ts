@@ -61,3 +61,33 @@ export function formatDateRange(start: PartialDate, end: PartialDate | null, app
 }
 
 export const yearOf = (date: PartialDate) => date.slice(0, 4)
+
+const DAY_MS = 24 * 60 * 60 * 1000
+const dayNumber = (date: PartialDate) => Date.UTC(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, Number(date.slice(8, 10))) / DAY_MS
+
+/** How many days a trip lasted, counting both ends; null unless both dates are whole days. */
+export function tripDays(start: PartialDate, end: PartialDate | null): number | null {
+  const last = end ?? start
+  if (precisionOf(start) !== 'day' || precisionOf(last) !== 'day') return null
+  return dayNumber(last) - dayNumber(start) + 1
+}
+
+/** Which day of the trip a date is (1 = the first day), when both are whole days. */
+export function dayOfTrip(tripStart: PartialDate, date: PartialDate): number | null {
+  if (precisionOf(tripStart) !== 'day' || precisionOf(date) !== 'day') return null
+  return dayNumber(date) - dayNumber(tripStart) + 1
+}
+
+/** "Day 2" or "Days 2–3", for a stop's dates within a trip; null when they aren't whole days. */
+export function dayLabel(tripStart: PartialDate, start: PartialDate | null, end: PartialDate | null): string | null {
+  if (!start) return null
+  const first = dayOfTrip(tripStart, start)
+  const last = end ? dayOfTrip(tripStart, end) : first
+  if (first === null || last === null) return null
+  return first === last ? `Day ${first}` : `Days ${first}–${last}`
+}
+
+/** The day `n` days after `date` (a whole day), as "YYYY-MM-DD". */
+export function addDays(date: PartialDate, n: number): PartialDate {
+  return new Date((dayNumber(date) + n) * DAY_MS).toISOString().slice(0, 10)
+}

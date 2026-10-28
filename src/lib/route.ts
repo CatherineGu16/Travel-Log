@@ -135,3 +135,19 @@ export function legPaths(route: RoutePoint[]): (LngLat[] | null)[] {
     return line
   })
 }
+
+/**
+ * How far a route goes by each way of traveling, in meters: drives along their drawn lines (so the
+ * way back counts, retraced or not), flights in a straight line. Rough, since lines aren't roads.
+ */
+export function distancesByMode(route: RoutePoint[]): Partial<Record<NonNullable<RoutePoint['leg']>['mode'], number>> {
+  const paths = legPaths(route)
+  const out: Partial<Record<NonNullable<RoutePoint['leg']>['mode'], number>> = {}
+  route.forEach((r, i) => {
+    if (!r.leg) return
+    const line = paths[i]
+    const m = line ? line.slice(1).reduce((sum, p, k) => sum + metersBetween(line[k], p), 0) : r.leg.distanceM
+    out[r.leg.mode] = (out[r.leg.mode] ?? 0) + m
+  })
+  return out
+}

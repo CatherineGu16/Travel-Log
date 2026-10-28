@@ -1,11 +1,10 @@
-import { LngLatBounds, Map as MapLibreMap, setWorkerUrl, type ExpressionSpecification, type GeoJSONSource, type MapMouseEvent } from 'maplibre-gl'
+import { Map as MapLibreMap, setWorkerUrl, type ExpressionSpecification, type GeoJSONSource, type MapMouseEvent } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { useEffect, useRef, useState } from 'react'
 import { shadeLevel, type Pin } from '../lib/derive.ts'
 import { loadParkBoundaries, PARKS } from '../lib/gazetteer.ts'
-import { greatCircle, unwrapLngs } from '../lib/geo.ts'
-import type { LngLat } from '../lib/types.ts'
-import { legPaths, type RoutePoint } from '../lib/route.ts'
+import type { RoutePoint } from '../lib/route.ts'
+import { routeBounds, routeCollection } from './routeData.ts'
 import { resolvedTheme } from '../ui/theme.ts'
 import { loadOutlineData } from './mapData.ts'
 import { outlineStyle, PALETTES, themedPaint } from './outlineStyle.ts'
@@ -158,54 +157,14 @@ export function MapView(props: MapViewProps) {
   const { route, routeTripId } = props
   useEffect(() => {
     if (!map) return
-    const paths = legPaths(route)
-    map.getSource<GeoJSONSource>('route')?.setData({
-      type: 'FeatureCollection',
-      features: [
-        // The way back the same way runs over the way there, so it isn't drawn twice.
-        ...route.slice(1).flatMap((r, i) =>
-          r.leg?.role === 'return'
-            ? []
-            : [
-                {
-                  type: 'Feature' as const,
-                  properties: { style: legStyle(r) },
-                  geometry: { type: 'LineString' as const, coordinates: unwrapLngs(paths[i + 1] ?? flightArc(route[i], r)) },
-                },
-              ],
-        ),
-        // Home starts and ends the trip at the same spot, and stops passed on the way back are
-        // already marked: one marker each.
-        ...route
-          .filter((r, i) => !r.returning && (r.number !== null || r.marker || (r.role === 'home' && i === 0)))
-          .map((r) => ({
-            type: 'Feature' as const,
-            properties: { number: r.marker ?? r.number ?? 'H', name: r.place.name },
-            geometry: { type: 'Point' as const, coordinates: [r.place.lng, r.place.lat] },
-          })),
-        // Bends: small dots while you're shaping the route, so you can see what you tapped.
-        ...(props.showBends ? route.flatMap((r) => r.via) : []).map((coordinates) => ({
-          type: 'Feature' as const,
-          properties: { bend: true },
-          geometry: { type: 'Point' as const, coordinates },
-        })),
-      ],
-    })
+    map.getSource<GeoJSONSource>('route')?.setData(routeCollection(route, props.showBends))
   }, [map, route, props.showBends])
 
   // Only when a different trip is shown, not on every edit, so it reads the route from the ref.
-  // Fitted to the places (and the bends of ground legs), not flight arcs: a long flight can run off
-  // the edge so the places stay readable. Home is left out when you flew from it.
   useEffect(() => {
     const current = latest.current.route
     if (!map || !routeTripId || current.length < 2) return
-    const bounds = new LngLatBounds()
-    const flewFrom = (i: number) => [current[i]?.leg, current[i + 1]?.leg].every((l) => !l || l.mode === 'flight')
-    current.forEach((r, i) => {
-      if (r.role === 'home' && flewFrom(i)) return
-      if (legStyle(r) !== 'flight') for (const p of r.via) bounds.extend(p)
-      bounds.extend([r.place.lng, r.place.lat])
-    })
+    const bounds = routeBounds(current)
     if (bounds.isEmpty()) return
     map.fitBounds(bounds, { padding: routePadding(!!latest.current.showBends), maxZoom: 10, duration: 800 })
   }, [map, routeTripId])
@@ -335,15 +294,6 @@ const worldZoom = (map: MapLibreMap) => {
   const zoom = globeZoom(clientWidth, clientHeight, map.getCenter().lat, map.getVerticalFieldOfView())
   // Before the map has a size there's nothing to fit.
   return Number.isFinite(zoom) ? Math.min(Math.max(zoom, -2), map.getMaxZoom()) : 0
-}
-
-/** How a leg is drawn: a flight as a dashed arc, "not sure" (or a leg being shaped) dotted, the rest solid. */
-const legStyle = (to: RoutePoint) => (!to.leg || to.leg.mode === 'unknown' ? 'unknown' : to.leg.mode === 'flight' ? 'flight' : 'ground')
-
-/** A flight arriving at `to`: along great circles, through any bends. (Ground legs come from legPaths.) */
-function flightArc(from: RoutePoint, to: RoutePoint): LngLat[] {
-  const points: LngLat[] = [[from.place.lng, from.place.lat], ...to.via, [to.place.lng, to.place.lat]]
-  return points.slice(1).flatMap((p, i) => greatCircle(points[i], p).slice(i === 0 ? 0 : 1))
 }
 
 /** Taps select pins (or zoom into clusters); long-press / right-click adds a trip; pick mode picks. */

@@ -32,6 +32,7 @@ export function FilterSheet({
 
   return (
     <Sheet
+      swipeToClose
       open={open}
       onOpenChange={(o) => !o && onClose()}
       title="Filter trips"

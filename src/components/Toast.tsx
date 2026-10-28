@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import { ToastContext, type ToastAction } from './toastContext.ts'
+import { ToastContext, ToastDismissContext, type ToastAction } from './toastContext.ts'
 
 interface ToastMessage {
   id: number
@@ -19,6 +19,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToast({ id: ++seq.current, text, actions })
   }, [])
 
+  const dismiss = useCallback(() => setToast(null), [])
+
   useEffect(() => {
     if (!toast || paused) return
     timer.current = window.setTimeout(() => setToast(null), VISIBLE_MS)
@@ -27,11 +29,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   return (
     <ToastContext.Provider value={show}>
-      {children}
+      <ToastDismissContext.Provider value={dismiss}>{children}</ToastDismissContext.Provider>
       {/*
         Above panels (z-50) and menus (z-60). Phones show it at the top: bottom panels and the tab
         bar own the bottom edge, and a toast there covered their buttons. Bottom panels stop at 85%
-        height, so the top strip is always free. From 640px panels open from the side, so it goes
+        height, so the top strip is free (full-screen panels hide the message when they open). From 640px panels open from the side, so it goes
         back to the bottom, above the tab bar until desktop.
       */}
       <div

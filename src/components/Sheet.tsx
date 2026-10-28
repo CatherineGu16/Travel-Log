@@ -1,6 +1,7 @@
 import * as Dialog from '@radix-ui/react-dialog'
-import { useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react'
 import { useKeyboardArea } from '../ui/useKeyboardInset.ts'
+import { useDismissToast } from './toastContext.ts'
 
 /** Bottom sheet on phones, side panel from 640px up. Radix handles focus trap, Escape, and scroll lock. */
 export function Sheet({
@@ -38,6 +39,11 @@ export function Sheet({
   // the screen. Its buttons hide until the keyboard closes.
   const phone = typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches
   const keyboard = useKeyboardArea(open && phone)
+  // A full-screen panel covers the top strip messages use, so a message showing now would sit on its title.
+  const dismissToast = useDismissToast()
+  useEffect(() => {
+    if (open && full && phone) dismissToast()
+  }, [open, full, phone, dismissToast])
 
   // Dragging the top of the sheet down: it follows your finger, and closes if you pull it far or fast.
   const drag = useRef<{ y: number; at: number } | null>(null)
