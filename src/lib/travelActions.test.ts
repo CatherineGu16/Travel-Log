@@ -83,6 +83,12 @@ describe('saveTrip', () => {
     const data = saveTrip(emptyData('t0'), ctx(), trip({ startDate: '2023-07', endDate: '2023-07' }))
     expect(data.trips[0].endDate).toBeNull()
   })
+
+  it('keeps bends on the way there and back for a drive, not a flight', () => {
+    const bend: [number, number] = [-117, 35]
+    const saved = saveTrip(emptyData('t0'), ctx(), trip({ startMode: 'drive', endMode: 'flight', startVia: [bend], endVia: [bend] })).trips[0]
+    expect(saved).toMatchObject({ startVia: [bend], endVia: [] })
+  })
 })
 
 describe('findSamePlace', () => {

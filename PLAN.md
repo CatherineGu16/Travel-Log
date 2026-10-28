@@ -240,6 +240,7 @@ units (monuments, seashores, historic sites — 400+ total) could be added later
                                legMode | null } ],      // how you got here from the previous one; null = guessed
              start: { name, lat, lng } | null,  // where it started and ended: a copy of Home when made
              startMode, endMode,             // leg modes from the start to the first place and back (flight by default)
+             startVia, endVia,               // bends on the way there and back (not for a flight)
              companions: [personId],         // people who went, one by one
              companionGroupIds: [groupId],   // groups tagged as a whole ("Friends")
              hikes: [ { parkId,              // hikes done on this trip
@@ -420,8 +421,10 @@ opens the same steps with tabs to jump straight to one.
     the app uses no routing service.
   - The Route step starts and ends with where the trip started (Home by default), with the way
     there and back as leg rows: **a flight unless you change it** (tap the leg; the same mode picker
-    as other legs, never guessed). Tap the start or end row to pick another place for this trip,
-    or "Use home" for the current Home.
+    as other legs, never guessed). Unless they're flights, they can be shaped on the map like any
+    leg ("Shape on map", Straighten; the way back offers "Follow the way you came"); their bends
+    reset when the first or last place or the start changes. Tap the start or end row to pick
+    another place for this trip, or "Use home" for the current Home.
   - Tap a place's dates line to open it: **Change to another place** (the same place search)
     swaps the place, keeping its dates, note and pin, and resets the legs to and from it; then its
     own dates and note.

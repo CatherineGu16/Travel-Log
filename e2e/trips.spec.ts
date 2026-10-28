@@ -359,10 +359,18 @@ test('a road trip from home with two main pins; changing home leaves it alone', 
   await dialog.getByRole('button', { name: /^Flight from Pasadena to Las Vegas/ }).click()
   await dialog.getByRole('group', { name: 'How you got from Pasadena to Las Vegas' }).getByRole('button', { name: 'Drive' }).click()
   await expect(dialog.getByLabel(/^Drive from Pasadena to Las Vegas/)).toBeVisible()
-  // Home again from the last place (the drive back follows the way there on the map).
+  // Home again from the last place (the drive back follows the way there on the map). A flight
+  // can't be shaped; a drive can, like any other leg.
+  await expect(dialog.getByRole('button', { name: 'Shape the route from Zion National Park to Pasadena on the map' })).toHaveCount(0)
   await dialog.getByRole('button', { name: /^Flight from Zion National Park to Pasadena/ }).click()
   await dialog.getByRole('group', { name: 'How you got from Zion National Park to Pasadena' }).getByRole('button', { name: 'Drive' }).click()
   await expect(dialog.getByLabel(/^Drive from Zion National Park to Pasadena/)).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Shape the route from Pasadena to Las Vegas on the map' })).toBeVisible()
+  await dialog.getByRole('button', { name: 'Shape the route from Zion National Park to Pasadena on the map' }).click()
+  const banner = page.getByRole('region', { name: 'Shape the route' })
+  await banner.getByRole('button', { name: /Follow the way you came/ }).click()
+  await banner.getByRole('button', { name: 'Done' }).click()
+  await expect(dialog.getByRole('button', { name: 'Shape the route from Zion National Park to Pasadena on the map' })).toHaveText(/^Bends \d+× · Edit$/)
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(dialog).toBeHidden()
 

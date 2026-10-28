@@ -129,6 +129,9 @@ export interface TripInput {
   /** How you got from the start to the first place, and back at the end; flight when omitted. */
   startMode?: LegMode
   endMode?: LegMode
+  /** Bends on the way there and back (see Trip.startVia); dropped for a flight. */
+  startVia?: LngLat[]
+  endVia?: LngLat[]
   /** Where the trip started and ended (see Trip.start). */
   start?: TripStart | null
   description: string
@@ -171,6 +174,8 @@ export function saveTrip(data: TravelData, ctx: EditContext, input: TripInput, t
     companionGroupIds: [...new Set(input.companionGroupIds ?? [])],
     startMode: input.startMode ?? 'flight',
     endMode: input.endMode ?? 'flight',
+    startVia: (input.startMode ?? 'flight') === 'flight' ? [] : (input.startVia ?? []),
+    endVia: (input.endMode ?? 'flight') === 'flight' ? [] : (input.endVia ?? []),
     start: input.start ? { name: input.start.name, lat: input.start.lat, lng: input.start.lng } : null,
     description: input.description.trim(),
     highlights: input.highlights.trim(),

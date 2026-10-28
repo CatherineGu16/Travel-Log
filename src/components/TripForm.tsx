@@ -130,6 +130,13 @@ export function TripForm({
   const [changingStart, setChangingStart] = useState<'top' | 'bottom' | null>(null)
   const [startMode, setStartMode] = useState<LegMode>(trip?.startMode ?? 'flight')
   const [endMode, setEndMode] = useState<LegMode>(trip?.endMode ?? 'flight')
+  // Bends on the way there and back, for the first and last place and the start they were shaped
+  // for: once either changes, they were for a different leg and no longer apply.
+  const startKey = (s: TripStart | null) => (s ? `${s.lat},${s.lng}` : '')
+  const [startShape, setStartShape] = useState(() => ({ key: destinations[0]?.key, at: startKey(start), via: trip?.startVia ?? [] }))
+  const [endShape, setEndShape] = useState(() => ({ key: destinations.at(-1)?.key, at: startKey(start), via: trip?.endVia ?? [] }))
+  const startVia = startShape.key === destinations[0]?.key && startShape.at === startKey(start) ? startShape.via : []
+  const endVia = endShape.key === destinations.at(-1)?.key && endShape.at === startKey(start) ? endShape.via : []
   const [companions, setCompanions] = useState<string[]>(trip?.companions ?? [])
   const [companionGroupIds, setCompanionGroupIds] = useState<string[]>(trip?.companionGroupIds ?? [])
   const [description, setDescription] = useState(trip?.description ?? '')
@@ -158,8 +165,8 @@ export function TripForm({
   const legBefore = (i: number) => stopsLegs[i - 1] ?? null
   const first = ends[0]
   const end = ends.at(-1)
-  const toLeg: Leg | null = home && first ? homeLeg(home, first, startMode) : null
-  const backLeg: Leg | null = home && end ? homeLeg(end, home, endMode) : null
+  const toLeg: Leg | null = home && first ? homeLeg(home, first, startMode, startVia) : null
+  const backLeg: Leg | null = home && end ? homeLeg(end, home, endMode, endVia) : null
   // National parks on this trip: their hikes can be checked off.
   const parkIds = [...new Set(destinations.map((d) => d.place.parkId).filter((id): id is string => !!id))]
 
@@ -201,17 +208,37 @@ export function TripForm({
     updateDestinations((d) => [...d, { key: newId(), place, isMain: d.length === 0, startDate: null, endDate: null, note: '', via: [], legMode: null, open: false }])
 
   /** Hides the form while you tap out the way you went from the previous destination to this one. */
-  const shapeLeg = async (i: number) => {
-    const latest = store.getState().data
-    const from = endOf(destinations[i - 1].place, latest)
-    const to = endOf(destinations[i].place, latest)
+  /**
+   * Hides the form while you shape the leg arriving at draftPoints()[at] on the map, with the rest of
+   * the trip faintly behind it and "Follow the way you came" when there's a way to follow.
+   */
+  const shape = async (at: number, from: RouteEnd | null, to: RouteEnd | null, via: LngLat[], save: (via: LngLat[]) => void) => {
     if (!from || !to) return
-    const key = destinations[i].key
     const points = draftPoints()
-    const at = i + (home && toLeg ? 1 : 0)
     const context = legPaths(points).filter((line, k): line is LngLat[] => !!line && k !== at)
-    const via = await requestShape(from, to, destinations[i].via, followTraveledBends(points, at), context)
-    if (via) patch(key, { via })
+    const shaped = await requestShape(from, to, via, followTraveledBends(points, at), context)
+    if (shaped) save(shaped)
+  }
+  /** The leg from destination i − 1 to i. */
+  const shapeLeg = (i: number) => {
+    const latest = store.getState().data
+    const key = destinations[i].key
+    void shape(i + (home && toLeg ? 1 : 0), endOf(destinations[i - 1].place, latest), endOf(destinations[i].place, latest), destinations[i].via, (via) =>
+      patch(key, { via }),
+    )
+  }
+  /** The way from the start to the first place, or back from the last. */
+  const shapeHome = (which: 'start' | 'end') => {
+    if (!start) return
+    const latest = store.getState().data
+    const home = { name: start.name, lat: start.lat, lng: start.lng }
+    if (which === 'start') {
+      const key = destinations[0]?.key
+      return void shape(1, home, destinations[0] ? endOf(destinations[0].place, latest) : null, startVia, (via) => setStartShape({ key, at: startKey(start), via }))
+    }
+    const key = destinations.at(-1)?.key
+    const last = destinations.at(-1)
+    void shape(draftPoints().length - 1, last ? endOf(last.place, latest) : null, home, endVia, (via) => setEndShape({ key, at: startKey(start), via }))
   }
 
   /** The route as it stands now (unsaved edits included), as points for working out its lines. */
@@ -220,8 +247,8 @@ export function TripForm({
       ({ place: { lng, lat } as Place, role: 'stop', number: null, via, leg }) as RoutePoint
     return [
       ...(home && toLeg ? [point(home.lng, home.lat, [], null)] : []),
-      ...destinations.map((d, k) => point(ends[k]?.lng ?? 0, ends[k]?.lat ?? 0, k ? d.via : [], k ? legBefore(k) : toLeg)),
-      ...(home && backLeg ? [point(home.lng, home.lat, [], backLeg)] : []),
+      ...destinations.map((d, k) => point(ends[k]?.lng ?? 0, ends[k]?.lat ?? 0, k ? d.via : toLeg ? toLeg.via : [], k ? legBefore(k) : toLeg)),
+      ...(home && backLeg ? [point(home.lng, home.lat, backLeg.via, backLeg)] : []),
     ]
   }
 
@@ -286,6 +313,8 @@ export function TripForm({
       start,
       startMode,
       endMode,
+      startVia,
+      endVia,
       description,
       highlights,
       rating,
@@ -321,6 +350,25 @@ export function TripForm({
     setStart({ name: at.name, lat: at.lat, lng: at.lng })
     setChangingStart(null)
   }
+  /** "Shape on map" and "Straighten" for the way there or back, unless it's a flight. */
+  const homeShaping = (leg: Leg, via: LngLat[], onShape: () => void, onStraighten: () => void) =>
+    leg.mode !== 'flight' && (
+      <>
+        <button
+          type="button"
+          onClick={onShape}
+          aria-label={`Shape the route from ${leg.from.name} to ${leg.to.name} on the map`}
+          className="min-h-11 rounded-md px-1.5 font-bold text-[var(--route)] hover:bg-raised"
+        >
+          {via.length ? `Bends ${via.length}× · Edit` : 'Shape on map'}
+        </button>
+        {via.length > 0 && (
+          <button type="button" onClick={onStraighten} className="min-h-11 rounded-md px-1.5 hover:bg-raised hover:text-fg">
+            Straighten
+          </button>
+        )}
+      </>
+    )
   /** Where the trip started, at the top and again at the end: tap it to pick another place. */
   const startRow = (where: 'top' | 'bottom') =>
     changingStart === where || (!start && where === 'top') ? (
@@ -449,7 +497,11 @@ export function TripForm({
               change it, and shape a drive to follow the road.
             </p>
             {startRow('top')}
-            {toLeg && <LegRow leg={toLeg} allowGuess={false} onPick={(mode) => mode && setStartMode(mode)} />}
+            {toLeg && (
+              <LegRow leg={toLeg} allowGuess={false} onPick={(mode) => mode && setStartMode(mode)}>
+                {homeShaping(toLeg, startVia, () => shapeHome('start'), () => setStartShape({ key: destinations[0]?.key, at: startKey(start), via: [] }))}
+              </LegRow>
+            )}
             {destinations.length > 0 && (
               <ol className="mb-2 flex flex-col">
                 {destinations.map((d, i) => {
@@ -463,7 +515,7 @@ export function TripForm({
                           {leg.mode !== 'flight' && (
                             <button
                               type="button"
-                              onClick={() => void shapeLeg(i)}
+                              onClick={() => shapeLeg(i)}
                               aria-label={`Shape the route from ${destinations[i - 1].place.label} to ${d.place.label} on the map`}
                               className="min-h-11 rounded-md px-1.5 font-bold text-[var(--route)] hover:bg-raised"
                             >
@@ -597,7 +649,9 @@ export function TripForm({
             />
             {backLeg && (
               <>
-                <LegRow leg={backLeg} allowGuess={false} onPick={(mode) => mode && setEndMode(mode)} />
+                <LegRow leg={backLeg} allowGuess={false} onPick={(mode) => mode && setEndMode(mode)}>
+                  {homeShaping(backLeg, endVia, () => shapeHome('end'), () => setEndShape({ key: destinations.at(-1)?.key, at: startKey(start), via: [] }))}
+                </LegRow>
                 {startRow('bottom')}
               </>
             )}

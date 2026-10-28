@@ -92,8 +92,11 @@ export function stopLegs(stops: { end: LegEnd; via: LngLat[]; picked: LegMode | 
   return legs
 }
 
-/** The way from or back to where the trip started (Trip.startMode, Trip.endMode); never guessed. */
-export const homeLeg = (from: LegEnd, to: LegEnd, mode: LegMode): Leg => ({ ...makeLeg(from, to, [], mode), role: 'home' })
+/** The way from or back to where the trip started (Trip.startMode, Trip.endMode); never guessed. Bends don't apply to a flight. */
+export const homeLeg = (from: LegEnd, to: LegEnd, mode: LegMode, via: LngLat[] = []): Leg => ({
+  ...makeLeg(from, to, mode === 'flight' ? [] : via, mode),
+  role: 'home',
+})
 
 export const endOfPlace = (p: Pick<Place, 'id' | 'name' | 'lat' | 'lng'>): LegEnd => ({ id: p.id, name: p.name, lat: p.lat, lng: p.lng })
 export const endOfHome = (h: TripStart): LegEnd => ({ id: HOME_ID, name: h.name, lat: h.lat, lng: h.lng })
@@ -122,7 +125,7 @@ export function legsOf(trip: Trip, data: Pick<TravelData, 'places' | 'home'>, me
   )
   if (!start || !stops.length) return out
   const home = endOfHome(start)
-  return [homeLeg(home, stops[0].end, trip.startMode), ...out, homeLeg(stops.at(-1)!.end, home, trip.endMode)]
+  return [homeLeg(home, stops[0].end, trip.startMode, trip.startVia), ...out, homeLeg(stops.at(-1)!.end, home, trip.endMode, trip.endVia)]
 }
 
 /** A trip that's all drives is a road trip; a cruise anywhere makes it a cruise. Never stored. */

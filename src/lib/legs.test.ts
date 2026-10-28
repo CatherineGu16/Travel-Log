@@ -80,6 +80,15 @@ describe('legs', () => {
     expect(tripKind(legs)).toBeNull()
   })
 
+  it('shapes the way there and back like any leg, but not a flight', () => {
+    const bend: [number, number] = [-117, 35]
+    const driven = trip('a', [dest('vegas')], { start: home, startMode: 'drive', endMode: 'flight', startVia: [bend], endVia: [bend] })
+    const [there, back] = legsOf(driven, data([driven]))
+    expect(there.via).toEqual([bend])
+    expect(back.via).toEqual([])
+    expect(routeOf(driven, places)[1].via).toEqual([bend])
+  })
+
   it('goes back to where it started from the last place', () => {
     const t = trip('a', [dest('la'), { ...dest('vegas', 'train'), via: [[-117, 35]] }], { startMode: 'drive', endMode: 'drive', start: home })
     expect(legsOf(t, data([t])).map((l) => `${l.from.name}>${l.to.name} ${l.mode} ${l.role}`)).toEqual([

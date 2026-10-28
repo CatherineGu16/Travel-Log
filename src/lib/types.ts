@@ -78,6 +78,9 @@ export interface Trip extends Synced {
   /** How you got from where the trip started to the first place, and back at the end (flight by default). */
   startMode: LegMode
   endMode: LegMode
+  /** Bends on the way from the start to the first place, and back from the last (see Destination.via). Not for flights. */
+  startVia: LngLat[]
+  endVia: LngLat[]
   /**
    * Where the trip started and ended: a copy of Home when the trip was made, so changing Home later
    * leaves it alone. Null: nowhere (no legs there and back). Missing only on trips saved before

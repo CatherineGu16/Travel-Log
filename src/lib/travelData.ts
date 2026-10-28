@@ -196,6 +196,8 @@ export function parseTravelData(input: unknown): TravelData {
         .map((h) => ({ parkId: h.parkId as string, hikeId: typeof h.hikeId === 'string' ? h.hikeId : null, name: h.name as string, date: dateOrNull(h.date) })),
       startMode,
       endMode,
+      startVia: Array.isArray(x.startVia) ? x.startVia.filter(isLngLat).map(([lng, lat]) => [lng, lat] as LngLat) : [],
+      endVia: Array.isArray(x.endVia) ? x.endVia.filter(isLngLat).map(([lng, lat]) => [lng, lat] as LngLat) : [],
       ...(start === undefined ? {} : { start }),
       description: str(x.description),
       highlights: str(x.highlights),
