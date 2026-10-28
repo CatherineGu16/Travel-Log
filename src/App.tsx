@@ -50,7 +50,16 @@ export default function App() {
 
 type FormState = { trip: Trip | null; initialMain: PlaceInput | null; step?: TripStep }
 /** Shaping one leg of a route on the map: the bends tapped so far, and earlier versions for Undo. */
-type ShapeRequest = { from: RouteEnd; to: RouteEnd; via: LngLat[]; history: LngLat[][]; resolve: (via: LngLat[] | null) => void }
+type ShapeRequest = {
+  from: RouteEnd
+  to: RouteEnd
+  via: LngLat[]
+  follow: LngLat[] | null
+  /** The rest of the trip, drawn faintly behind the leg. */
+  context: LngLat[][]
+  history: LngLat[][]
+  resolve: (via: LngLat[] | null) => void
+}
 
 function Shell() {
   const store = useStore()
@@ -150,10 +159,10 @@ function Shell() {
   }
 
   const requestShape = useCallback<RequestShape>(
-    (from, to, via) =>
+    (from, to, via, follow, context) =>
       new Promise((resolve) => {
         goTo('map')
-        setShape({ from, to, via, history: [], resolve })
+        setShape({ from, to, via, follow, context, history: [], resolve })
       }),
     [goTo],
   )
@@ -162,6 +171,15 @@ function Shell() {
     setShape(null)
   }
   const changeShape = (via: LngLat[]) => setShape((s) => s && { ...s, via, history: [...s.history, s.via] })
+  // Dragging a bend: it moves as you drag, and Undo puts back where it was before the drag.
+  const dragStart = useRef<LngLat[] | null>(null)
+  const dragBend = (index: number, point: LngLat, done: boolean) => {
+    if (!shape) return
+    dragStart.current ??= shape.via
+    const before = dragStart.current
+    if (done) dragStart.current = null
+    setShape((s) => s && { ...s, via: s.via.map((v, k) => (k === index ? point : v)), history: done ? [...s.history, before] : s.history })
+  }
 
   const filterButton = <FilterButton filter={filter} onClick={() => setFilterOpen(true)} />
 
@@ -176,6 +194,8 @@ function Shell() {
             route={route}
             routeTripId={shape ? 'shaping' : (selectedTrip?.id ?? null)}
             showBends={shape !== null}
+            onDragBend={dragBend}
+            contextLines={shape?.context}
             onSelectPin={(placeId) => selectPin(placeId)}
             onAddAt={(lng, lat) => {
               void placeAt(lng, lat).then((initialMain) => {
@@ -210,7 +230,7 @@ function Shell() {
           </div>
         )}
 
-        <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <header className={`pointer-events-none absolute inset-x-0 top-0 z-20 justify-center ${shape ? 'hidden' : 'flex'} px-3 pt-[max(0.75rem,env(safe-area-inset-top))]`}>
           <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-line bg-surface/95 py-1.5 pr-1 pl-3 whitespace-nowrap shadow-md sm:gap-3 sm:pl-4">
             <h1 className="font-display text-xl font-semibold tracking-wide sm:text-2xl">Travel Log</h1>
             <PageLinks page={page} onAdd={addTrip} />
@@ -274,30 +294,57 @@ function Shell() {
           <div
             role="region"
             aria-label="Shape the route"
-            className="absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-30 mx-auto flex max-w-md flex-col gap-2 rounded-xl bg-toast p-3 text-sm text-white shadow-lg"
+            className="absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-30 mx-auto flex max-w-md flex-col gap-2.5 rounded-2xl border border-line bg-surface p-3 text-sm shadow-[0_8px_30px_rgb(0_0_0/0.25)]"
           >
-            <p>
-              Tap the map along the way you went from <b>{shape.from.name}</b> (A) to <b>{shape.to.name}</b> (B). The dotted line bends through your taps.
-            </p>
-            <div className="flex flex-wrap items-center gap-1">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <RouteBadge>A</RouteBadge>
+              <b className="min-w-0 truncate">{shape.from.name}</b>
+              <svg viewBox="0 0 20 20" className="size-4 shrink-0 text-muted" aria-hidden>
+                <path d="M4 10h11m-4-4 4 4-4 4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <RouteBadge>B</RouteBadge>
+              <b className="min-w-0 truncate">{shape.to.name}</b>
+            </div>
+            <p className="-mt-1 text-xs text-muted">Tap the map to add a bend · drag a dot to move it</p>
+            {shape.follow && (
+              <button
+                onClick={() => changeShape(shape.follow!)}
+                className="flex items-center gap-2.5 rounded-xl border border-[var(--route)]/40 bg-[var(--route)]/10 px-3 py-2 text-left hover:bg-[var(--route)]/15"
+              >
+                <svg viewBox="0 0 20 20" className="size-5 shrink-0 text-[var(--route)]" aria-hidden>
+                  <path d="M8 5 4 9l4 4M4 9h7a5 5 0 0 1 0 10H9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span className="min-w-0">
+                  <span className="block font-bold text-[var(--route)]">Follow the way you came</span>
+                  <span className="block text-xs text-muted">Along your route, then off where it’s nearest B</span>
+                </span>
+              </button>
+            )}
+            <div className="flex items-center gap-1 border-t border-line pt-2">
               <button
                 onClick={() => setShape((s) => s && { ...s, via: s.history.at(-1) ?? [], history: s.history.slice(0, -1) })}
                 disabled={shape.history.length === 0}
-                className="min-h-10 rounded-lg px-3 font-bold hover:bg-white/10 disabled:opacity-40"
+                className="flex min-h-10 items-center gap-1 rounded-lg px-2 font-bold text-fg hover:bg-raised disabled:opacity-35"
               >
+                <svg viewBox="0 0 20 20" className="size-4" aria-hidden>
+                  <path d="M7 4 3 8l4 4M3 8h9a5 5 0 0 1 0 10h-2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
                 Undo
               </button>
               <button
                 onClick={() => changeShape([])}
                 disabled={shape.via.length === 0}
-                className="min-h-10 rounded-lg px-3 font-bold hover:bg-white/10 disabled:opacity-40"
+                className="flex min-h-10 items-center gap-1 rounded-lg px-2 font-bold text-fg hover:bg-raised disabled:opacity-35"
               >
+                <svg viewBox="0 0 20 20" className="size-4" aria-hidden>
+                  <path d="M3 15 17 5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
                 Straighten
               </button>
-              <button onClick={() => finishShape(null)} className="ml-auto min-h-10 rounded-lg px-3 font-bold hover:bg-white/10">
+              <button onClick={() => finishShape(null)} className="ml-auto min-h-10 rounded-lg px-3 font-bold text-muted hover:bg-raised hover:text-fg">
                 Cancel
               </button>
-              <button onClick={() => finishShape(shape.via)} className="min-h-10 rounded-lg bg-white px-4 font-bold text-toast">
+              <button onClick={() => finishShape(shape.via)} className="min-h-10 rounded-lg bg-primary px-4 font-bold text-on-primary">
                 Done
               </button>
             </div>
@@ -399,6 +446,15 @@ function Shell() {
       <PeopleSheet open={peopleOpen} onClose={() => setPeopleOpen(false)} />
       <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
+  )
+}
+
+/** The A / B marker of a leg being shaped, like the dots on the map. */
+function RouteBadge({ children }: { children: string }) {
+  return (
+    <span aria-hidden className="grid size-5 shrink-0 place-items-center rounded-full bg-[var(--route)] text-[0.7rem] font-bold text-[var(--route-text)]">
+      {children}
+    </span>
   )
 }
 

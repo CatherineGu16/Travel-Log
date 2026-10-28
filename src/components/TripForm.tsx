@@ -2,8 +2,9 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { describeRef, type ChosenPlace } from '../lib/chosenPlace.ts'
 import { comparePartialDates, dayLabel, formatDateRange, todayIso, yearOf } from '../lib/partialDate.ts'
 import { addPerson, saveTrip, type PlaceInput, type TripInput } from '../lib/travelActions.ts'
-import { endOfHome, homeLeg, legMemory, makeLeg, returnLegs, type Leg, type LegEnd } from '../lib/legs.ts'
-import { type LegMode, type LngLat, type PartialDate, type TravelData, type Trip, type TripHike, type TripStart } from '../lib/types.ts'
+import { followTraveledBends, legPaths, type RoutePoint } from '../lib/route.ts'
+import { endOfHome, homeLeg, legMemory, returnLegs, stopLegs, type Leg, type LegEnd } from '../lib/legs.ts'
+import { type LegMode, type LngLat, type PartialDate, type Place, type TravelData, type Trip, type TripHike, type TripStart } from '../lib/types.ts'
 import { newId, useStore, useTravelState } from '../store/useTravel.ts'
 import { DateRangeField } from './DateRangeField.tsx'
 import { HikesField } from './HikesField.tsx'
@@ -36,8 +37,12 @@ export interface RouteEnd {
   lat: number
 }
 
-/** Asks the app to let you shape a leg on the map; resolves with its bends, or null if cancelled. */
-export type RequestShape = (from: RouteEnd, to: RouteEnd, via: LngLat[]) => Promise<LngLat[] | null>
+/**
+ * Asks the app to let you shape a leg on the map; resolves with its bends, or null if cancelled.
+ * `follow` is the bends that would make it follow the way you came (null when there's none), and
+ * `context` the rest of the trip's lines, drawn faintly behind it.
+ */
+export type RequestShape = (from: RouteEnd, to: RouteEnd, via: LngLat[], follow: LngLat[] | null, context: LngLat[][]) => Promise<LngLat[] | null>
 
 /** Where a chosen place is on the map. */
 function endOf(place: ChosenPlace, data: TravelData): RouteEnd | null {
@@ -143,10 +148,15 @@ export function TripForm({
   const memory = useMemo(() => legMemory({ ...data, trips: data.trips.filter((t) => t.id !== trip?.id) }), [data, trip?.id])
   const home = start ? endOfHome(start) : null
   const ends = destinations.map((d) => legEndOf(d, data))
-  const legBefore = (i: number) => {
-    const [from, to] = [ends[i - 1], ends[i]]
-    return from && to ? makeLeg(from, to, destinations[i].via, destinations[i].legMode, memory) : null
-  }
+  // Guessed in order, so a leg right after a drive knows it (see guessMode).
+  const stopsLegs = ends.every((e) => e)
+    ? stopLegs(
+        destinations.map((d, i) => ({ end: ends[i]!, via: d.via, picked: d.legMode })),
+        memory,
+        !!start && startMode === 'drive',
+      )
+    : []
+  const legBefore = (i: number) => stopsLegs[i - 1] ?? null
   // Coming back the same way needs somewhere to come back through.
   const comesBack = returnSameWay && destinations.length > 1
   const backThrough = comesBack ? returnLegs(destinations.slice(1).flatMap((_, k) => legBefore(k + 1) ?? [])) : []
@@ -201,8 +211,22 @@ export function TripForm({
     const to = endOf(destinations[i].place, latest)
     if (!from || !to) return
     const key = destinations[i].key
-    const via = await requestShape(from, to, destinations[i].via)
+    const points = draftPoints()
+    const at = i + (home && toLeg ? 1 : 0)
+    const context = legPaths(points).filter((line, k): line is LngLat[] => !!line && k !== at)
+    const via = await requestShape(from, to, destinations[i].via, followTraveledBends(points, at), context)
     if (via) patch(key, { via })
+  }
+
+  /** The route as it stands now (unsaved edits included), as points for working out its lines. */
+  const draftPoints = (): RoutePoint[] => {
+    const point = (lng: number, lat: number, via: LngLat[], leg: Leg | null): RoutePoint =>
+      ({ place: { lng, lat } as Place, role: 'stop', number: null, via, leg }) as RoutePoint
+    return [
+      ...(home && toLeg ? [point(home.lng, home.lat, [], null)] : []),
+      ...destinations.map((d, k) => point(ends[k]?.lng ?? 0, ends[k]?.lat ?? 0, k ? d.via : [], k ? legBefore(k) : toLeg)),
+      ...(home && backLeg ? [point(home.lng, home.lat, [], backLeg)] : []),
+    ]
   }
 
   /** Swaps a destination's place, keeping its dates, note and pin; the legs to and from it start over. */

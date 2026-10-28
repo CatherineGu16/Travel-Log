@@ -115,6 +115,7 @@ export function themedPaint(p: MapPalette): { layer: string; prop: PaintProp; va
     { layer: 'pin-labels', prop: 'text-halo-color', value: p.labelHalo },
     { layer: 'route-ground', prop: 'line-color', value: p.route },
     { layer: 'route-unknown', prop: 'line-color', value: p.route },
+    { layer: 'route-context', prop: 'line-color', value: p.route },
     { layer: 'route-flight', prop: 'line-color', value: p.pin },
     { layer: 'route-bends', prop: 'circle-color', value: p.pinCenter },
     { layer: 'route-bends', prop: 'circle-stroke-color', value: p.route },
@@ -248,6 +249,15 @@ export function outlineStyle(data: OutlineData, palette: MapPalette, glyphsUrl: 
         paint: { 'text-color': p.park, 'text-halo-color': p.labelHalo, 'text-halo-width': 1.4 },
       },
 
+      // While you shape a leg, the rest of the trip, faintly, so you can see what you'd follow.
+      {
+        id: 'route-context',
+        type: 'line',
+        source: 'route',
+        filter: ['all', ['==', ['geometry-type'], 'LineString'], ['==', ['get', 'style'], 'context']],
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': p.route, 'line-width': 4, 'line-opacity': 0.3 },
+      },
       // The selected trip's route, leg by leg in visit order: solid on the ground, a dashed arc for
       // a flight, dotted when you're not sure.
       {
@@ -279,7 +289,15 @@ export function outlineStyle(data: OutlineData, palette: MapPalette, glyphsUrl: 
         type: 'circle',
         source: 'route',
         filter: ['all', ['==', ['geometry-type'], 'Point'], ['has', 'bend']],
-        paint: { 'circle-radius': 5, 'circle-color': p.pinCenter, 'circle-stroke-width': 2.5, 'circle-stroke-color': p.route },
+        paint: { 'circle-radius': 7, 'circle-color': p.pinCenter, 'circle-stroke-width': 3, 'circle-stroke-color': p.route },
+      },
+      // A bigger, invisible target around each bend, so a finger can grab it to drag.
+      {
+        id: 'route-bends-hit',
+        type: 'circle',
+        source: 'route',
+        filter: ['all', ['==', ['geometry-type'], 'Point'], ['has', 'bend']],
+        paint: { 'circle-radius': 20, 'circle-opacity': 0 },
       },
       {
         id: 'route-stops',

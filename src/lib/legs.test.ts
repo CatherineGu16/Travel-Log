@@ -25,6 +25,16 @@ describe('legs', () => {
     expect(formatDistance(legs[0].distanceM)).toBe('228 mi')
   })
 
+  it('guesses longer legs as drives right after a drive, as on a road trip', () => {
+    const yosemite = place('yosemite', 37.75, -119.59)
+    const d = { places: [...places, yosemite], home: null } as unknown as TravelData
+    // LA to Yosemite is ~265 mi in a straight line: a flight on its own, a drive after driving from home.
+    const flown = trip('a', [dest('la'), dest('yosemite')])
+    expect(legsOf(flown, d)[0].mode).toBe('flight')
+    const driven = trip('b', [dest('la'), dest('yosemite'), dest('honolulu')], { start: home, startMode: 'drive' })
+    expect(legsOf(driven, d).map((l) => l.mode)).toEqual(['drive', 'drive', 'flight', 'flight'])
+  })
+
   it('remembers a mode you picked for the same two places, either direction', () => {
     const earlier = trip('1', [dest('la'), dest('sf', 'train')])
     const later = trip('2', [dest('sf'), dest('la')])

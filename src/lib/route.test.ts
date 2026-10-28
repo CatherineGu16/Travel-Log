@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addBend, insertCheapest, legPaths, routeLine, routeOf } from './route.ts'
+import { addBend, followTraveledBends, insertCheapest, legPaths, routeLine, routeOf } from './route.ts'
 import type { LngLat, Place, Trip } from './types.ts'
 
 const place = (id: string, lat: number, lng: number): Place => ({
@@ -90,7 +90,13 @@ describe('route bends', () => {
 })
 
 describe('reusing the way you came', () => {
-  const ca = [place('la', 34.05, -118.24), place('bakersfield', 35.37, -119.02), place('yosemite', 37.75, -119.59), place('irvine', 33.68, -117.83)]
+  const ca = [
+    place('la', 34.05, -118.24),
+    place('bakersfield', 35.37, -119.02),
+    place('yosemite', 37.75, -119.59),
+    place('irvine', 33.68, -117.83),
+    place('fresno', 36.74, -119.79),
+  ]
   const drive = (ids: string[]) =>
     ({
       destinations: ids.map((placeId, i) => ({ placeId, isMain: i === 0, startDate: null, endDate: null, note: '', via: [] as LngLat[], legMode: 'drive' })),
@@ -114,11 +120,51 @@ describe('reusing the way you came', () => {
     expect(legPaths(route)[1]).toEqual([[-118.14, 34.15], at('la')])
   })
 
+  it('keeps to the way up from LA and only turns off to reach a stop for food in Fresno', () => {
+    const route = routeOf(drive(['la', 'yosemite', 'fresno', 'irvine']), ca)
+    const [, , , toFresno, toIrvine] = legPaths(route)
+    // Down the drawn way up (the LA–Yosemite line), then off it to Fresno.
+    expect(toFresno![0]).toEqual(at('yosemite'))
+    expect(toFresno!.at(-1)).toEqual(at('fresno'))
+    expect(toFresno).toHaveLength(3)
+    const [lng, lat] = toFresno![1]
+    const along = (lat - 34.05) / (37.75 - 34.05)
+    expect(along).toBeGreaterThan(0.3)
+    expect(along).toBeLessThan(0.9)
+    expect(lng).toBeCloseTo(-118.24 + along * (-119.59 + 118.24), 2)
+    // On from Fresno: back onto it, through LA, then Irvine.
+    expect(toIrvine).toContainEqual(at('la'))
+  })
+
+  it('after a stop for food on the way home, the rest of the drive rejoins the way up', () => {
+    const route = routeOf(drive(['bakersfield', 'yosemite', 'fresno']), ca)
+    // Pasadena → Bakersfield → Yosemite → Fresno → Pasadena: the last leg is the drive home.
+    const home = legPaths(route)[4]!
+    expect(home[0]).toEqual(at('fresno'))
+    expect(home).toContainEqual(at('bakersfield'))
+    expect(home.at(-1)).toEqual([-118.14, 34.15])
+  })
+
   it('goes straight when the path so far leads the wrong way', () => {
     const t = drive(['la', 'bakersfield'])
     t.start = { name: 'San Diego', lat: 32.72, lng: -117.16 }
     // Bakersfield from LA: back toward San Diego would be a detour.
     expect(legPaths(routeOf(t, ca))[2]).toEqual([at('la'), at('bakersfield')])
+  })
+
+  it('"follow the way you came": back along the drawn route, leaving where it is closest to the stop', () => {
+    const route = routeOf(drive(['la', 'yosemite', 'fresno']), ca)
+    // Pasadena → LA → Yosemite → Fresno: the leg to Fresno is route[3].
+    const bends = followTraveledBends(route, 3)!
+    expect(bends).toHaveLength(1)
+    const [lng, lat] = bends[0]
+    // On the LA–Yosemite line, level with Fresno (the closest point to it).
+    const along = (lat - 34.05) / (37.75 - 34.05)
+    expect(lng).toBeCloseTo(-118.24 + along * (-119.59 + 118.24), 2)
+    expect(lat).toBeGreaterThan(36.3)
+    expect(lat).toBeLessThan(37.1)
+    // Not for the first leg, which has nothing behind it.
+    expect(followTraveledBends(route, 1)).toBeNull()
   })
 
   it('keeps the bends of a leg you shaped', () => {

@@ -17,6 +17,8 @@ export const legModeInfo = (mode: LegMode) => LEG_MODES.find((m) => m.id === mod
 
 /** Farther than this in a straight line, a leg is guessed to be a flight; closer, a drive. */
 export const FLIGHT_GUESS_M = 250 * 1609.344
+/** Right after a drive (a road trip), legs up to this far are guessed as drives too (LA to Yosemite). */
+export const ROAD_TRIP_GUESS_M = 500 * 1609.344
 
 /** The place id that stands for home in legs. Real ids never clash. */
 export const HOME_ID = 'home'
@@ -65,15 +67,29 @@ export function legMemory(data: TravelData): LegMemory {
   return out
 }
 
-/** The mode you last picked for these two places, else a flight if they're far apart, else a drive. */
-export function guessMode(from: LegEnd, to: LegEnd, memory?: LegMemory): LegMode {
-  return memory?.get(pairKey(from.id, to.id)) ?? (distanceMeters(from, to) > FLIGHT_GUESS_M ? 'flight' : 'drive')
+/**
+ * The mode you last picked for these two places; else a flight if they're far apart, else a drive.
+ * "Far" is farther for a leg right after a drive, since a road trip's legs are drives.
+ */
+export function guessMode(from: LegEnd, to: LegEnd, memory?: LegMemory, afterDrive = false): LegMode {
+  return memory?.get(pairKey(from.id, to.id)) ?? (distanceMeters(from, to) > (afterDrive ? ROAD_TRIP_GUESS_M : FLIGHT_GUESS_M) ? 'flight' : 'drive')
 }
 
-export function makeLeg(from: LegEnd, to: LegEnd, via: LngLat[], picked: LegMode | null, memory?: LegMemory): Leg {
+/** A leg between two places; `afterDrive` when the leg before it was a drive (see guessMode). */
+export function makeLeg(from: LegEnd, to: LegEnd, via: LngLat[], picked: LegMode | null, memory?: LegMemory, afterDrive = false): Leg {
   const points = [from, ...via.map(([lng, lat]) => ({ lng, lat })), to]
   const distanceM = points.slice(1).reduce((sum, p, i) => sum + distanceMeters(points[i], p), 0)
-  return { from, to, via, mode: picked ?? guessMode(from, to, memory), guessed: !picked, distanceM, role: 'stop' }
+  return { from, to, via, mode: picked ?? guessMode(from, to, memory, afterDrive), guessed: !picked, distanceM, role: 'stop' }
+}
+
+/** The legs between stops in order, each guessed knowing whether the one before was a drive. */
+export function stopLegs(stops: { end: LegEnd; via: LngLat[]; picked: LegMode | null }[], memory?: LegMemory, firstAfterDrive = false): Leg[] {
+  const legs: Leg[] = []
+  for (let i = 1; i < stops.length; i++) {
+    const afterDrive = i === 1 ? firstAfterDrive : legs[i - 2].mode === 'drive'
+    legs.push(makeLeg(stops[i - 1].end, stops[i].end, stops[i].via, stops[i].picked, memory, afterDrive))
+  }
+  return legs
 }
 
 /** The way from or back to where the trip started (Trip.startMode, Trip.endMode); never guessed. */
@@ -103,9 +119,13 @@ export function legsOf(trip: Trip, data: Pick<TravelData, 'places' | 'home'>, me
     const p = byId.get(d.placeId)
     return p ? [{ end: endOfPlace(p), d }] : []
   })
-  const out = stops.slice(1).map(({ end, d }, i) => makeLeg(stops[i].end, end, d.via, d.legMode, memory))
-  const legs = trip.returnSameWay ? [...out, ...returnLegs(out)] : out
   const start = tripStart(trip, data)
+  const out = stopLegs(
+    stops.map(({ end, d }) => ({ end, via: d.via, picked: d.legMode })),
+    memory,
+    !!start && trip.startMode === 'drive',
+  )
+  const legs = trip.returnSameWay ? [...out, ...returnLegs(out)] : out
   if (!start || !stops.length) return legs
   const home = endOfHome(start)
   // Back home from wherever the trip ended: the first stop when you came back the same way.

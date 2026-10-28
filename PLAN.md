@@ -100,15 +100,24 @@ Same rules as Watchlist-Tracker, plus map rules:
 - **Dotted route**: selecting a pin shows the trip's route through all its destinations in the
   order you entered them: main destinations as pins, stops as numbered dots, joined by a dashed
   line. Other pins fade back while one is selected, and the map fits the route around the pin card.
-- **Reusing the way you came**: a ground leg you haven't shaped follows the trip's earlier ground
-  path back from where it starts, as long as that's the better way toward where it's going, then
-  heads straight there (the unmapped stretch counts as 1.3× its straight line, since roads wind).
-  So the drive down from Yosemite retraces the way up through Bakersfield and LA before turning
-  off for Irvine. Worked out when drawing, so reshaping the way up moves the way down too.
+- **Reusing the way you came**: a ground leg you haven't shaped uses roads already traveled on the
+  trip where that's the better way: straight onto the nearest traveled stretch, along it in either
+  direction, and straight off it to where it's going. An unmapped stretch counts as 3× its straight
+  line, since stops on the way back are usually along the way you came, so the line keeps to the
+  drawn way and only leaves it to reach a stop; it's only used when it saves at least 5%. So the drive down from Yosemite retraces the way up through
+  Bakersfield and LA before turning off for Irvine, and a stop for food in Fresno on the way home
+  doesn't stop the rest of the drive rejoining the way up and following it home. No button
+  needed: just add the stops. Worked out when drawing, so reshaping the way up moves the way down.
 - **Shaping a route**: the line between two destinations is straight unless you shape it. In Add
   / Edit trip, "Shape the route on the map" between two places opens the map with just that leg
   (A to B); each tap adds a bend where it fits along the leg, with Undo, Straighten, Cancel and
-  Done. Bends aren't places: no pins, no search, no dates. Reordering or removing destinations
+  Done. **Drag a dot** to move a bend (one Undo step per drag; tapping a dot doesn't add another).
+  The rest of the trip shows faintly behind the leg, and the shaping card (A → B, a one-line hint,
+  then Undo · Straighten · Cancel · Done) replaces the header while you shape.
+  **Follow the way you came** (when the leg starts on the route drawn so far) sets the bends
+  to run back along that route and leave it at the point closest to B, then straight there; taps
+  after it add bends as usual, and Undo takes them back. Saved as the leg's bends, so it overrides
+  the default for that leg. Bends aren't places: no pins, no search, no dates. Reordering or removing destinations
   drops the bends of any leg that changed.
 - **Legs**: each leg is drawn by how you went: **flights** as a dashed great-circle arc in the
   accent color, **drives, trains, cruises, ferries and walks** as a solid line (straight unless
@@ -307,6 +316,8 @@ no file. A photo avatar is one small file per person. At ~20 KB each, even 200 p
 - **National park pin**: the pin's place has a `parkId`.
 - **A leg's mode**: the mode you picked; else the mode you last picked for the same two places on
   any trip (either direction); else over 250 mi straight-line is a flight, under is a drive.
+  Right after a drive (a road trip) legs up to 500 mi are guessed as drives, so LA → Yosemite
+  (~265 mi) stays a drive on a trip you drove.
 - **Where a trip starts**: its own `start`, so changing Home never moves earlier trips.
 - **Road trip / cruise**: every leg (including the way from and back to the start) is a drive → road
   trip; any leg is a cruise → cruise (a cruise wins over a road trip). A trip with no legs is

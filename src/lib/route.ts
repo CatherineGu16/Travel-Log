@@ -79,61 +79,137 @@ export function insertCheapest<T extends { lat: number; lng: number }>(stops: T[
   return [...stops.slice(0, best), place, ...stops.slice(best)]
 }
 
-/** How much longer a stretch you haven't mapped is assumed to be than the straight line (roads wind). */
-const DETOUR = 1.3
-const samePoint = (a: LngLat | null | undefined, b: LngLat) => !!a && Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[1] - b[1]) < 1e-9
-const metersBetween = (a: LngLat, b: LngLat) => distanceMeters({ lng: a[0], lat: a[1] }, { lng: b[0], lat: b[1] })
-
 /**
- * From `a` (a point on the path so far) toward `b`: back along the path while that's the better way
- * there, then straight on. "Better" counts the unmapped stretch as DETOUR × its straight line, so a
- * known road wins over striking out across country. `path` is the ground travel so far in order,
- * with null where it breaks (a flight).
+ * How much a stretch not traveled yet counts against one already traveled, per mile. High, because
+ * the stops you add on the way back (food, gas) are usually along the way you came, and the drawn
+ * way there stands in for the road: so the line keeps to it and only leaves it to reach a stop.
  */
-function retrace(path: (LngLat | null)[], a: LngLat, b: LngLat): LngLat[] {
-  let k = path.length - 1
-  while (k >= 0 && !samePoint(path[k], a)) k--
-  if (k < 0) return [a, b]
-  let best = { cost: DETOUR * metersBetween(a, b), j: k, point: a }
+const DETOUR = 3
+/** Only use roads already traveled when that saves at least this much, so a tiny gain doesn't add a wiggle. */
+const WORTH_IT = 0.95
+const metersBetween = (a: LngLat, b: LngLat) => distanceMeters({ lng: a[0], lat: a[1] }, { lng: b[0], lat: b[1] })
+const samePoint = (a: LngLat | undefined, b: LngLat) => !!a && Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[1] - b[1]) < 1e-9
+
+/** Points along a stretch of road already traveled, every tenth of each piece, with the distance along it. */
+function samplesOf(chain: LngLat[]) {
+  const out: { point: LngLat; piece: number; along: number }[] = []
   let along = 0
-  for (let j = k; j > 0 && path[j - 1]; j--) {
-    const [p, q] = [path[j]!, path[j - 1]!]
+  for (let k = 0; k < chain.length - 1; k++) {
+    const [p, q] = [chain[k], chain[k + 1]]
     const length = metersBetween(p, q)
-    // Where to leave the path can be anywhere along a stretch, not just at its ends.
-    for (let step = 1; step <= 10; step++) {
+    for (let step = 0; step < 10; step++) {
       const t = step / 10
-      const point: LngLat = [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]
-      const cost = along + length * t + DETOUR * metersBetween(point, b)
-      if (cost < best.cost) best = { cost, j, point }
+      out.push({ point: [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t], piece: k, along: along + length * t })
     }
     along += length
   }
-  if (best.point === a) return [a, b]
-  const back = path.slice(best.j, k + 1).reverse() as LngLat[]
-  return [...back, ...(samePoint(back.at(-1), best.point) ? [] : [best.point]), b]
+  out.push({ point: chain.at(-1)!, piece: chain.length - 1, along })
+  return out
+}
+
+/**
+ * The way from `a` to `b`, using roads already traveled on this trip where that's the better way:
+ * straight onto a traveled stretch, along it (either direction), and straight off it to `b`. A
+ * stretch not traveled yet counts as DETOUR × its straight line, so the known way wins over striking
+ * out across country. So the drive down from Yosemite keeps to the way up from LA until it turns
+ * off for a stop in Fresno, and the drive on from Fresno rejoins it.
+ */
+function viaTraveled(traveled: LngLat[][], a: LngLat, b: LngLat): LngLat[] {
+  const direct = DETOUR * metersBetween(a, b)
+  let best = { cost: direct * WORTH_IT, line: [a, b] }
+  for (const chain of traveled) {
+    if (chain.length < 2) continue
+    const samples = samplesOf(chain)
+    const on = samples.map((x) => DETOUR * metersBetween(a, x.point))
+    const off = samples.map((x) => DETOUR * metersBetween(x.point, b))
+    // Joining at j and leaving at d costs on[j] + |along[d] − along[j]| + off[d]. Going forward
+    // (j ≤ d), the best j for each d is a running minimum of on[j] − along[j]; backward, of on[j] + along[j].
+    let forward = { value: Infinity, j: 0 }
+    for (let d = 0; d < samples.length; d++) {
+      if (on[d] - samples[d].along < forward.value) forward = { value: on[d] - samples[d].along, j: d }
+      const cost = forward.value + samples[d].along + off[d]
+      if (cost < best.cost) best = { cost, line: lineAlong(chain, samples, forward.j, d, a, b) }
+    }
+    let backward = { value: Infinity, j: samples.length - 1 }
+    for (let d = samples.length - 1; d >= 0; d--) {
+      if (on[d] + samples[d].along < backward.value) backward = { value: on[d] + samples[d].along, j: d }
+      const cost = backward.value - samples[d].along + off[d]
+      if (cost < best.cost) best = { cost, line: lineAlong(chain, samples, backward.j, d, a, b) }
+    }
+  }
+  return best.line
+}
+
+/** a → onto the chain at sample j → along it → off at sample d → b, without repeated points. */
+function lineAlong(chain: LngLat[], samples: ReturnType<typeof samplesOf>, j: number, d: number, a: LngLat, b: LngLat): LngLat[] {
+  const [from, to] = [samples[j], samples[d]]
+  const corners =
+    j <= d
+      ? chain.slice(from.piece + 1, to.piece + 1)
+      : chain.slice(to.piece + 1, from.piece + 1).reverse()
+  const line: LngLat[] = []
+  for (const p of [a, from.point, ...corners, to.point, b]) if (!samePoint(line.at(-1), p)) line.push(p)
+  return line
 }
 
 /**
  * The line for each leg of a route (the one arriving at route[i]; null for the first point and for
- * flights, which are drawn as arcs). Legs you've shaped follow your bends. The rest follow the trip's
- * earlier ground path back as far as it helps, then head straight there: so the drive down from
- * Yosemite retraces the way up through Bakersfield and LA before turning off for Irvine.
+ * flights, which are drawn as arcs). Legs you've shaped follow your bends. The rest use roads already
+ * traveled on the trip where that's the better way (see viaTraveled): the drive down from Yosemite
+ * retraces the way up through Bakersfield before turning off for Irvine, and stops on the way home
+ * (food, gas) don't stop the rest of the drive following the way you came.
  */
 export function legPaths(route: RoutePoint[]): (LngLat[] | null)[] {
-  const path: (LngLat | null)[] = []
+  // Ground travel so far, as unbroken stretches (a flight starts a new one).
+  const traveled: LngLat[][] = []
   const at = (p: RoutePoint): LngLat => [p.place.lng, p.place.lat]
   return route.map((to, i) => {
     if (i === 0) return null
     const [a, b] = [at(route[i - 1]), at(to)]
     if (to.leg?.mode === 'flight') {
-      path.push(null)
+      traveled.push([])
       return null
     }
-    const line = to.via.length ? [a, ...to.via, b] : retrace(path, a, b)
-    if (path.length && !samePoint(path.at(-1), a)) path.push(null)
-    path.push(...(samePoint(path.at(-1), a) ? line.slice(1) : line))
+    const line = to.via.length ? [a, ...to.via, b] : viaTraveled(traveled, a, b)
+    const current = traveled.at(-1)
+    if (current && samePoint(current.at(-1), a)) current.push(...line.slice(1))
+    else traveled.push([...line])
     return line
   })
+}
+
+/**
+ * Bends that make the leg arriving at route[i] follow the way already traveled: from where it starts,
+ * along the drawn route so far to the point on it closest to where it's going, then straight there.
+ * For "Follow the way you came" while shaping a leg. Null when the leg doesn't start on a traveled
+ * stretch (the trip's first leg, or right after a flight) or there's nothing to follow.
+ */
+export function followTraveledBends(route: RoutePoint[], i: number): LngLat[] | null {
+  if (i < 2) return null
+  const at = (p: RoutePoint): LngLat => [p.place.lng, p.place.lat]
+  const [a, b] = [at(route[i - 1]), at(route[i])]
+  // The ground travel before this leg, as unbroken stretches (a flight starts a new one).
+  const chains: LngLat[][] = []
+  legPaths(route.slice(0, i)).forEach((line, k) => {
+    if (k === 0) return
+    if (!line) return void chains.push([])
+    const current = chains.at(-1)
+    if (current && samePoint(current.at(-1), line[0])) current.push(...line.slice(1))
+    else chains.push([...line])
+  })
+  let best: { line: LngLat[]; off: number } | null = null
+  for (const chain of chains) {
+    if (chain.length < 2) continue
+    const samples = samplesOf(chain)
+    const nearest = (p: LngLat) => samples.reduce((m, x, k) => (metersBetween(x.point, p) < metersBetween(samples[m].point, p) ? k : m), 0)
+    const [j, d] = [nearest(a), nearest(b)]
+    // The leg has to start on this stretch to follow it.
+    if (metersBetween(samples[j].point, a) > 1000 || j === d) continue
+    const off = metersBetween(samples[d].point, b)
+    if (!best || off < best.off) best = { line: lineAlong(chain, samples, j, d, a, b), off }
+  }
+  const bends = best?.line.slice(1, -1) ?? []
+  return bends.length ? bends : null
 }
 
 /**

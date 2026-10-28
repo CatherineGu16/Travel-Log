@@ -1,4 +1,13 @@
-import { Map as MapLibreMap, setWorkerUrl, type ExpressionSpecification, type GeoJSONSource, type MapMouseEvent } from 'maplibre-gl'
+import {
+  Map as MapLibreMap,
+  setWorkerUrl,
+  type ExpressionSpecification,
+  type GeoJSONSource,
+  type MapLayerMouseEvent,
+  type MapLayerTouchEvent,
+  type MapMouseEvent,
+  type MapTouchEvent,
+} from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { useEffect, useRef, useState } from 'react'
 import { shadeLevel, type Pin } from '../lib/derive.ts'
@@ -46,8 +55,12 @@ export interface MapViewProps {
   onSelectPin: (placeId: string | null) => void
   /** Long-press (touch) or right-click (desktop): add a trip at that spot. */
   onAddAt: (lng: number, lat: number) => void
-  /** Dots on the route's bends (while shaping it). */
+  /** Dots on the route's bends (while shaping it); drag one to move it. */
   showBends?: boolean
+  /** A bend dragged to a new spot: called as it moves, and with `done` when you let go. */
+  onDragBend?: (index: number, point: [number, number], done: boolean) => void
+  /** The rest of the trip, drawn faintly while you shape one leg. */
+  contextLines?: [number, number][][]
   /** While set, taps on the map pick a point instead of selecting pins. */
   picking: boolean
   onPick: (lng: number, lat: number) => void
@@ -157,8 +170,8 @@ export function MapView(props: MapViewProps) {
   const { route, routeTripId } = props
   useEffect(() => {
     if (!map) return
-    map.getSource<GeoJSONSource>('route')?.setData(routeCollection(route, props.showBends))
-  }, [map, route, props.showBends])
+    map.getSource<GeoJSONSource>('route')?.setData(routeCollection(route, props.showBends, props.contextLines))
+  }, [map, route, props.showBends, props.contextLines])
 
   // Only when a different trip is shown, not on every edit, so it reads the route from the ref.
   useEffect(() => {
@@ -302,6 +315,8 @@ function bindInteractions(map: MapLibreMap, latest: { current: MapViewProps }) {
 
   map.on('click', (e: MapMouseEvent) => {
     const props = latest.current
+    // Tapping a bend (to drag it) doesn't add another one on top of it.
+    if (props.picking && props.showBends && map.queryRenderedFeatures(e.point, { layers: ['route-bends-hit'] }).length) return
     if (props.picking) return props.onPick(e.lngLat.lng, e.lngLat.lat)
     const cluster = map.queryRenderedFeatures(e.point, { layers: ['pin-clusters'] })[0]
     if (cluster) {
@@ -327,6 +342,38 @@ function bindInteractions(map: MapLibreMap, latest: { current: MapViewProps }) {
     map.on('mouseenter', layer, () => !latest.current.picking && (map.getCanvas().style.cursor = 'pointer'))
     map.on('mouseleave', layer, () => !latest.current.picking && (map.getCanvas().style.cursor = ''))
   }
+
+  // Dragging a bend while shaping: the map stays put and the dot follows the pointer.
+  let dragging: number | null = null
+  const dragTo = (e: MapMouseEvent | MapTouchEvent) => {
+    if (dragging !== null) latest.current.onDragBend?.(dragging, [e.lngLat.lng, e.lngLat.lat], false)
+  }
+  const drop = (e: MapMouseEvent | MapTouchEvent) => {
+    if (dragging === null) return
+    latest.current.onDragBend?.(dragging, [e.lngLat.lng, e.lngLat.lat], true)
+    dragging = null
+    map.dragPan.enable()
+    map.getCanvas().style.cursor = latest.current.picking ? 'crosshair' : ''
+    map.off('mousemove', dragTo)
+    map.off('touchmove', dragTo)
+  }
+  const grab = (e: MapLayerMouseEvent | MapLayerTouchEvent) => {
+    if (!latest.current.showBends || ('points' in e && e.points.length !== 1)) return
+    const bend = e.features?.[0]
+    if (!bend) return
+    e.preventDefault()
+    dragging = bend.properties.index as number
+    map.dragPan.disable()
+    map.getCanvas().style.cursor = 'grabbing'
+    map.on('mousemove', dragTo)
+    map.on('touchmove', dragTo)
+    map.once('mouseup', drop)
+    map.once('touchend', drop)
+  }
+  map.on('mousedown', 'route-bends-hit', grab)
+  map.on('touchstart', 'route-bends-hit', grab)
+  map.on('mouseenter', 'route-bends-hit', () => latest.current.showBends && (map.getCanvas().style.cursor = 'grab'))
+  map.on('mouseleave', 'route-bends-hit', () => dragging === null && (map.getCanvas().style.cursor = latest.current.picking ? 'crosshair' : ''))
 
   map.on('contextmenu', (e) => {
     e.preventDefault()

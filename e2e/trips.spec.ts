@@ -224,6 +224,13 @@ test('shaping the route between two places bends the dotted line through your ta
   await map.click({ position: { x: box.width / 2, y: box.height * 0.6 } })
   await map.click({ position: { x: box.width / 2 + 30, y: box.height * 0.65 } })
   await banner.getByRole('button', { name: 'Undo' }).click()
+  // Tapping the dot doesn't add another; dragging it moves it (still one bend).
+  await page.waitForTimeout(300)
+  await map.click({ position: { x: box.width / 2, y: box.height * 0.6 } })
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.6)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width / 2 - 60, box.y + box.height * 0.5, { steps: 6 })
+  await page.mouse.up()
   await banner.getByRole('button', { name: 'Done' }).click()
 
   await expect(dialog).toBeVisible()
@@ -483,4 +490,31 @@ test('stop dates from a strip of the trip days, shown as day numbers; details li
   await page.getByRole('region', { name: /trips$/ }).getByRole('button', { name: 'Details' }).click()
   await page.getByRole('dialog', { name: /Zion/ }).getByRole('button', { name: 'Delete' }).click()
   await expect(page.getByRole('status')).toContainText('Deleted')
+})
+
+test('shaping a leg can follow the way you came, then take more taps', async ({ page }) => {
+  await page.goto('./')
+  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
+  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await toStep(dialog, 'Route')
+  await choosePlace(page, DEST, 'Las Vegas', /^Las Vegas\s*NV$/)
+  await choosePlace(page, DEST, 'bryce', /Bryce Canyon National Park/)
+  await choosePlace(page, DEST, 'St. George, UT', /^St\.? George\s*UT$/)
+
+  // The first leg has nothing behind it to follow.
+  await dialog.getByRole('button', { name: /^Shape the route from Las Vegas to Bryce/ }).click()
+  const banner = page.getByRole('region', { name: 'Shape the route' })
+  await expect(banner.getByRole('button', { name: /Follow the way you came/ })).toHaveCount(0)
+  await banner.getByRole('button', { name: 'Cancel' }).click()
+
+  // The way back to St. George: along the way up, off where it's closest.
+  await dialog.getByRole('button', { name: /^Shape the route from Bryce Canyon National Park to St/ }).click()
+  await banner.getByRole('button', { name: /Follow the way you came/ }).click()
+  await expect(banner.getByRole('button', { name: 'Undo' })).toBeEnabled()
+  const map = page.locator('[data-testid="map"] canvas')
+  const box = (await map.boundingBox())!
+  await map.click({ position: { x: box.width / 2, y: box.height * 0.7 } })
+  await banner.getByRole('button', { name: 'Undo' }).click()
+  await banner.getByRole('button', { name: 'Done' }).click()
+  await expect(dialog.getByRole('button', { name: /^Shape the route from Bryce Canyon National Park to St/ })).toHaveText('Bends 1× · Edit')
 })

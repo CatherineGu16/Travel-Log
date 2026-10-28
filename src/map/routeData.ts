@@ -12,12 +12,20 @@ function flightArc(from: RoutePoint, to: RoutePoint): LngLat[] {
   return points.slice(1).flatMap((p, i) => greatCircle(points[i], p).slice(i === 0 ? 0 : 1))
 }
 
-/** The `route` source's data: each leg's line, a marker for each stop, and (while shaping) the bends. */
-export function routeCollection(route: RoutePoint[], showBends = false): GeoJSON.FeatureCollection {
+/**
+ * The `route` source's data: each leg's line, a marker for each stop, and (while shaping) the bends,
+ * numbered so they can be dragged, with the rest of the trip faintly behind.
+ */
+export function routeCollection(route: RoutePoint[], showBends = false, context: LngLat[][] = []): GeoJSON.FeatureCollection {
   const paths = legPaths(route)
   return {
     type: 'FeatureCollection',
     features: [
+      ...context.map((coordinates) => ({
+        type: 'Feature' as const,
+        properties: { style: 'context' },
+        geometry: { type: 'LineString' as const, coordinates: unwrapLngs(coordinates) },
+      })),
       // The way back the same way runs over the way there, so it isn't drawn twice.
       ...route.slice(1).flatMap((r, i) =>
         r.leg?.role === 'return'
@@ -40,9 +48,9 @@ export function routeCollection(route: RoutePoint[], showBends = false): GeoJSON
           geometry: { type: 'Point' as const, coordinates: [r.place.lng, r.place.lat] },
         })),
       // Bends: small dots while you're shaping the route, so you can see what you tapped.
-      ...(showBends ? route.flatMap((r) => r.via) : []).map((coordinates) => ({
+      ...(showBends ? route.flatMap((r) => r.via) : []).map((coordinates, index) => ({
         type: 'Feature' as const,
-        properties: { bend: true },
+        properties: { bend: true, index },
         geometry: { type: 'Point' as const, coordinates },
       })),
     ],
