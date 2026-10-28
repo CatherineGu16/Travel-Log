@@ -1,5 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog'
-import type { CSSProperties, ReactNode } from 'react'
+import { useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react'
 import { useKeyboardArea } from '../ui/useKeyboardInset.ts'
 
 /** Bottom sheet on phones, side panel from 640px up. Radix handles focus trap, Escape, and scroll lock. */
@@ -12,6 +12,8 @@ export function Sheet({
   footer,
   toolbar,
   tall = false,
+  full = false,
+  swipeToClose = false,
   children,
 }: {
   open: boolean
@@ -25,6 +27,10 @@ export function Sheet({
   toolbar?: ReactNode
   /** On phones, always the full sheet height, so it doesn't grow and shrink as its content changes. */
   tall?: boolean
+  /** On phones, the whole screen. */
+  full?: boolean
+  /** On phones, a handle at the top: drag the top of the sheet down to close it. */
+  swipeToClose?: boolean
   children: ReactNode
 }) {
   // Phones only: while the on-screen keyboard is open, the sheet fills exactly the part of the
@@ -32,6 +38,26 @@ export function Sheet({
   // the screen. Its buttons hide until the keyboard closes.
   const phone = typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches
   const keyboard = useKeyboardArea(open && phone)
+
+  // Dragging the top of the sheet down: it follows your finger, and closes if you pull it far or fast.
+  const drag = useRef<{ y: number; at: number } | null>(null)
+  const [pulled, setPulled] = useState(0)
+  const swipe = swipeToClose && phone
+  const startPull = (e: PointerEvent<HTMLElement>) => {
+    if (!swipe || (e.target as HTMLElement).closest('button')) return
+    drag.current = { y: e.clientY, at: performance.now() }
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+  const movePull = (e: PointerEvent<HTMLElement>) => drag.current && setPulled(Math.max(0, e.clientY - drag.current.y))
+  const endPull = (e: PointerEvent<HTMLElement>) => {
+    if (!drag.current) return
+    const moved = e.clientY - drag.current.y
+    const speed = moved / Math.max(1, performance.now() - drag.current.at)
+    drag.current = null
+    setPulled(0)
+    if (moved > 90 || (moved > 20 && speed > 0.6)) onOpenChange(false)
+  }
+  const pull = { onPointerDown: startPull, onPointerMove: movePull, onPointerUp: endPull, onPointerCancel: endPull }
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -41,11 +67,20 @@ export function Sheet({
             {
               '--accent': accent ?? 'var(--line)',
               ...(keyboard ? { top: keyboard.top, bottom: 'auto', height: keyboard.height, maxHeight: 'none', borderRadius: 0 } : {}),
-            } as CSSProperties
+              ...(pulled ? { transform: `translateY(${pulled}px)`, transition: 'none' } : swipe ? { transition: 'transform 200ms ease-out' } : {}),
+            } as unknown as CSSProperties
           }
-          className={`fixed inset-x-0 bottom-0 z-50 flex overflow-x-hidden max-h-[85dvh] flex-col ${tall ? 'h-[85dvh] sm:h-auto' : ''} rounded-t-2xl border-t-4 border-[var(--accent)] bg-surface [animation:sheet-up_220ms_cubic-bezier(.2,.8,.2,1)] sm:inset-y-0 sm:right-0 sm:left-auto sm:max-h-none sm:w-[28rem] sm:rounded-none sm:border-t-0 sm:border-l-4 sm:[animation:sheet-left_220ms_cubic-bezier(.2,.8,.2,1)]`}
+          className={`fixed inset-x-0 bottom-0 z-50 flex overflow-x-hidden flex-col ${full ? 'h-dvh max-h-dvh pt-[env(safe-area-inset-top)] sm:h-auto sm:max-h-none sm:pt-0' : `max-h-[85dvh] ${tall ? 'h-[85dvh] sm:h-auto' : ''}`} rounded-t-2xl border-t-4 border-[var(--accent)] bg-surface [animation:sheet-up_220ms_cubic-bezier(.2,.8,.2,1)] sm:inset-y-0 sm:right-0 sm:left-auto sm:max-h-none sm:w-[28rem] sm:rounded-none sm:border-t-0 sm:border-l-4 sm:[animation:sheet-left_220ms_cubic-bezier(.2,.8,.2,1)]`}
         >
-          <div className={`flex items-start gap-2 px-4 pb-3 sm:pt-[max(1rem,env(safe-area-inset-top))] ${keyboard ? 'pt-2' : 'pt-4'}`}>
+          {swipe && (
+            <div {...pull} aria-hidden className="flex h-5 shrink-0 touch-none items-end justify-center">
+              <span className="h-1.5 w-10 rounded-full bg-line" />
+            </div>
+          )}
+          <div
+            {...(swipe ? pull : {})}
+            className={`flex items-start gap-2 px-4 pb-3 sm:pt-[max(1rem,env(safe-area-inset-top))] ${swipe ? 'touch-none pt-2' : keyboard ? 'pt-2' : 'pt-4'}`}
+          >
             <div className="min-w-0 flex-1">
               <Dialog.Title className="font-display text-[1.75rem] leading-tight font-semibold">{title}</Dialog.Title>
               {description ? (

@@ -87,9 +87,9 @@ Same rules as Watchlist-Tracker, plus map rules:
   **Legs**.
 - **Editing a trip** shows its own start, not the current Home: changing Home moves new trips only.
   To move an older trip (e.g. you lived elsewhere then), tap its start row in the Route step.
-- **Who went**: group tags (Family, Friends, your own groups) and individual people. Filtering and
-  grouping by Family / Friends uses these tags. (An earlier Family switch and Family / Friends /
-  Work type were replaced by the tags; old Family and Friends trips keep them as tags.)
+- **Who went**: the people who went. **Groups (Family, Friends, your own) only sort people**: they
+  never add everyone in them. Filtering by a group finds trips with any of its members. (Trips
+  tagged with a whole group by an earlier version keep the tag until you remove it.)
 - A **place** is a location you've been to: "Zion National Park", "Las Vegas". Places are shared
   between trips, so going back to the same place reuses it instead of creating a duplicate.
 - **One pin per major location**: a pin goes on each place that is a main destination of at least
@@ -100,6 +100,11 @@ Same rules as Watchlist-Tracker, plus map rules:
 - **Dotted route**: selecting a pin shows the trip's route through all its destinations in the
   order you entered them: main destinations as pins, stops as numbered dots, joined by a dashed
   line. Other pins fade back while one is selected, and the map fits the route around the pin card.
+- **Reusing the way you came**: a ground leg you haven't shaped follows the trip's earlier ground
+  path back from where it starts, as long as that's the better way toward where it's going, then
+  heads straight there (the unmapped stretch counts as 1.3× its straight line, since roads wind).
+  So the drive down from Yosemite retraces the way up through Bakersfield and LA before turning
+  off for Irvine. Worked out when drawing, so reshaping the way up moves the way down too.
 - **Shaping a route**: the line between two destinations is straight unless you shape it. In Add
   / Edit trip, "Shape the route on the map" between two places opens the map with just that leg
   (A to B); each tap adds a bend where it fits along the leg, with Undo, Straighten, Cancel and
@@ -112,8 +117,9 @@ Same rules as Watchlist-Tracker, plus map rules:
   readable.
 - **Stacked dates**: if you've been to a major location more than once (Chicago 2018, Chicago
   2022), it stays **one pin with a ×2 badge**. Its preview card stacks each visit's dates (that
-  place's own dates when you gave them), newest first, with the newest selected. **Picking a
-  different date redraws the route for that trip.** Any place, including a stop, shows every visit
+  place's own dates when you gave them), newest first, with the newest selected: on a phone as
+  **cards you swipe between** (with dots), on wider screens as a list above the chosen trip.
+  **Picking a different trip redraws the route for that trip.** Any place, including a stop, shows every visit
   date stacked on its own detail view, and the parks checklist uses the dates you were at the park,
   not the whole trip's.
 - **Older data**: trips saved before destinations (a main place plus stops) are converted when
@@ -414,15 +420,11 @@ opens the same steps with tabs to jump straight to one.
 - **Title** (suggested from the main destinations and year, e.g. "Zion & Las Vegas 2024").
 - **Hikes**: for every national park on the trip, the hikes you did there, added with the same
   **Add a hike** search box and suggestions as the park page (no checklist).
-- **Who went**:
-  - **Group tags**: **+ Family**, **+ Friends** (both built in) or any group you create adds the
-    group as a tag **plus each of its members** (so "+ Family" tags Family and adds your family,
-    and you remove anyone who didn't come). A group with no members, like Friends usually is, is
-    just the tag, so you don't have to add each friend. Removing the tag removes the members it
-    added. Everyone in a tagged group counts as on the trip for filters.
-  - Individual people (optional): search by name, or **add a new person** (name, avatar, and which
-    groups they belong to) without leaving the form.
-- Optional: description, highlights, rating, tags.
+- **Who went**: your people sorted under their groups (Family, Friends, your own, then Others),
+  each a button that's filled with a ✓ when they went; tap again to take them off. Typing narrows
+  the list, or **adds a new person** in whichever groups you tick, without leaving the form.
+- Optional (Notes step): hikes, description and highlights (the boxes grow as you type), rating,
+  tags.
 - Save, then the map flies to the new pin and shows its route.
 - **On phones**, while the on-screen keyboard is open the form fills exactly the visible part of the
   screen (iPhone Safari pans the page when you tap a field) and scrolls on its own, so the title
@@ -441,8 +443,10 @@ opens the same steps with tabs to jump straight to one.
 - Tapping a row opens the trip detail and highlights its route on the map.
 
 ### Places tab
-- Every place you've been to, A–Z or by state, with a visit count. Opening a place shows its
-  **stacked visit dates**, each linked to its trip.
+- Your **main destinations** (the places with pins; stops along the way aren't listed), A–Z, by
+  state or country, or most visited, each with its visit count and latest dates. No trip chips:
+  **opening a place shows it on the map** with its pin selected, where its trips are swipeable
+  cards on a phone and a list on wider screens.
 
 ### National parks checklist
 - All 64 national parks as a checklist, A–Z or by state, with Visited / Not visited / All and a
@@ -458,8 +462,11 @@ opens the same steps with tabs to jump straight to one.
   destination.
 
 ### Trip detail
-- Title, dates, who went, Family badge, Road trip / Cruise label when it is one, the route stop by stop with each leg's mode and distance between stops (each with its own dates and note,
-  and "Also here" chips for every other visit to that place, which open those trips), hikes, description, highlights, and Edit and Delete with Undo.
+- **The whole screen on a phone**; pull the top (the handle) down to close it.
+- Title, dates, who went, then **the stops** in order (each with its own dates and note, and "Also
+  here" chips for every other visit to that place, which open those trips). How you traveled
+  between them isn't listed here (it's on the map and in Edit). Below the stops, the trip's
+  **notes**: hikes, description, highlights, rating and tags. Edit trip.
 
 ### Header, navigation, settings
 - **Header**: states n/50 and parks n/64 progress, trips this year (on wide screens), and the sync

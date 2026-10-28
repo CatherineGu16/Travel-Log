@@ -4,7 +4,7 @@ import { setTripYear, toStep } from './helpers.ts'
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
 
-async function addTrip(page: Page, opts: { main: [string, RegExp]; year: string; stops?: [string, RegExp][]; family?: string; group?: 'Friends' }) {
+async function addTrip(page: Page, opts: { main: [string, RegExp]; year: string; stops?: [string, RegExp][]; family?: string; friend?: string }) {
   await page.getByRole('button', { name: 'Add trip' }).click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
   await toStep(dialog, 'Route')
@@ -15,17 +15,22 @@ async function addTrip(page: Page, opts: { main: [string, RegExp]; year: string;
     await dialog.getByRole('option', { name: o }).first().click()
   }
   await toStep(dialog, 'Details')
-  if (opts.family) {
+  // Someone new is added in their group; someone you've added before is just marked as going.
+  for (const [name, group] of [
+    [opts.family, 'Family'],
+    [opts.friend, 'Friends'],
+  ] as const) {
+    if (!name) continue
     const who = dialog.getByRole('searchbox', { name: 'Add a person' })
-    await who.fill(opts.family)
-    const existing = dialog.getByRole('button', { name: opts.family, exact: true })
+    await who.fill(name)
+    const existing = dialog.getByRole('button', { name, exact: true })
     if (await existing.count()) await existing.click()
     else {
-      await dialog.getByRole('checkbox', { name: 'Family' }).check()
-      await dialog.getByRole('button', { name: `Add “${opts.family}”` }).click()
+      await dialog.getByRole('checkbox', { name: group }).check()
+      await dialog.getByRole('button', { name: `Add “${name}”` }).click()
     }
+    await who.fill('')
   }
-  if (opts.group) await dialog.getByRole('group', { name: 'Add a group' }).getByRole('button', { name: `+ ${opts.group}` }).click()
   await setTripYear(dialog, opts.year)
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(dialog).toBeHidden()
@@ -39,7 +44,7 @@ test('trips list: search, group, filter by who went, and open a trip on the map'
   await page.goto('./')
   await addTrip(page, { main: ['moab', /^Moab/], year: '2019', family: 'Mom' })
   await addTrip(page, { main: ['chicago', /^Chicago/], year: '2022' })
-  await addTrip(page, { main: ['moab', /^Moab/], year: '2024', stops: [['Green River, UT', /^Green River\s*UT$/]], group: 'Friends' })
+  await addTrip(page, { main: ['moab', /^Moab/], year: '2024', stops: [['Green River, UT', /^Green River\s*UT$/]], friend: 'Sam' })
 
   await nav(page, 'Trips')
   await expect(page.getByRole('heading', { name: 'Trips', level: 1 })).toBeVisible()
@@ -58,7 +63,7 @@ test('trips list: search, group, filter by who went, and open a trip on the map'
   await page.getByRole('button', { name: 'Filter' }).first().click()
   await page.getByRole('dialog', { name: 'Filter trips' }).getByRole('button', { name: 'Friends' }).click()
   await page.getByRole('dialog', { name: 'Filter trips' }).getByRole('button', { name: 'Show 1 trip' }).click()
-  await expect(page.getByRole('main').getByRole('button', { name: /Moab|Chicago/ })).toHaveText([/Moab 2024.*Friends/])
+  await expect(page.getByRole('main').getByRole('button', { name: /Moab|Chicago/ })).toHaveText([/Moab 2024/])
   await page.reload()
   await expect(page.getByRole('button', { name: 'Filter, 1 on' }).first()).toBeVisible()
 
@@ -71,17 +76,26 @@ test('trips list: search, group, filter by who went, and open a trip on the map'
   await expect(card.getByText('1 visit')).toBeVisible()
 })
 
-test('places list shows every place with its visits stacked', async ({ page }) => {
+test('places list shows main destinations; opening one shows its trips on the map', async ({ page }) => {
   await page.goto('./')
   await addTrip(page, { main: ['moab', /^Moab/], year: '2019' })
-  await addTrip(page, { main: ['arches', /Arches National Park/], year: '2023', stops: [['moab', /^Moab/]] })
+  await addTrip(page, { main: ['moab', /^Moab/], year: '2021' })
+  await addTrip(page, { main: ['arches', /Arches National Park/], year: '2023', stops: [['Green River, UT', /^Green River\s*UT$/]] })
 
   await nav(page, 'Places')
-  const moab = page.getByRole('list', { name: 'Visits to Moab' })
-  await expect(moab.getByRole('button')).toHaveText([/2023\s*Arches 2023/, /2019\s*Moab 2019/])
+  // Stops along the way (Green River) aren't listed; no trip chips, just how many visits.
+  const list = page.getByRole('main').getByRole('listitem')
+  await expect(list).toHaveText([/Arches National Park/, /Moab.*2 visits/])
   await page.getByRole('combobox', { name: 'Order' }).selectOption('state')
   await expect(page.getByRole('region', { name: 'Utah' })).toBeVisible()
 
-  await moab.getByRole('button', { name: /Arches 2023/ }).click()
-  await expect(page.getByRole('region', { name: 'Arches National Park trips' })).toBeVisible()
+  // Opening a place selects its pin on the map, newest visit first; the other is a tap away.
+  await page.getByRole('button', { name: /^Moab/ }).click()
+  const card = page.getByRole('region', { name: 'Moab trips' })
+  await expect(card).toContainText('2 visits')
+  const visits = card.getByRole('radiogroup', { name: 'Visits' })
+  await expect(visits.getByRole('radio', { checked: true })).toHaveText(/2021/)
+  await visits.getByRole('radio', { name: /2019/ }).click()
+  await expect(visits.getByRole('radio', { checked: true })).toHaveText(/2019/)
+  await expect(card.getByRole('heading', { name: 'Moab 2019' })).toBeVisible()
 })

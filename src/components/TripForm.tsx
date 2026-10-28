@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { describeRef, type ChosenPlace } from '../lib/chosenPlace.ts'
 import { comparePartialDates, formatDateRange, todayIso, yearOf } from '../lib/partialDate.ts'
 import { addPerson, saveTrip, type PlaceInput, type TripInput } from '../lib/travelActions.ts'
 import { endOfHome, homeLeg, legMemory, makeLeg, returnLegs, type Leg, type LegEnd } from '../lib/legs.ts'
-import { FAMILY_GROUP_ID, type LegMode, type LngLat, type PartialDate, type TravelData, type Trip, type TripHike, type TripStart } from '../lib/types.ts'
+import { type LegMode, type LngLat, type PartialDate, type TravelData, type Trip, type TripHike, type TripStart } from '../lib/types.ts'
 import { newId, useStore, useTravelState } from '../store/useTravel.ts'
 import { DateRangeField } from './DateRangeField.tsx'
 import { HikesField } from './HikesField.tsx'
@@ -400,9 +400,9 @@ export function TripForm({
               onChange={setCompanions}
               groupIds={companionGroupIds}
               onGroupsChange={setCompanionGroupIds}
-              onAddPerson={(name, inFamily) => {
+              onAddPerson={(name, groupIds) => {
                 const id = newId()
-                const ok = store.apply((d, c) => addPerson(d, c, id, { name, groupIds: inFamily ? [FAMILY_GROUP_ID] : [] }), `Added ${name}`)
+                const ok = store.apply((d, c) => addPerson(d, c, id, { name, groupIds }), `Added ${name}`)
                 return ok === null ? null : id
               }}
             />
@@ -587,11 +587,11 @@ export function TripForm({
             <HikesField parkIds={parkIds} data={data} value={hikes} onChange={setHikes} />
             <label className="block">
               <span className="mb-1 block text-sm font-bold">Description</span>
-              <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className={`${input} py-2`} />
+              <GrowingTextarea value={description} onChange={setDescription} className={`${input} py-2`} />
             </label>
             <label className="block">
               <span className="mb-1 block text-sm font-bold">Highlights</span>
-              <textarea value={highlights} onChange={(e) => setHighlights(e.target.value)} rows={2} className={`${input} py-2`} />
+              <GrowingTextarea value={highlights} onChange={setHighlights} className={`${input} py-2`} />
             </label>
             <fieldset>
               <legend className="mb-1 text-sm font-bold">Rating</legend>
@@ -668,6 +668,18 @@ function Steps({ step, onGo }: { step: Step; onGo: (step: Step) => void }) {
       </ol>
     </nav>
   )
+}
+
+/** A text box that grows taller as you type, instead of scrolling inside itself. */
+function GrowingTextarea({ value, onChange, className }: { value: string; onChange: (value: string) => void; className: string }) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`
+  }, [value])
+  return <textarea ref={ref} value={value} onChange={(e) => onChange(e.target.value)} rows={2} className={`${className} resize-none overflow-hidden`} />
 }
 
 function IconButton({ label, onClick, disabled, d }: { label: string; onClick: () => void; disabled?: boolean; d: string }) {

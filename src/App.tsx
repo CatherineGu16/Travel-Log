@@ -126,6 +126,13 @@ function Shell() {
     selectPin(placeId, trip.id)
     focusTrip(trip.id)
   }
+  /** A place from the Places list: its pin selected on the map, newest visit first, and the map moved there. */
+  const openPlace = (place: Place) => {
+    goTo('map')
+    selectPin(place.id)
+    setFocus({ lng: place.lng, lat: place.lat, token: ++focusToken.current })
+  }
+
   const openTrip = (trip: Trip) => {
     selectPin(mainPlaceIds(trip)[0], trip.id)
     setDetailTripId(trip.id)
@@ -199,7 +206,7 @@ function Shell() {
         )}
         {page === 'places' && (
           <div className="absolute inset-0 z-10 overflow-y-auto bg-bg">
-            <PlacesPage data={shown} toolbar={filterButton} onOpenTrip={showOnMap} />
+            <PlacesPage data={shown} toolbar={filterButton} onOpenPlace={openPlace} />
           </div>
         )}
 
@@ -312,7 +319,6 @@ function Shell() {
             <PinCard
               pin={selectedPin}
               trip={selectedTrip}
-              route={route}
               data={data}
               onSelectTrip={setSelectedTripId}
               onDetails={(trip) => setDetailTripId(trip.id)}

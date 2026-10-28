@@ -5,7 +5,7 @@ import { shadeLevel, type Pin } from '../lib/derive.ts'
 import { loadParkBoundaries, PARKS } from '../lib/gazetteer.ts'
 import { greatCircle, unwrapLngs } from '../lib/geo.ts'
 import type { LngLat } from '../lib/types.ts'
-import type { RoutePoint } from '../lib/route.ts'
+import { legPaths, type RoutePoint } from '../lib/route.ts'
 import { resolvedTheme } from '../ui/theme.ts'
 import { loadOutlineData } from './mapData.ts'
 import { outlineStyle, PALETTES, themedPaint } from './outlineStyle.ts'
@@ -158,6 +158,7 @@ export function MapView(props: MapViewProps) {
   const { route, routeTripId } = props
   useEffect(() => {
     if (!map) return
+    const paths = legPaths(route)
     map.getSource<GeoJSONSource>('route')?.setData({
       type: 'FeatureCollection',
       features: [
@@ -165,7 +166,13 @@ export function MapView(props: MapViewProps) {
         ...route.slice(1).flatMap((r, i) =>
           r.leg?.role === 'return'
             ? []
-            : [{ type: 'Feature' as const, properties: { style: legStyle(r) }, geometry: { type: 'LineString' as const, coordinates: legLine(route[i], r) } }],
+            : [
+                {
+                  type: 'Feature' as const,
+                  properties: { style: legStyle(r) },
+                  geometry: { type: 'LineString' as const, coordinates: unwrapLngs(paths[i + 1] ?? flightArc(route[i], r)) },
+                },
+              ],
         ),
         // Home starts and ends the trip at the same spot, and stops passed on the way back are
         // already marked: one marker each.
@@ -333,11 +340,10 @@ const worldZoom = (map: MapLibreMap) => {
 /** How a leg is drawn: a flight as a dashed arc, "not sure" (or a leg being shaped) dotted, the rest solid. */
 const legStyle = (to: RoutePoint) => (!to.leg || to.leg.mode === 'unknown' ? 'unknown' : to.leg.mode === 'flight' ? 'flight' : 'ground')
 
-/** The line for the leg arriving at `to`: through its bends, along great circles for a flight. */
-function legLine(from: RoutePoint, to: RoutePoint): LngLat[] {
+/** A flight arriving at `to`: along great circles, through any bends. (Ground legs come from legPaths.) */
+function flightArc(from: RoutePoint, to: RoutePoint): LngLat[] {
   const points: LngLat[] = [[from.place.lng, from.place.lat], ...to.via, [to.place.lng, to.place.lat]]
-  if (legStyle(to) !== 'flight') return unwrapLngs(points)
-  return unwrapLngs(points.slice(1).flatMap((p, i) => greatCircle(points[i], p).slice(i === 0 ? 0 : 1)))
+  return points.slice(1).flatMap((p, i) => greatCircle(points[i], p).slice(i === 0 ? 0 : 1))
 }
 
 /** Taps select pins (or zoom into clusters); long-press / right-click adds a trip; pick mode picks. */

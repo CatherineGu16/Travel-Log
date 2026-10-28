@@ -164,47 +164,46 @@ test('trip dates are a range picker: tap the first day, then the last', async ({
   await expect(range).toContainText('Jul 2023')
 })
 
-test('Friends can be added as one tag, without listing anyone', async ({ page }) => {
-  await page.goto('./')
-  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
-  const dialog = page.getByRole('dialog', { name: 'Add trip' })
-  await toStep(dialog, 'Route')
-  await choosePlace(page, DEST, 'chicago', /^Chicago/)
-  await toStep(dialog, 'Details')
-  await dialog.getByRole('group', { name: 'Add a group' }).getByRole('button', { name: '+ Friends' }).click()
-  await expect(dialog.getByRole('list', { name: 'Who went' })).toContainText('Friends')
-  await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
-
-  const card = page.getByRole('region', { name: 'Chicago trips' })
-  await expect(card).toContainText('Friends')
-})
-
-test('+ Family tags Family and adds each family member; removing the tag removes them', async ({ page }) => {
+test('who went: people sorted under their groups, each marked as going or not', async ({ page }) => {
   await page.goto('./')
   await page.getByRole('button', { name: 'People & groups' }).click()
   const people = page.getByRole('dialog', { name: 'People & groups' })
-  for (const name of ['Mom', 'Dad']) {
+  for (const [name, group] of [
+    ['Mom', 'Family'],
+    ['Dad', 'Family'],
+    ['Sam', 'Friends'],
+  ]) {
     await people.getByRole('button', { name: '+ Add person' }).click()
     const editor = page.getByRole('dialog', { name: 'Add person' })
     await editor.getByRole('textbox', { name: 'Name' }).fill(name)
-    await editor.getByRole('checkbox', { name: 'Family' }).check()
+    await editor.getByRole('checkbox', { name: group }).check()
     await editor.getByRole('button', { name: 'Save' }).click()
   }
   await page.getByRole('dialog', { name: 'People & groups' }).getByRole('button', { name: 'Close' }).click()
 
   await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
-  await dialog.getByRole('group', { name: 'Add a group' }).getByRole('button', { name: '+ Family' }).click()
-  const who = dialog.getByRole('list', { name: 'Who went' })
-  await expect(who.getByRole('listitem')).toHaveText([/Family/, /Mom/, /Dad/])
+  const family = dialog.getByRole('group', { name: 'Family' })
+  const friends = dialog.getByRole('group', { name: 'Friends' })
+  await expect(family.getByRole('button')).toHaveText([/Dad/, /Mom/])
+  await expect(friends.getByRole('button')).toHaveText([/Sam/])
+  // Groups only sort people: nothing adds a whole group.
+  await expect(dialog.getByRole('button', { name: /^\+ (Family|Friends)$/ })).toHaveCount(0)
 
-  // Someone didn't come: drop just them.
-  await who.getByRole('button', { name: 'Remove Dad' }).click()
-  await expect(who.getByRole('listitem')).toHaveText([/Family/, /Mom/])
+  const mom = family.getByRole('button', { name: 'Mom' })
+  await mom.click()
+  await expect(mom).toHaveAttribute('aria-pressed', 'true')
+  await expect(family.getByRole('button', { name: 'Dad' })).toHaveAttribute('aria-pressed', 'false')
+  await expect(dialog).toContainText('1 person')
+  await mom.click()
+  await expect(mom).toHaveAttribute('aria-pressed', 'false')
 
-  // Removing the tag removes the family members it added.
-  await who.getByRole('button', { name: 'Remove Family' }).click()
-  await expect(who).toBeHidden()
+  // Someone new goes in whichever groups you pick, and is marked as going.
+  await dialog.getByRole('searchbox', { name: 'Add a person' }).fill('Alex')
+  await dialog.getByRole('checkbox', { name: 'Friends' }).check()
+  await dialog.getByRole('button', { name: 'Add “Alex”' }).click()
+  await expect(friends.getByRole('button')).toHaveText([/Alex/, /Sam/])
+  await expect(friends.getByRole('button', { name: 'Alex' })).toHaveAttribute('aria-pressed', 'true')
 })
 
 test('shaping the route between two places bends the dotted line through your taps', async ({ page }) => {
@@ -241,13 +240,18 @@ test('shaping the route between two places bends the dotted line through your ta
   await expect(edit.getByRole('button', { name: /^Shape the route from Zion/ })).toHaveText('Shape on map')
 })
 
-test('notes, rating and tags are their own step and show on the trip', async ({ page }) => {
+test('notes, rating and tags are their own step and show on the trip', async ({ page, isMobile }) => {
   await page.goto('./')
   await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
   await toStep(dialog, 'Route')
   await choosePlace(page, DEST, 'zion', /Zion National Park/)
   await dialog.getByRole('button', { name: 'Next: Notes' }).click()
+  // The description grows with what you type instead of scrolling inside itself.
+  const description = dialog.getByRole('textbox', { name: 'Description' })
+  const before = (await description.boundingBox())!.height
+  await description.fill('Day 1: Angels Landing.\nDay 2: The Narrows.\nDay 3: Kolob Canyons.\nDay 4: Emerald Pools.\nDay 5: home.')
+  expect((await description.boundingBox())!.height).toBeGreaterThan(before * 1.5)
   await dialog.getByRole('textbox', { name: 'Highlights' }).fill('Sunrise at Canyon Overlook')
   await dialog.getByRole('button', { name: '4 stars' }).click()
   await dialog.getByRole('textbox', { name: 'Tags' }).fill('camping, desert')
@@ -258,7 +262,22 @@ test('notes, rating and tags are their own step and show on the trip', async ({ 
   const detail = page.getByRole('dialog', { name: /Zion/ })
   await expect(detail).toContainText('Sunrise at Canyon Overlook')
   await expect(detail).toContainText('camping')
+  await expect(detail).toContainText('Day 5: home.')
   await expect(detail.getByLabel('4 out of 5 stars')).toBeVisible()
+  // The stops, not how you traveled between them.
+  await expect(detail).not.toContainText('Flight')
+  await expect(detail.getByRole('region', { name: 'Notes' })).toBeVisible()
+
+  if (isMobile) {
+    // The whole screen on a phone; pull the top down to close it.
+    const box = (await detail.boundingBox())!
+    expect(box.height).toBeGreaterThan((page.viewportSize()!.height ?? 0) * 0.95)
+    await page.mouse.move(box.x + box.width / 2, box.y + 10)
+    await page.mouse.down()
+    await page.mouse.move(box.x + box.width / 2, box.y + 250, { steps: 8 })
+    await page.mouse.up()
+    await expect(detail).toBeHidden()
+  }
 })
 
 test('legs between stops: guessed from distance, changed with a tap, and filterable', async ({ page }) => {
