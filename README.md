@@ -7,7 +7,7 @@ Windows, works offline, and syncs across devices through a private GitHub repo.
 
 **Live:** <https://catherinegu16.github.io/Travel-Log/>
 
-The full design is in [PLAN.md](PLAN.md).
+The design is split into small topic files indexed in [docs/plan/README.md](docs/plan/README.md); notes for working on the code are in [CLAUDE.md](CLAUDE.md).
 
 ## Using it
 

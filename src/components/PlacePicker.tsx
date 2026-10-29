@@ -22,8 +22,13 @@ export function PlacePicker({
   onChange,
   autoFocus = false,
   near = null,
+  hideLabel = false,
+  placeholder = 'Search a city, town or park',
 }: {
   label: string
+  /** Keep the label for screen readers only (something else on screen says what it's for). */
+  hideLabel?: boolean
+  placeholder?: string
   data: TravelData
   value: ChosenPlace | null
   onChange: (place: ChosenPlace | null) => void
@@ -112,7 +117,7 @@ export function PlacePicker({
 
   return (
     <div>
-      <label htmlFor={id} className="mb-1.5 block text-sm font-bold">
+      <label htmlFor={id} className={hideLabel ? 'sr-only' : 'mb-1.5 block text-sm font-bold'}>
         {label}
       </label>
       <div className="flex gap-2">
@@ -125,7 +130,7 @@ export function PlacePicker({
           aria-autocomplete="list"
           autoComplete="off"
           autoFocus={autoFocus}
-          placeholder="Search a city, town or park"
+          placeholder={placeholder}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value)

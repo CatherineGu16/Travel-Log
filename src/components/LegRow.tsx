@@ -1,19 +1,14 @@
 import { useState, type ReactNode } from 'react'
 import { formatDistance, LEG_MODES, legModeInfo, type Leg } from '../lib/legs.ts'
 import type { LegMode } from '../lib/types.ts'
-
-/** The rail between two stops, styled like the leg on the map: dashed for flights, dotted when not sure. */
-function Rail({ mode }: { mode: LegMode }) {
-  const style = mode === 'flight' ? 'border-dashed border-primary' : mode === 'unknown' ? 'border-dotted border-[var(--route)]' : 'border-solid border-[var(--route)]'
-  return <span aria-hidden className={`my-1 w-0 shrink-0 border-l-2 ${style}`} />
-}
+import { RAIL, railStyle } from './timeline.ts'
 
 function Label({ leg }: { leg: Leg }) {
   const m = legModeInfo(leg.mode)
   return (
     <>
       <span aria-hidden>{m.icon}</span> <span className="font-bold text-fg">{m.label}</span> · {formatDistance(leg.distanceM)}
-      {leg.guessed && <span className="ml-1 rounded bg-raised px-1 text-[0.7rem]">guessed</span>}
+      {leg.guessed && <span className="text-muted/80 italic"> · guess</span>}
     </>
   )
 }
@@ -38,9 +33,13 @@ export function LegRow({
   const m = legModeInfo(leg.mode)
   const spoken = `${m.label}${leg.guessed ? ' (guessed)' : ''} from ${leg.from.name} to ${leg.to.name}, ${formatDistance(leg.distanceM)}`
   return (
-    <div>
-      <div className="flex min-h-11 flex-wrap items-stretch gap-x-2 pl-[1.15rem] text-xs text-muted">
-        <Rail mode={leg.mode} />
+    <div className="flex">
+      {/* The line between the stop before and the stop after. */}
+      <div aria-hidden className={`flex ${RAIL} shrink-0 justify-center`}>
+        <span className={`w-0 border-l-2 ${railStyle(leg.mode)}`} />
+      </div>
+      <div className="min-w-0 flex-1 py-1">
+      <div className="flex min-h-10 flex-wrap items-center gap-x-1 text-xs text-muted">
         {onPick ? (
           <button
             type="button"
@@ -61,7 +60,7 @@ export function LegRow({
         {children}
       </div>
       {onPick && open && (
-        <div role="group" aria-label={`How you got from ${leg.from.name} to ${leg.to.name}`} className="flex flex-wrap gap-1.5 pt-1 pb-2 pl-8">
+        <div role="group" aria-label={`How you got from ${leg.from.name} to ${leg.to.name}`} className="flex flex-wrap gap-1.5 pt-1 pb-2">
           {LEG_MODES.map((mode) => {
             const on = !leg.guessed && leg.mode === mode.id
             return (
@@ -94,6 +93,7 @@ export function LegRow({
           )}
         </div>
       )}
+      </div>
     </div>
   )
 }

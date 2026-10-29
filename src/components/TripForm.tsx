@@ -13,7 +13,9 @@ import { ParkSuggestion, PinGlyph, PlacePicker } from './PlacePicker.tsx'
 import { Sheet } from './Sheet.tsx'
 import { StopDates } from './StopDates.tsx'
 import { TagsField } from './TagsField.tsx'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { HomeGlyph, LegRow } from './LegRow.tsx'
+import { RAIL, railStyle } from './timeline.ts'
 import { useToast } from './toastContext.ts'
 
 interface DestinationDraft {
@@ -375,46 +377,60 @@ export function TripForm({
         )}
       </>
     )
-  /** Where the trip started, at the top and again at the end: tap it to pick another place. */
-  const startRow = (where: 'top' | 'bottom') =>
-    changingStart === where || (!start && where === 'top') ? (
-      <div className="flex flex-col gap-1.5 py-1">
-        <PlacePicker
-          label={start ? `Change where the trip started (${start.name})` : 'Where the trip started'}
-          data={data}
-          value={null}
-          onChange={pickStart}
-          autoFocus={!!start && !matchMedia('(pointer: coarse)').matches}
-        />
-        <div className="flex flex-wrap gap-1 text-sm empty:hidden">
-          {homeNow && (homeNow.lat !== start?.lat || homeNow.lng !== start?.lng) && (
-            <button type="button" onClick={() => {
-                setStart(homeNow)
-                setChangingStart(null)
-              }} className="min-h-10 rounded-lg px-2 font-bold text-primary hover:bg-raised">
-              Use home ({homeNow.name})
-            </button>
-          )}
-          {changingStart && (
-            <button type="button" onClick={() => setChangingStart(null)} className="min-h-10 rounded-lg px-2 text-muted hover:bg-raised hover:text-fg">
-              Keep {start?.name}
-            </button>
-          )}
-        </div>
-        {!homeNow && !start && <p className="text-xs text-muted">Set your home in Settings and new trips will start and end there.</p>}
-      </div>
-    ) : start ? (
-      <button
-        type="button"
-        onClick={() => setChangingStart(where)}
-        aria-label={`Change where the trip ${where === 'top' ? 'started' : 'ended'} (${start.name})`}
-        className="flex min-h-11 w-full items-center gap-2 rounded-lg pl-2 text-left hover:bg-raised"
+  /** Where the trip started, at the top and again at the end, on the timeline: tap it to pick another place. */
+  const startRow = (where: 'top' | 'bottom') => {
+    const changing = changingStart === where || (!start && where === 'top')
+    if (!changing && !start) return null
+    return (
+      <TimelineRow
+        marker={<HomeGlyph className="size-6" />}
+        above={where === 'bottom' ? backLeg?.mode : undefined}
+        below={where === 'top' ? toLeg?.mode : undefined}
       >
-        <HomeGlyph className="size-6" />
-        <span className="min-w-0 truncate font-bold">{start.name}</span>
-        <span className="ml-auto pr-2 text-xs text-muted">{where === 'top' ? 'Start' : 'End'}</span>
-      </button>
-    ) : null
+        {changing ? (
+          <div className="flex flex-col gap-1.5 py-1">
+            <PlacePicker
+              label={start ? `Change where the trip started (${start.name})` : 'Where the trip started'}
+              data={data}
+              value={null}
+              onChange={pickStart}
+              autoFocus={!!start && !matchMedia('(pointer: coarse)').matches}
+            />
+            <div className="flex flex-wrap gap-1 text-sm empty:hidden">
+              {homeNow && (homeNow.lat !== start?.lat || homeNow.lng !== start?.lng) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStart(homeNow)
+                    setChangingStart(null)
+                  }}
+                  className="min-h-10 rounded-lg px-2 font-bold text-primary hover:bg-raised"
+                >
+                  Use home ({homeNow.name})
+                </button>
+              )}
+              {changingStart && (
+                <button type="button" onClick={() => setChangingStart(null)} className="min-h-10 rounded-lg px-2 text-muted hover:bg-raised hover:text-fg">
+                  Keep {start?.name}
+                </button>
+              )}
+            </div>
+            {!homeNow && !start && <p className="text-xs text-muted">Set your home in Settings and new trips will start and end there.</p>}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setChangingStart(where)}
+            aria-label={`Change where the trip ${where === 'top' ? 'started' : 'ended'} (${start!.name})`}
+            className="flex min-h-10 w-full items-center gap-2 rounded-lg pr-2 text-left hover:bg-raised"
+          >
+            <span className="min-w-0 truncate font-bold">{start!.name}</span>
+            <span className="ml-auto text-xs text-muted">{where === 'top' ? 'Start' : 'End'}</span>
+          </button>
+        )}
+      </TimelineRow>
+    )
+  }
 
   return (
     <Sheet
@@ -496,10 +512,7 @@ export function TripForm({
         {step === 1 && (
           <section aria-label="Where you went">
             <h3 className="text-sm font-bold">Where you went</h3>
-            <p className="mb-2 text-xs text-muted">
-              In order. Choose <b>Main</b> for each place that gets a pin on the map; the rest are stops along the way. Between two places, tap how you went to
-              change it, and shape a drive to follow the road.
-            </p>
+            <p className="mb-3 text-xs text-muted">Main places get a pin on the map. Tap a leg to change how you went.</p>
             {startRow('top')}
             {toLeg && (
               <LegRow leg={toLeg} allowGuess={false} onPick={(mode) => mode && setStartMode(mode)}>
@@ -507,11 +520,13 @@ export function TripForm({
               </LegRow>
             )}
             {destinations.length > 0 && (
-              <ol className="mb-2 flex flex-col">
+              <ol className="flex flex-col">
                 {destinations.map((d, i) => {
                   const number = d.isMain ? null : ++stopNumber
                   const onlyMain = d.isMain && mains.length === 1
                   const leg = i > 0 ? legBefore(i) : null
+                  const into = i === 0 ? toLeg : leg
+                  const out = i < destinations.length - 1 ? legBefore(i + 1) : backLeg
                   return (
                     <li key={d.key} aria-label={d.place.label}>
                       {leg && (
@@ -521,75 +536,79 @@ export function TripForm({
                               type="button"
                               onClick={() => shapeLeg(i)}
                               aria-label={`Shape the route from ${destinations[i - 1].place.label} to ${d.place.label} on the map`}
-                              className="min-h-11 rounded-md px-1.5 font-bold text-[var(--route)] hover:bg-raised"
+                              className="min-h-10 rounded-md px-1.5 font-bold text-[var(--route)] hover:bg-raised"
                             >
                               {d.via.length ? `Bends ${d.via.length}× · Edit` : 'Shape on map'}
                             </button>
                           )}
                           {d.via.length > 0 && (
-                            <button type="button" onClick={() => patch(d.key, { via: [] })} className="min-h-11 rounded-md px-1.5 hover:bg-raised hover:text-fg">
+                            <button type="button" onClick={() => patch(d.key, { via: [] })} className="min-h-10 rounded-md px-1.5 hover:bg-raised hover:text-fg">
                               Straighten
                             </button>
                           )}
                         </LegRow>
                       )}
-                      <div className="rounded-lg border border-line bg-bg">
-                        <div className="flex items-center gap-1 py-1 pr-1 pl-1">
-                          <button
-                            type="button"
-                            aria-label={d.isMain ? `${d.place.label} is a main destination` : `Make ${d.place.label} a main destination`}
-                            aria-pressed={d.isMain}
-                            disabled={onlyMain}
-                            title={
-                              onlyMain
-                                ? 'A trip needs at least one main destination'
-                                : d.isMain
-                                  ? 'Main destination: tap to make it a stop'
-                                  : 'Stop: tap to make it a main destination'
-                            }
-                            onClick={() => patch(d.key, { isMain: !d.isMain })}
-                            className={`flex h-10 shrink-0 items-center gap-1 rounded-full border py-1 pr-2.5 pl-1 text-xs font-bold disabled:cursor-default ${d.isMain ? 'border-primary/50 bg-primary/10 text-fg' : 'border-line text-muted hover:bg-raised hover:text-fg'}`}
-                          >
-                            {d.isMain ? (
-                              <PinGlyph park={d.place.isPark} className="size-6" />
-                            ) : (
-                              <span className="grid size-6 place-items-center rounded-full bg-[var(--route)] text-xs font-bold text-[var(--route-text)]">
-                                {number}
-                              </span>
-                            )}
-                            <span aria-hidden>{d.isMain ? 'Main' : 'Stop'}</span>
-                          </button>
-                          <div className="min-w-0 flex-1 px-1">
+                      <TimelineRow
+                        above={into?.mode}
+                        below={out?.mode ?? (i < destinations.length - 1 ? 'unknown' : undefined)}
+                        marker={
+                          d.isMain ? (
+                            <PinGlyph park={d.place.isPark} className="size-7" />
+                          ) : (
+                            <span className="grid size-7 place-items-center rounded-full bg-[var(--route)] text-xs font-bold text-[var(--route-text)]">{number}</span>
+                          )
+                        }
+                      >
+                        <div className="flex items-start gap-1">
+                          <div className="min-w-0 flex-1 py-1">
                             <button
                               type="button"
                               onClick={() => patch(d.key, { open: !d.open })}
                               aria-expanded={d.open}
                               aria-label={`${d.place.label}: change place, name or note`}
-                              className="block max-w-full truncate text-left"
+                              className="block max-w-full text-left leading-snug break-words hover:underline"
                             >
                               <span className={d.isMain ? 'font-bold' : ''}>{d.place.label}</span>
                               {d.place.detail && <span className="ml-1.5 text-xs text-muted">{d.place.detail}</span>}
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => setDatesFor(datesFor === d.key ? null : d.key)}
-                              aria-expanded={datesFor === d.key}
-                              aria-label={d.startDate ? `Dates at ${d.place.label}: ${stopDates(d)}` : `Add dates at ${d.place.label}`}
-                              className={`flex max-w-full items-center gap-1 text-left text-xs ${d.startDate ? 'text-fg' : 'font-bold text-primary'}`}
-                            >
-                              <svg viewBox="0 0 20 20" className="size-3.5 shrink-0" aria-hidden>
-                                <rect x="3" y="4.5" width="14" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
-                                <path d="M3 8.5h14M7 3v3M13 3v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                              </svg>
-                              <span className="truncate">{d.startDate ? stopDates(d) : 'Add dates'}</span>
-                              {d.note && <span className="truncate text-muted">· {d.note}</span>}
-                            </button>
+                            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                              <button
+                                type="button"
+                                aria-label={d.isMain ? `${d.place.label} is a main destination` : `Make ${d.place.label} a main destination`}
+                                aria-pressed={d.isMain}
+                                disabled={onlyMain}
+                                title={onlyMain ? 'A trip needs at least one main destination' : d.isMain ? 'Tap to make it a stop' : 'Tap to give it a pin'}
+                                onClick={() => patch(d.key, { isMain: !d.isMain })}
+                                className={`min-h-7 rounded-full border px-2.5 text-xs font-bold disabled:cursor-default ${d.isMain ? 'border-primary/40 bg-primary/10 text-primary' : 'border-line text-muted hover:text-fg'}`}
+                              >
+                                {d.isMain ? 'Main' : 'Stop'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDatesFor(datesFor === d.key ? null : d.key)}
+                                aria-expanded={datesFor === d.key}
+                                aria-label={d.startDate ? `Dates at ${d.place.label}: ${stopDates(d)}` : `Add dates at ${d.place.label}`}
+                                className={`flex min-h-7 min-w-0 items-center gap-1 rounded-full px-2 text-left text-xs hover:bg-raised ${d.startDate ? 'text-fg' : 'font-bold text-primary'}`}
+                              >
+                                <svg viewBox="0 0 20 20" className="size-3.5 shrink-0" aria-hidden>
+                                  <rect x="3" y="4.5" width="14" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+                                  <path d="M3 8.5h14M7 3v3M13 3v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                                </svg>
+                                <span>{d.startDate ? stopDates(d) : 'Add dates'}</span>
+                              </button>
+                              {d.note && <span className="min-w-0 truncate text-xs text-muted">{d.note}</span>}
+                            </div>
                           </div>
-                          <IconButton label={`Move ${d.place.label} up`} disabled={i === 0} onClick={() => move(i, -1)} d="M6 12l4-4 4 4" />
-                          <IconButton label={`Move ${d.place.label} down`} disabled={i === destinations.length - 1} onClick={() => move(i, 1)} d="M6 8l4 4 4-4" />
-                          <IconButton label={`Remove ${d.place.label}`} onClick={() => remove(d.key)} d="M6 6l8 8M14 6l-8 8" />
+                          <StopMenu
+                            place={d.place.label}
+                            first={i === 0}
+                            last={i === destinations.length - 1}
+                            onMove={(by) => move(i, by)}
+                            onEdit={() => patch(d.key, { open: true })}
+                            onRemove={() => remove(d.key)}
+                          />
                         </div>
-                        <div className="px-2 empty:hidden">
+                        <div className="empty:hidden">
                           <ParkSuggestion
                             value={d.place}
                             onLink={(park) =>
@@ -599,20 +618,22 @@ export function TripForm({
                           />
                         </div>
                         {datesFor === d.key && (
-                          <StopDates
-                            place={d.place.label}
-                            tripStart={startDate}
-                            tripEnd={endDate}
-                            start={d.startDate}
-                            end={d.endDate}
-                            suggested={suggestedStart(i)}
-                            calendarOnly={!datesTouched}
-                            onChange={(start, end) => patch(d.key, { startDate: start, endDate: end })}
-                            onDone={() => setDatesFor(null)}
-                          />
+                          <div className="mt-1 mb-2 overflow-hidden rounded-xl border border-line bg-bg">
+                            <StopDates
+                              place={d.place.label}
+                              tripStart={startDate}
+                              tripEnd={endDate}
+                              start={d.startDate}
+                              end={d.endDate}
+                              suggested={suggestedStart(i)}
+                              calendarOnly={!datesTouched}
+                              onChange={(start, end) => patch(d.key, { startDate: start, endDate: end })}
+                              onDone={() => setDatesFor(null)}
+                            />
+                          </div>
                         )}
                         {d.open && (
-                          <div className="flex flex-col gap-3 border-t border-line p-3">
+                          <div className="mt-1 mb-2 flex flex-col gap-3 rounded-xl border border-line bg-bg p-3">
                             <PlacePicker label="Change to another place" data={data} near={near} value={null} onChange={(p) => p && changePlace(d.key, p)} />
                             {'place' in d.place.ref && !d.place.ref.place.parkId && (
                               <label className="block">
@@ -632,25 +653,45 @@ export function TripForm({
                               <span className="mb-1 block text-sm font-bold">Note</span>
                               <input value={d.note} onChange={(e) => patch(d.key, { note: e.target.value })} className={`${input} h-10`} />
                             </label>
+                            <button type="button" onClick={() => patch(d.key, { open: false })} className="min-h-9 self-end rounded-lg px-3 text-sm font-bold text-primary hover:bg-raised">
+                              Done
+                            </button>
                           </div>
                         )}
-                      </div>
+                      </TimelineRow>
                     </li>
                   )
                 })}
               </ol>
             )}
-            <PlacePicker
-              label={destinations.length ? 'Add another destination' : 'Add a destination'}
-              data={data}
-              near={near}
-              value={null}
-              onChange={(p) => {
-                if (p) addDestination(p)
-                setError(null)
-              }}
-              autoFocus={destinations.length === 0 && !matchMedia('(pointer: coarse)').matches}
-            />
+            {/* Adding a place: a node on the timeline after the last place, before the way back. */}
+            <TimelineRow
+              above={destinations.length ? backLeg?.mode : undefined}
+              below={destinations.length ? backLeg?.mode : undefined}
+              marker={
+                <span className="grid size-7 place-items-center rounded-full border-2 border-dashed border-muted bg-surface text-muted">
+                  <svg viewBox="0 0 20 20" className="size-3.5" aria-hidden>
+                    <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+                  </svg>
+                </span>
+              }
+            >
+              <div className="py-0.5">
+                <PlacePicker
+                  label={destinations.length ? 'Add another destination' : 'Add a destination'}
+                  hideLabel
+                  placeholder={destinations.length ? 'Add another place' : 'Where did you go?'}
+                  data={data}
+                  near={near}
+                  value={null}
+                  onChange={(p) => {
+                    if (p) addDestination(p)
+                    setError(null)
+                  }}
+                  autoFocus={destinations.length === 0 && !matchMedia('(pointer: coarse)').matches}
+                />
+              </div>
+            </TimelineRow>
             {backLeg && (
               <>
                 <LegRow leg={backLeg} allowGuess={false} onPick={(mode) => mode && setEndMode(mode)}>
@@ -758,18 +799,69 @@ function GrowingTextarea({ value, onChange, className }: { value: string; onChan
   return <textarea ref={ref} value={value} onChange={(e) => onChange(e.target.value)} rows={2} className={`${className} resize-none overflow-hidden`} />
 }
 
-function IconButton({ label, onClick, disabled, d }: { label: string; onClick: () => void; disabled?: boolean; d: string }) {
+/**
+ * A row on the Route step's timeline: its marker on the line (with the line running in from the leg
+ * above and out to the leg below, styled like those legs), and its content beside it.
+ */
+function TimelineRow({ marker, above, below, children }: { marker: React.ReactNode; above?: LegMode; below?: LegMode; children: React.ReactNode }) {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      disabled={disabled}
-      onClick={onClick}
-      className="grid size-10 shrink-0 place-items-center rounded-md text-muted hover:bg-raised hover:text-fg disabled:opacity-30"
-    >
-      <svg viewBox="0 0 20 20" className="size-4" aria-hidden>
-        <path d={d} stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </button>
+    <div className="flex">
+      <div className={`relative flex ${RAIL} shrink-0 justify-center`}>
+        {above && <span aria-hidden className={`absolute top-0 left-1/2 h-5 w-0 -translate-x-1/2 border-l-2 ${railStyle(above)}`} />}
+        {below && <span aria-hidden className={`absolute top-5 bottom-0 left-1/2 w-0 -translate-x-1/2 border-l-2 ${railStyle(below)}`} />}
+        <span className="relative grid h-10 place-items-center rounded-full bg-surface">{marker}</span>
+      </div>
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
+  )
+}
+
+/** "⋯" on a place: move it up or down, change it (place, name, note), or remove it. */
+function StopMenu({
+  place,
+  first,
+  last,
+  onMove,
+  onEdit,
+  onRemove,
+}: {
+  place: string
+  first: boolean
+  last: boolean
+  onMove: (by: -1 | 1) => void
+  onEdit: () => void
+  onRemove: () => void
+}) {
+  const item =
+    'flex min-h-10 cursor-pointer items-center rounded-lg px-3 text-sm outline-none data-[disabled]:cursor-default data-[disabled]:opacity-40 data-[highlighted]:bg-raised'
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+        <button type="button" aria-label={`More for ${place}`} className="grid size-10 shrink-0 place-items-center rounded-lg text-muted hover:bg-raised hover:text-fg">
+          <svg viewBox="0 0 20 20" className="size-5" aria-hidden>
+            <circle cx="4.5" cy="10" r="1.6" fill="currentColor" />
+            <circle cx="10" cy="10" r="1.6" fill="currentColor" />
+            <circle cx="15.5" cy="10" r="1.6" fill="currentColor" />
+          </svg>
+        </button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content align="end" sideOffset={4} className="z-[60] min-w-48 rounded-xl border border-line bg-surface p-1 shadow-lg">
+          <DropdownMenu.Item disabled={first} onSelect={() => onMove(-1)} className={item}>
+            Move up
+          </DropdownMenu.Item>
+          <DropdownMenu.Item disabled={last} onSelect={() => onMove(1)} className={item}>
+            Move down
+          </DropdownMenu.Item>
+          <DropdownMenu.Item onSelect={onEdit} className={item}>
+            Change place, name or note
+          </DropdownMenu.Item>
+          <DropdownMenu.Separator className="my-1 h-px bg-line" />
+          <DropdownMenu.Item onSelect={onRemove} className={`${item} text-danger`}>
+            Remove {place}
+          </DropdownMenu.Item>
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   )
 }
