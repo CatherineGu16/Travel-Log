@@ -9,7 +9,8 @@ test('the outline map loads with only bundled data, and the globe toggle and US 
 
   await page.goto('./')
   await expect(page.getByRole('heading', { name: 'Travel Log' })).toBeVisible()
-  await expect(page.getByText('/ 64 parks')).toBeVisible()
+  // The header is just the title and pages; your numbers are on the You page.
+  await expect(page.getByText(/\/ 64 parks/)).toHaveCount(0)
   await expect(page.locator('[data-testid="map"] canvas')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Zoom in' })).toBeVisible()
 

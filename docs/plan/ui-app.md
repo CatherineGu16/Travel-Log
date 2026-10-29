@@ -5,7 +5,7 @@
 - **Navigation**: Map · Trips · **+** · Parks · **You**, kept in the URL hash so Back works (old
   `#/places` links open the map). **Add trip** is a large colored circle in the center: raised above
   the bottom tab bar on phones, in the middle of the header's page links on wider screens.
-- **Header**: the title, states/parks counts and the sync chip (which opens Settings). People &
+- **Header**: the title, the page links (on wider screens) and the sync chip (which opens Settings); your numbers are on the You page. People &
   groups, Settings and Home are on the You page (see profile-and-achievements.md).
 - **Settings** (from the You page or the sync chip): Sync across devices (same as Watchlist), **Map detail** (Outline · Detailed, with a
   note that Detailed contacts OpenFreeMap and Photon), People & groups (see below),

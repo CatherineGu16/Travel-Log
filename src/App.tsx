@@ -15,14 +15,13 @@ import { TripDetail, type TripStep } from './components/TripDetail.tsx'
 import { TripForm, type RequestShape, type RouteEnd } from './components/TripForm.tsx'
 import { TripsPage } from './components/TripsPage.tsx'
 import parks from './data/national-parks.json'
-import { mainPlaceIds, parksVisited, pinsOf, statesVisited, tripsPerRegion } from './lib/derive.ts'
+import { mainPlaceIds, parksVisited, pinsOf, tripsPerRegion } from './lib/derive.ts'
 import { filterData, NO_FILTER, reviveFilter, type TripFilter } from './lib/filters.ts'
 import { placeAt } from './lib/gazetteer.ts'
 import { parkInput, type ParkInfo } from './lib/placeSearch.ts'
 import { legMemory } from './lib/legs.ts'
 import { addBend, routeOf, type RoutePoint } from './lib/route.ts'
 import { live, type PlaceInput } from './lib/travelActions.ts'
-import { todayIso, yearOf } from './lib/partialDate.ts'
 import type { LngLat, Place, Trip } from './lib/types.ts'
 import { loadServices, ServicesContext, useStore, useTravelState, type AppServices } from './store/useTravel.ts'
 import type { ParksMode } from './map/MapView.tsx'
@@ -75,17 +74,8 @@ function Shell() {
 
   const pins = useMemo(() => pinsOf(shown), [shown])
   const perRegion = useMemo(() => tripsPerRegion(shown), [shown])
-  // Header totals always count everything, whatever the filter.
+  // Parks you've been to count everything, whatever the filter.
   const visitedParks = useMemo(() => parksVisited(data), [data])
-  const thisYear = yearOf(todayIso())
-  const totals = useMemo(
-    () => ({
-      states: statesVisited(tripsPerRegion(data)),
-      parks: visitedParks.size,
-      thisYear: live(data.trips).filter((t) => yearOf(t.startDate) === thisYear).length,
-    }),
-    [data, visitedParks, thisYear],
-  )
   const [parksMode, setParksMode] = usePersistentState<ParksMode>('travel.parksLayer', 'off', (v) =>
     v === 'all' || v === 'visited' || v === 'not-visited' ? v : 'off',
   )
@@ -234,26 +224,6 @@ function Shell() {
           <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-line bg-surface/95 py-1.5 pr-1 pl-3 whitespace-nowrap shadow-md sm:gap-3 sm:pl-4">
             <h1 className="font-display text-xl font-semibold tracking-wide sm:text-2xl">Travel Log</h1>
             <PageLinks page={page} onAdd={addTrip} />
-            <dl className="flex gap-2 text-sm text-muted sm:hidden sm:gap-3 lg:flex">
-              <div className="flex gap-1">
-                <dt className="sr-only">States visited</dt>
-                <dd>
-                  <span className="font-bold text-fg">{totals.states}</span> / 50 states
-                </dd>
-              </div>
-              <div className="flex gap-1">
-                <dt className="sr-only">National parks visited</dt>
-                <dd>
-                  <span className="font-bold text-park">{totals.parks}</span> / {parks.length} parks
-                </dd>
-              </div>
-              <div className="hidden gap-1 xl:flex">
-                <dt className="sr-only">Trips this year</dt>
-                <dd>
-                  <span className="font-bold text-fg">{totals.thisYear}</span> {totals.thisYear === 1 ? 'trip' : 'trips'} in {thisYear}
-                </dd>
-              </div>
-            </dl>
             <SyncChip onSettings={() => setSettingsOpen(true)} />
           </div>
         </header>

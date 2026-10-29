@@ -13,7 +13,6 @@ async function choosePlace(page: Page, field: string | RegExp, query: string, op
 test('log a multi-stop family trip, see it on the map, and it survives a reload', async ({ page }) => {
   await page.goto('./')
   await expect(page.locator('[data-testid="map"] canvas')).toBeVisible()
-  await expect(page.getByText('0 / 50 states')).toBeVisible()
 
   await page.getByRole('button', { name: 'Add trip' }).click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
@@ -36,13 +35,16 @@ test('log a multi-stop family trip, see it on the map, and it survives a reload'
   // The route follows the destinations in the order they were added.
   await expect(card.getByRole('list', { name: 'Route' }).getByRole('listitem')).toHaveText([/Zion National Park/, /1\s*Springdale/, /2\s*Las Vegas/])
   await expect(card.getByText('Mom')).toBeAttached()
-  await expect(page.getByText('2 / 50 states')).toBeVisible()
-  await expect(page.getByText(/^1\s*\/ 64 parks$/)).toBeVisible()
+  // Your numbers, on the You page.
+  await openYou(page)
+  const numbers = page.getByRole('region', { name: 'Your travel in numbers' })
+  await expect(numbers).toContainText('2 / 50States')
+  await expect(numbers).toContainText('1 / 64National parks')
 
   // Everything is still there after a reload.
   await page.reload()
-  await expect(page.getByText('2 / 50 states')).toBeVisible()
-  await expect(page.getByText(/^1\s*\/ 64 parks$/)).toBeVisible()
+  await expect(numbers).toContainText('2 / 50States')
+  await expect(numbers).toContainText('1 / 64National parks')
   await openPeople(page)
   await expect(page.getByRole('dialog').getByText('Mom')).toHaveCount(2) // in People and in the Family group
 })

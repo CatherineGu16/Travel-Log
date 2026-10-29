@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { setTripYear, toStep } from './helpers.ts'
+import { openYou, setTripYear, toStep } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -80,5 +80,6 @@ test('a town inside a park offers to link the trip to the park', async ({ page }
   await expect(dialog.getByRole('region', { name: 'Hikes' })).toBeVisible()
   await saveYear(page, '2022')
   await expect(page.getByRole('region', { name: 'Yosemite National Park trips' })).toBeVisible()
-  await expect(page.getByText(/^1\s*\/ 64 parks$/).filter({ visible: true })).toHaveCount(1)
+  await openYou(page)
+  await expect(page.getByRole('region', { name: 'Your travel in numbers' })).toContainText('1 / 64National parks')
 })
