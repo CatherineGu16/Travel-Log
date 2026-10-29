@@ -43,6 +43,7 @@ repo, and the biggest single file is a few MB.
 | M7 ✅ | Offline place search, **Map detail setting** (OpenFreeMap tiles + Photon search), stats in header, Export/Import (.zip with `travel.json` + avatars) | All flows work. With the setting off, the app makes no requests except to GitHub |
 | M8 ✅ | GitHub Actions deploy to Pages, Playwright E2E (desktop + phone), README | Live at `https://catherinegu16.github.io/Travel-Log/` once pushed and Pages is turned on (setup step 1) |
 | M9 ✅ (badges next) | **Profile & achievements** (see profile-and-achievements.md): drop Places, add a You tab with stats, tiered achievements and celebrations; move People, Settings and Home into it | A trip that crosses a tier shows "🏅 Silver · …", and the profile shows earned tiers with progress to the next |
+| Next: M10 | **Navigation and layout** (see navigation-and-layout.md): You sections, Trips panel / sheet over the map with breadcrumbs | Picking a trip on desktop shows it in the left panel with `Trips › …`; on a phone in a sheet over the map |
 | Later: W1 | World outline data: countries, per-country regions, world cities/lakes, GeoNames search files (scripts + lazy loading + offline caching) | Zooming into any country shows its regions, offline after the first visit |
 | Later: W2 | Globe view, great-circle routes across the date line, countries n/195 stat and country shading, region shading for any country | An LA → Tokyo trip draws correctly and counts Japan |
 | Later | Other checklists (NPS monuments / seashores, UNESCO sites) | — |

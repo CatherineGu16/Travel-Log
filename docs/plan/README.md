@@ -26,6 +26,7 @@ Read only the file you need.
 | [ui-lists.md](ui-lists.md) | Trips list, parks checklist, trip detail (Places was dropped) |
 | [ui-app.md](ui-app.md) | Header, navigation, settings, people & groups, responsive layout, theme |
 | [profile-and-achievements.md](profile-and-achievements.md) | The You page, tiered achievements and celebrations (M9; badge artwork next) |
+| [navigation-and-layout.md](navigation-and-layout.md) | **Planned (M10)**: You sections (left menu / top tabs), Trips as a panel over the map (desktop) and a sheet (phones) with breadcrumbs, addresses |
 | [roadmap.md](roadmap.md) | World map (later), milestones, open and answered questions |
 | [setup.md](setup.md) | One-time setup steps for GitHub, Pages and the access key |
 
