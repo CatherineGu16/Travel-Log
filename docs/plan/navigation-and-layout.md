@@ -3,10 +3,13 @@
 
 ## Pages and addresses
 
-- **Bottom tabs on phones** (kept): Map · Trips · **+** · Parks · You. Page links in the header on
-  wider screens. The header holds only the title, the page links and the sync chip.
+- **Bottom tabs on phones**: Map · **+** · Parks · You. Page links in the header on wider screens.
+  The header holds only the title, the page links and the sync chip. Until the Trips panel and
+  sheet are built, Trips keeps its tab (Map · Trips · **+** · Parks · You); once trips live on the
+  map, the Trips tab and header link go away.
 - **Addresses** (hash, so Back works and links can be shared to a page):
-  `#/trips`, `#/trips/<tripId>`, `#/you`, `#/you/achievements`, `#/you/people`, `#/you/settings`.
+  `#/trips` (the map with the Trips panel/sheet open on the list), `#/trips/<tripId>` (the map with
+  that trip open), `#/you`, `#/you/achievements`, `#/you/people`, `#/you/settings`.
   The sync chip opens `#/you/settings`.
 
 ## You: sections
@@ -32,8 +35,8 @@
 - **Phones:** the same, as a **sheet over the map** you drag between peeking, half and full height:
   the list, then a trip with the breadcrumb, with its route on the map above. Replaces the Trips
   page, the pin card's swipe cards and the trip details sheet on phones.
-- **Open question:** with Trips showing the map too, the Map and Trips tabs may merge into one
-  (the map with the panel/sheet); decide once it's built.
+- **Map and Trips are one page:** once the panel (desktop) and sheet (phones) are built, the
+  Trips tab is removed. The map always has the Trips panel/sheet; on phones it rests peeking.
 
 ## Build order
 
@@ -42,4 +45,6 @@
    and Settings in the page, Home into Settings.
 3. Desktop Trips panel with breadcrumb; map pins open it.
 4. Phone Trips sheet (drag between heights) with the same list, breadcrumb and details.
-5. Tests and docs.
+5. Remove the Trips tab and header link and the old Trips page; `#/trips` opens the map with the
+   panel/sheet on the list.
+6. Tests and docs.
