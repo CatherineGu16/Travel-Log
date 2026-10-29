@@ -1,8 +1,10 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { describeRef, type ChosenPlace } from '../lib/chosenPlace.ts'
 import { comparePartialDates, dayLabel, formatDateRange, todayIso, yearOf } from '../lib/partialDate.ts'
 import { addPerson, saveTrip, type PlaceInput, type TripInput } from '../lib/travelActions.ts'
 import { followTraveledBends, legPaths, type RoutePoint } from '../lib/route.ts'
+import { achievementStatus, newlyEarned, TIER_NAMES } from '../lib/achievements.ts'
+import { loadWorldCities } from '../lib/gazetteer.ts'
 import { endOfHome, homeLeg, legMemory, stopLegs, type Leg, type LegEnd } from '../lib/legs.ts'
 import { type LegMode, type LngLat, type PartialDate, type Place, type TravelData, type Trip, type TripHike, type TripStart } from '../lib/types.ts'
 import { newId, useStore, useTravelState } from '../store/useTravel.ts'
@@ -154,6 +156,11 @@ export function TripForm({
   }, [data.trips, data.groups])
   const [hikes, setHikes] = useState<TripHike[]>(trip?.hikes ?? [])
   const [error, setError] = useState<string | null>(null)
+  // Continents by country, for telling a save that earns "Continents" (the place search loads the same file).
+  const [continents, setContinents] = useState<Record<string, string> | undefined>()
+  useEffect(() => {
+    void loadWorldCities().then((w) => setContinents(w.continents))
+  }, [])
   // The stop whose dates are open for picking (one at a time).
   const [datesFor, setDatesFor] = useState<string | null>(null)
 
@@ -330,10 +337,16 @@ export function TripForm({
       // Hikes in parks that are no longer on the trip are dropped.
       hikes: hikes.filter((h) => parkIds.includes(h.parkId)),
     }
+    const before = achievementStatus(store.getState().data, { continents })
     const undoId = store.apply((d, c) => saveTrip(d, c, input, trip?.id), trip ? `Edited ${input.title}` : `Added ${input.title}`)
     if (undoId === null) return setError(store.getState().error ?? "Couldn't save the trip.")
     const saved = trip ? store.getState().data.trips.find((t) => t.id === trip.id)! : store.getState().data.trips.at(-1)!
-    toast(trip ? 'Trip updated' : `Added ${saved.title}`, [{ label: 'Undo', onClick: () => store.undo(undoId) }])
+    // A tier this save earned rides along on the same message, so Undo stays one tap away.
+    const won = newlyEarned(before, achievementStatus(store.getState().data, { continents }))
+    const prize = won.length
+      ? ` · 🏅 ${won[0].status.achievement.tiers.length > 1 ? `${TIER_NAMES[won[0].tier.level]} · ` : ''}${won[0].status.achievement.name}${won.length > 1 ? ` (+${won.length - 1} more)` : ''}`
+      : ''
+    toast(`${trip ? 'Trip updated' : `Added ${saved.title}`}${prize}`, [{ label: 'Undo', onClick: () => store.undo(undoId) }])
     onSaved(saved.destinations.find((d) => d.isMain)!.placeId, saved.id)
   }
 

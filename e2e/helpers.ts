@@ -1,4 +1,4 @@
-import type { Locator } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
@@ -43,4 +43,19 @@ export async function setTripYear(dialog: Locator, year: string) {
   // Tapped twice: the first and the last year.
   await button.click()
   await button.click()
+}
+
+/** Goes to the You page, where People & groups, Settings and Home live. */
+export const openYou = (page: Page) => page.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: 'You' }).filter({ visible: true }).click()
+
+/** Opens People & groups (from the You page). */
+export async function openPeople(page: Page) {
+  await openYou(page)
+  await page.getByRole('button', { name: 'People & groups' }).click()
+}
+
+/** Opens Settings (from the You page). */
+export async function openSettings(page: Page) {
+  await openYou(page)
+  await page.getByRole('button', { name: 'Settings' }).click()
 }

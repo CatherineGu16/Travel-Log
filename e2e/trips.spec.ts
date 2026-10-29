@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { dateRange, openDates, pickDays, setTripYear, toStep } from './helpers.ts'
+import { dateRange, openDates, openPeople, openYou, pickDays, setTripYear, toStep } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -43,7 +43,7 @@ test('log a multi-stop family trip, see it on the map, and it survives a reload'
   await page.reload()
   await expect(page.getByText('2 / 50 states')).toBeVisible()
   await expect(page.getByText(/^1\s*\/ 64 parks$/)).toBeVisible()
-  await page.getByRole('button', { name: 'People & groups' }).click()
+  await openPeople(page)
   await expect(page.getByRole('dialog').getByText('Mom')).toHaveCount(2) // in People and in the Family group
 })
 
@@ -167,7 +167,7 @@ test('trip dates are a range picker: tap the first day, then the last', async ({
 
 test('who went: groups are on or off, anyone else is searched for and added', async ({ page }) => {
   await page.goto('./')
-  await page.getByRole('button', { name: 'People & groups' }).click()
+  await openPeople(page)
   const people = page.getByRole('dialog', { name: 'People & groups' })
   for (const [name, group] of [
     ['Mom', 'Family'],
@@ -352,8 +352,9 @@ test('legs between stops: guessed from distance, changed with a tap, and filtera
 
 test('a road trip from home with two main pins; changing home leaves it alone', async ({ page }) => {
   await page.goto('./')
-  await page.getByRole('button', { name: 'Settings' }).click()
-  const settings = page.getByRole('dialog', { name: 'Settings' })
+  // Home is on the You page.
+  await openYou(page)
+  const settings = page.getByRole('region', { name: 'Home' })
   await settings.getByRole('combobox', { name: 'Set home' }).fill('Pasadena')
   await settings.getByRole('option', { name: /^Pasadena\s*CA$/ }).first().click()
   await expect(settings).toContainText('Trips can start and end at Pasadena')
@@ -404,11 +405,11 @@ test('a road trip from home with two main pins; changing home leaves it alone', 
   await expect(page.getByRole('button', { name: /Las Vegas & Zion/ })).toHaveCount(1)
 
   // Moving home doesn't move this trip; new trips start at the new home.
-  await page.getByRole('button', { name: 'Settings' }).click()
+  await openYou(page)
   await settings.getByRole('combobox', { name: 'Change home' }).fill('Denver')
   await settings.getByRole('option', { name: /^Denver\s*CO$/ }).first().click()
   await expect(settings).toContainText('Trips can start and end at Denver')
-  await page.keyboard.press('Escape')
+  await page.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: 'Trips' }).filter({ visible: true }).click()
   await page.getByRole('button', { name: /Las Vegas & Zion/ }).click()
   const card = page.getByRole('region', { name: 'Las Vegas trips' })
 
@@ -496,6 +497,9 @@ test('stop dates from a strip of the trip days, shown as day numbers; details li
   await dialog.getByRole('textbox', { name: 'Add a tag' }).press('Enter')
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(dialog).toBeHidden()
+  // Two parks on one trip earns a tier, announced with the save (Undo still there).
+  await expect(page.getByRole('status')).toContainText('🏅 Bronze · Park Hopper')
+  await expect(page.getByRole('status').getByRole('button', { name: 'Undo' })).toBeVisible()
 
   // Details: how long, a map, each stop's days, and Edit on each part.
   await page.getByRole('region', { name: /trips$/ }).getByRole('button', { name: 'Details' }).click()
@@ -548,7 +552,7 @@ test('shaping a leg can follow the way you came, then take more taps', async ({ 
 
 test('tags you have used before are chips to add; who went in the details is just people', async ({ page }) => {
   await page.goto('./')
-  await page.getByRole('button', { name: 'People & groups' }).click()
+  await openPeople(page)
   const people = page.getByRole('dialog', { name: 'People & groups' })
   for (const name of ['Mom', 'Dad']) {
     await people.getByRole('button', { name: '+ Add person' }).click()

@@ -1,8 +1,9 @@
 import { useCallback, useSyncExternalStore } from 'react'
 
-export type Page = 'map' | 'trips' | 'places' | 'parks'
+export type Page = 'map' | 'trips' | 'parks' | 'you'
 
-const PAGES: Page[] = ['map', 'trips', 'places', 'parks']
+/** (A Places page used to be here; old "#/places" links open the map.) */
+const PAGES: Page[] = ['map', 'trips', 'parks', 'you']
 
 /**
  * The page lives in the hash ("#/trips") so GitHub Pages needs no server rules, the installed app

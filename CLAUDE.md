@@ -40,6 +40,8 @@ formats are documented in `docs/plan/data.md` and the loaders in `src/lib/gazett
 - `route.ts`: `routeOf` (points + legs for drawing), `legPaths` (reuse roads already traveled),
   `followTraveledBends`, `distancesByMode`, bend helpers.
 - `derive.ts`: pins, visits, parks/states visited, shading. `filters.ts`: filter, search, grouping.
+- `achievements.ts`: tiered achievements (`ACHIEVEMENTS`, `achievementStatus`, `newlyEarned`),
+  worked out from trips, never stored. `stats.ts`: totals for the You page.
 - `placeSearch.ts` (offline search ranking, country narrowing), `gazetteer.ts` (lazy data loaders,
   naming a dropped pin), `onlineSearch.ts` (Photon, Detailed map only), `partialDate.ts`
   (YYYY / YYYY-MM / YYYY-MM-DD, day numbers), `geo.ts`, `states.ts`.
@@ -58,13 +60,14 @@ formats are documented in `docs/plan/data.md` and the loaders in `src/lib/gazett
   strip), `LegRow.tsx` + `timeline.ts`, `PeoplePicker.tsx` (who went), `TagsField.tsx`,
   `PlacePicker.tsx`, `DateRangeField.tsx`.
 - `PinCard.tsx` (map preview: swipe cards / stacked cards), `TripDetail.tsx`, `TripsPage.tsx`,
-  `PlacesPage.tsx` (to be dropped, see profile plan), `ParksPage.tsx`, `ParkSheet.tsx`,
-  `PeopleSheet.tsx`, `Settings.tsx` (+ panels), `FilterSheet.tsx`.
+  `ParksPage.tsx`, `ParkSheet.tsx`, `ProfilePage.tsx` (You: stats, achievements, most visited,
+  Home, links to People & Settings), `PeopleSheet.tsx`, `Settings.tsx` (+ panels), `FilterSheet.tsx`.
 - `Sheet.tsx`: every panel (props `tall`, `full`, `swipeToClose`, `toolbar`, `footer`).
 - `src/ui/`: page routing (`route.ts`), theme, persistent state, keyboard inset.
 
 **Tests**: unit `src/**/*.test.ts` (helper `src/test/tripInput.ts`); e2e `e2e/*.spec.ts` (helpers
-`e2e/helpers.ts`: `toStep`, `pickDays`, `openDates`, `setTripYear`). E2E finds things by role and
+`e2e/helpers.ts`: `toStep`, `pickDays`, `openDates`, `setTripYear`, `openYou`, `openPeople`,
+`openSettings`). E2E finds things by role and
 accessible name, so keep those names stable or update the tests.
 
 ## Conventions

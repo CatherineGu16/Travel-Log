@@ -23,9 +23,9 @@ Read only the file you need.
 | [sync.md](sync.md) | GitHub sync and merging |
 | [ui-map.md](ui-map.md) | The map: pins, shading, preview cards, filters, parks layer |
 | [ui-trip-form.md](ui-trip-form.md) | Add / edit trip: the Details → Route → Notes stepper, the Route timeline, stop dates, who went, tags |
-| [ui-lists.md](ui-lists.md) | Trips list, Places (being dropped), parks checklist, trip detail |
+| [ui-lists.md](ui-lists.md) | Trips list, parks checklist, trip detail (Places was dropped) |
 | [ui-app.md](ui-app.md) | Header, navigation, settings, people & groups, responsive layout, theme |
-| [profile-and-achievements.md](profile-and-achievements.md) | **Planned (M9)**: the You page, tiered achievements, dropping Places |
+| [profile-and-achievements.md](profile-and-achievements.md) | The You page, tiered achievements and celebrations (M9; badge artwork next) |
 | [roadmap.md](roadmap.md) | World map (later), milestones, open and answered questions |
 | [setup.md](setup.md) | One-time setup steps for GitHub, Pages and the access key |
 

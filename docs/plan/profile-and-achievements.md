@@ -1,5 +1,5 @@
 <!-- Part of the Travel Log plan; index: docs/plan/README.md -->
-# Profile & achievements (planned, M9)
+# Profile & achievements (M9: built except badge artwork)
 
 A **You** page with your stats and tiered achievements, to make logging trips a little bit of a
 game. Badge artwork comes later; this fixes the format first.
@@ -26,7 +26,9 @@ game. Badge artwork comes later; this fixes the format first.
 
 ## Achievement format
 
-Defined in code (`src/lib/achievements.ts`, planned); nothing new is stored or synced.
+Defined in code (`src/lib/achievements.ts`; totals in `src/lib/stats.ts`; the page is
+`src/components/ProfilePage.tsx`); nothing new is stored or synced. Continents come from
+`world-cities.json` (`continents`, GeoNames).
 
 ```
 { id, category, name, description,
@@ -39,8 +41,9 @@ Defined in code (`src/lib/achievements.ts`, planned); nothing new is stored or s
   it.
 - **Earned on**: the trip that crossed a tier's goal, found by replaying trips in date order
   ("Silver · Mar 2024 · Utah Parks").
-- **Celebration**: after a save, a newly earned tier shows "🏅 Silver · National Parks". Each device
-  remembers which tiers it has shown (local storage, not synced).
+- **Celebration**: the save message itself carries a newly earned tier ("Added Utah 2023 · 🏅 Silver
+  · National Parks (+1 more)"), so Undo stays one tap away. It compares before and after the save,
+  so nothing needs remembering.
 
 ## The list (Bronze / Silver / Gold)
 
@@ -69,8 +72,10 @@ Defined in code (`src/lib/achievements.ts`, planned); nothing new is stored or s
 
 ## Build order
 
-1. Navigation: drop Places, add You, move People / Settings / Home into it.
-2. `achievements.ts`: definitions, progress, earned-on, with unit tests (no UI).
-3. The You page with stats and plain achievement cards.
-4. Celebration after a save.
-5. Badge design pass.
+1. ✅ Navigation: Places dropped, You added, People / Settings / Home moved into it.
+2. ✅ `achievements.ts`: definitions, progress, earned-on, with unit tests.
+3. ✅ The You page with stats and plain achievement cards (placeholder badges: the category's
+   icon in a ring of the tier's color).
+4. ✅ Celebration on the save message.
+5. Badge design pass (next).
+- Not built from the list: **Strenuous hikes** (needs the NPS hike data loaded alongside).

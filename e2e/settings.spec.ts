@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { toStep } from './helpers.ts'
+import { openSettings as openSettingsSheet, toStep } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -15,7 +15,7 @@ async function addTrip(page: Page, query: string, option: RegExp) {
 }
 
 const openSettings = async (page: Page) => {
-  await page.getByRole('button', { name: 'Settings' }).click()
+  await openSettingsSheet(page)
   return page.getByRole('dialog', { name: 'Settings' })
 }
 

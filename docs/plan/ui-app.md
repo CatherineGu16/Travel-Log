@@ -2,17 +2,16 @@
 # UI: header, navigation, settings, people, layout
 
 ## Header, navigation, settings
-- **Header**: states n/50 and parks n/64 progress, trips this year (on wide screens), and the sync
-  status chip (a colored dot on phones).
-- **Navigation**: Map · Trips · **+** · Places · Parks, kept in the URL hash so Back works. **Add
-  trip** is a large colored circle in the center: raised above the bottom tab bar on phones, in the
-  middle of the header's page links on wider screens. **Planned**: Map · Trips · **+** · Parks ·
-  **You**, with People & groups, Settings and Home moving into the profile (see
-  profile-and-achievements.md).
-- **Settings**: Sync across devices (same as Watchlist), **Home** (pick your town from the bundled
-  place search; synced in `travel.json`; new trips start from it; earlier trips keep the start they were made with), **Map detail** (Outline · Detailed, with a
+- **Navigation**: Map · Trips · **+** · Parks · **You**, kept in the URL hash so Back works (old
+  `#/places` links open the map). **Add trip** is a large colored circle in the center: raised above
+  the bottom tab bar on phones, in the middle of the header's page links on wider screens.
+- **Header**: the title, states/parks counts and the sync chip (which opens Settings). People &
+  groups, Settings and Home are on the You page (see profile-and-achievements.md).
+- **Settings** (from the You page or the sync chip): Sync across devices (same as Watchlist), **Map detail** (Outline · Detailed, with a
   note that Detailed contacts OpenFreeMap and Photon), People & groups (see below),
-  Export/Import, theme.
+  Export/Import, theme. **Home** (pick your town from the bundled place search; synced in
+  `travel.json`; new trips start from it; earlier trips keep the start they were made with) is on
+  the You page.
 
 ## People & groups
 - **People**: a grid of avatar cards. Tap one to edit their name and avatar, see their groups, and

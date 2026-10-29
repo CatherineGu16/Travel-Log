@@ -76,21 +76,30 @@ test('trips list: search, group, filter by who went, and open a trip on the map'
   await expect(card.getByText('1 visit')).toBeVisible()
 })
 
-test('places list shows main destinations; opening one shows its trips on the map', async ({ page }) => {
+test('the You page: numbers, achievements, and most visited places that open on the map', async ({ page }) => {
   await page.goto('./')
   await addTrip(page, { main: ['moab', /^Moab/], year: '2019' })
   await addTrip(page, { main: ['moab', /^Moab/], year: '2021' })
   await addTrip(page, { main: ['arches', /Arches National Park/], year: '2023', stops: [['Green River, UT', /^Green River\s*UT$/]] })
 
-  await nav(page, 'Places')
-  // Stops along the way (Green River) aren't listed; no trip chips, just how many visits.
-  const list = page.getByRole('main').getByRole('listitem')
-  await expect(list).toHaveText([/Arches National Park/, /Moab.*2 visits/])
-  await page.getByRole('combobox', { name: 'Order' }).selectOption('state')
-  await expect(page.getByRole('region', { name: 'Utah' })).toBeVisible()
+  // There's no Places tab any more.
+  await expect(page.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: 'Places' })).toHaveCount(0)
+  await nav(page, 'You')
+  const numbers = page.getByRole('region', { name: 'Your travel in numbers' })
+  await expect(numbers).toContainText('3Trips')
+  await expect(numbers).toContainText('1 / 64National parks')
+  // Achievements show progress to the next tier.
+  const achievements = page.getByRole('region', { name: 'Achievements' })
+  await expect(achievements.getByRole('listitem', { name: 'Trips logged' })).toContainText('3 / 10 trips · Bronze at 10')
+  await page.getByRole('radiogroup', { name: 'Show achievements' }).getByRole('radio', { name: 'Earned' }).click()
+  await expect(achievements.getByRole('listitem', { name: 'Trips logged' })).toHaveCount(0)
 
-  // Opening a place selects its pin on the map, newest visit first; the other is a tap away.
-  await page.getByRole('button', { name: /^Moab/ }).click()
+  // Most visited: main destinations (not stops like Green River), each opening on the map.
+  const most = page.getByRole('region', { name: 'Most visited' }).getByRole('listitem')
+  await expect(most).toHaveText([/Moab\s*2 visits/, /Arches National Park\s*1 visit/])
+  await page.getByRole('region', { name: 'Most visited' }).getByRole('button', { name: /^Moab/ }).click()
+
+  // It opens with its pin selected, newest visit first; the other is a tap away.
   const card = page.getByRole('region', { name: 'Moab trips' })
   await expect(card).toContainText('2 visits')
   const visits = card.getByRole('radiogroup', { name: 'Visits' })

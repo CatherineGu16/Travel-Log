@@ -1,5 +1,5 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test'
-import { toStep } from './helpers.ts'
+import { openPeople, openSettings, toStep } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -45,7 +45,7 @@ function fakeGitHub() {
 const PHOTO = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
 
 async function connect(page: Page, device: string) {
-  await page.getByRole('button', { name: 'Settings' }).click()
+  await openSettings(page)
   const settings = page.getByRole('dialog', { name: 'Settings' })
   await settings.getByRole('textbox', { name: 'GitHub username' }).fill('me')
   await settings.getByLabel('Access key').fill('github_pat_test')
@@ -80,7 +80,7 @@ test('a trip and a photo avatar added on the phone appear on the PC, and edits f
   await connect(phone, 'Phone')
 
   // Phone: a person with a photo avatar, then a trip with them.
-  await phone.getByRole('button', { name: 'People & groups' }).click()
+  await openPeople(phone)
   const people = phone.getByRole('dialog', { name: 'People & groups' })
   await people.getByRole('button', { name: '+ Add person' }).click()
   const editor = phone.getByRole('dialog', { name: 'Add person' })
@@ -106,7 +106,7 @@ test('a trip and a photo avatar added on the phone appear on the PC, and edits f
   await connect(pc, 'PC')
   await pc.goto('./#/trips')
   await expect(pc.getByRole('button', { name: /Moab/ })).toBeVisible()
-  await pc.getByRole('button', { name: 'People & groups' }).click()
+  await openPeople(pc)
   await expect(pc.getByRole('dialog', { name: 'People & groups' }).locator('img')).toHaveCount(1)
   await pc.getByRole('dialog', { name: 'People & groups' }).getByRole('button', { name: 'Close' }).click()
 

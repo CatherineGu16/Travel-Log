@@ -1,4 +1,5 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test'
+import { openSettings } from './helpers.ts'
 
 /** A fake GitHub with the owner's private data repo and the public app repo. No request leaves the machine. */
 function fakeGitHub(owner: string) {
@@ -35,7 +36,7 @@ function fakeGitHub(owner: string) {
 }
 
 async function connect(page: Page, username: string) {
-  await page.getByRole('button', { name: 'Settings' }).click()
+  await openSettings(page)
   const settings = page.getByRole('dialog', { name: 'Settings' })
   await settings.getByRole('textbox', { name: 'GitHub username' }).fill(username)
   await settings.getByLabel('Access key').fill('github_pat_test')

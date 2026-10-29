@@ -10,7 +10,7 @@ export function HomePanel() {
   const toast = useToast()
   const home = data.home && !data.home.deleted ? data.home : null
   return (
-    <section className="rounded-xl border border-line p-4">
+    <section aria-label="Home" className="rounded-xl border border-line p-4">
       <h2 className="font-display text-xl font-semibold">Home</h2>
       <p className="mt-1 text-sm text-muted">
         {home ? (

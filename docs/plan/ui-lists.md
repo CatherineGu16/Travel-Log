@@ -1,5 +1,5 @@
 <!-- Part of the Travel Log plan; index: docs/plan/README.md -->
-# UI: trips, places, parks and trip details
+# UI: trips, parks and trip details
 
 ## Trips list (non-map)
 - Every trip in a plain, scrollable list: title, main destination, dates, stops count, and the
@@ -13,12 +13,8 @@
   trip** (every leg a drive), **Flight** (any leg a flight) and **Cruise** (any leg a cruise).
 - Tapping a row opens the trip detail and highlights its route on the map.
 
-## Places tab (being dropped)
-- **Planned**: the Places tab goes away; map pins and the profile's "Most visited" cover it (see
-  profile-and-achievements.md). Until then it lists your **main destinations** (the places with pins; stops along the way aren't listed), A–Z, by
-  state or country, or most visited, each with its visit count and latest dates. No trip chips:
-  **opening a place shows it on the map** with its pin selected, where its trips are swipeable
-  cards on a phone and stacked cards on wider screens.
+## Places (dropped)
+- There's no Places tab: map pins and the You page's **Most visited** cover it.
 
 ## National parks checklist
 - All 64 national parks as a checklist, A–Z or by state, with Visited / Not visited / All and a

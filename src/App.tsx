@@ -8,7 +8,7 @@ import { PeopleSheet } from './components/PeopleSheet.tsx'
 import { Settings } from './components/Settings.tsx'
 import { SyncChip } from './components/SyncChip.tsx'
 import { PinCard } from './components/PinCard.tsx'
-import { PlacesPage } from './components/PlacesPage.tsx'
+import { ProfilePage } from './components/ProfilePage.tsx'
 import { ToastProvider } from './components/Toast.tsx'
 import { useToast } from './components/toastContext.ts'
 import { TripDetail, type TripStep } from './components/TripDetail.tsx'
@@ -224,9 +224,9 @@ function Shell() {
             <ParksPage data={data} onOpenPark={setParkSheetId} onLogVisit={logParkVisit} />
           </div>
         )}
-        {page === 'places' && (
+        {page === 'you' && (
           <div className="absolute inset-0 z-10 overflow-y-auto bg-bg">
-            <PlacesPage data={shown} toolbar={filterButton} onOpenPlace={openPlace} />
+            <ProfilePage data={data} onGoTo={goTo} onOpenPlace={openPlace} onOpenPeople={() => setPeopleOpen(true)} onOpenSettings={() => setSettingsOpen(true)} />
           </div>
         )}
 
@@ -254,33 +254,7 @@ function Shell() {
                 </dd>
               </div>
             </dl>
-            <button
-              onClick={() => setPeopleOpen(true)}
-              aria-label="People & groups"
-              title="People & groups"
-              className="grid size-10 place-items-center rounded-lg text-muted hover:bg-raised hover:text-fg"
-            >
-              <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
-                <circle cx="9" cy="8" r="3.5" fill="none" stroke="currentColor" strokeWidth="2" />
-                <path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                <circle cx="17" cy="9" r="2.5" fill="none" stroke="currentColor" strokeWidth="2" />
-                <path d="M17 14.5c2.4 0 4 1.5 4.5 4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </button>
             <SyncChip onSettings={() => setSettingsOpen(true)} />
-            <button
-              onClick={() => setSettingsOpen(true)}
-              aria-label="Settings"
-              title="Settings"
-              className="-ml-2 grid size-10 place-items-center rounded-lg text-muted hover:bg-raised hover:text-fg"
-            >
-              <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
-                <path
-                  fill="currentColor"
-                  d="M12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Zm7.4-2.5a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3h-4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.4 7.4 0 0 0 1.7 1L11 21h4l.4-2.6a7.4 7.4 0 0 0 1.7-1l2.5 1 2-3.5Z"
-                />
-              </svg>
-            </button>
           </div>
         </header>
 
