@@ -26,7 +26,7 @@ import type { LngLat, Place, Trip } from './lib/types.ts'
 import { loadServices, ServicesContext, useStore, useTravelState, type AppServices } from './store/useTravel.ts'
 import type { ParksMode } from './map/MapView.tsx'
 import { useMapDetail } from './ui/mapDetail.ts'
-import { usePage } from './ui/route.ts'
+import { pageHref, tripHref, useRoute, youHref } from './ui/route.ts'
 import { usePersistentState } from './ui/usePersistentState.ts'
 
 // MapLibre is most of the app's code, so it loads as its own chunk after the shell.
@@ -63,7 +63,7 @@ type ShapeRequest = {
 function Shell() {
   const store = useStore()
   const { data, error } = useTravelState()
-  const { page, goTo } = usePage()
+  const { page, tripId: detailTripId, section, goTo, navigate, close } = useRoute()
   const toast = useToast()
   const detailed = useMapDetail() === 'detailed'
 
@@ -83,11 +83,8 @@ function Shell() {
 
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null)
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null)
-  const [detailTripId, setDetailTripId] = useState<string | null>(null)
   const [form, setForm] = useState<FormState | null>(null)
   const [shape, setShape] = useState<ShapeRequest | null>(null)
-  const [peopleOpen, setPeopleOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const [focus, setFocus] = useState<{ lng: number; lat: number; token: number } | null>(null)
   const focusToken = useRef(0)
 
@@ -126,16 +123,25 @@ function Shell() {
     focusTrip(trip.id)
   }
   /** A place from the Places list: its pin selected on the map, newest visit first, and the map moved there. */
+  // A trip opened by its address (a link, Back, a reload) selects its pin, so the map behind shows it.
+  const [selectedFor, setSelectedFor] = useState<string | null>(null)
+  if (detailTrip && selectedFor !== detailTrip.id) {
+    setSelectedFor(detailTrip.id)
+    setSelectedPlaceId(mainPlaceIds(detailTrip)[0] ?? null)
+    setSelectedTripId(detailTrip.id)
+  } else if (!detailTrip && selectedFor) setSelectedFor(null)
   const openPlace = (place: Place) => {
     goTo('map')
     selectPin(place.id)
     setFocus({ lng: place.lng, lat: place.lat, token: ++focusToken.current })
   }
 
+  /** A trip's details, at its own address. */
   const openTrip = (trip: Trip) => {
     selectPin(mainPlaceIds(trip)[0], trip.id)
-    setDetailTripId(trip.id)
+    navigate(tripHref(trip.id))
   }
+  const closeTrip = () => close(pageHref('trips'))
   const addTrip = () => {
     finishShape(null)
     selectPin(null)
@@ -216,7 +222,7 @@ function Shell() {
         )}
         {page === 'you' && (
           <div className="absolute inset-0 z-10 overflow-y-auto bg-bg">
-            <ProfilePage data={data} onGoTo={goTo} onOpenPlace={openPlace} onOpenPeople={() => setPeopleOpen(true)} onOpenSettings={() => setSettingsOpen(true)} />
+            <ProfilePage data={data} onGoTo={goTo} onOpenPlace={openPlace} onOpenPeople={() => navigate(youHref('people'))} onOpenSettings={() => navigate(youHref('settings'))} />
           </div>
         )}
 
@@ -224,7 +230,7 @@ function Shell() {
           <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-line bg-surface/95 py-1.5 pr-1 pl-3 whitespace-nowrap shadow-md sm:gap-3 sm:pl-4">
             <h1 className="font-display text-xl font-semibold tracking-wide sm:text-2xl">Travel Log</h1>
             <PageLinks page={page} onAdd={addTrip} />
-            <SyncChip onSettings={() => setSettingsOpen(true)} />
+            <SyncChip onSettings={() => navigate(youHref('settings'))} />
           </div>
         </header>
 
@@ -312,7 +318,7 @@ function Shell() {
               trip={selectedTrip}
               data={data}
               onSelectTrip={setSelectedTripId}
-              onDetails={(trip) => setDetailTripId(trip.id)}
+              onDetails={(trip) => navigate(tripHref(trip.id))}
               onEdit={(trip) => setForm({ trip, initialMain: null })}
               onClose={() => selectPin(null)}
             />
@@ -341,19 +347,18 @@ function Shell() {
           data={data}
           onOpenTrip={openTrip}
           onEdit={(trip, step) => {
-            setDetailTripId(null)
+            closeTrip()
             setForm({ trip, initialMain: null, step })
           }}
           onTag={(tag) => {
-            setDetailTripId(null)
             setFilter({ ...filter, tag })
-            goTo('trips')
+            navigate(pageHref('trips'), { replace: true })
           }}
           onOpenPark={(parkId) => {
-            setDetailTripId(null)
+            closeTrip()
             setParkSheetId(parkId)
           }}
-          onClose={() => setDetailTripId(null)}
+          onClose={closeTrip}
         />
       )}
 
@@ -387,8 +392,8 @@ function Shell() {
         onChange={setFilter}
         resultCount={live(shown.trips).length}
       />
-      <PeopleSheet open={peopleOpen} onClose={() => setPeopleOpen(false)} />
-      <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <PeopleSheet open={page === 'you' && section === 'people'} onClose={() => close(youHref('profile'))} />
+      <Settings open={page === 'you' && section === 'settings'} onClose={() => close(youHref('profile'))} />
     </div>
   )
 }

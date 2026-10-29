@@ -40,7 +40,10 @@
 
 ## Build order
 
-1. Addresses with sub-paths (`#/you/<section>`, `#/trips/<tripId>`).
+1. ✅ Addresses with sub-paths (`#/you/<section>`, `#/trips/<tripId>`). For now `#/trips/<tripId>`
+   opens the trip details sheet (and selects its pin), `#/you/people` and `#/you/settings` open those
+   panels, and `#/you/achievements` shows the You page. Closing goes Back when the app opened the
+   view, else to the page under it (`ui/route.ts`: `useRoute`, `close`).
 2. You sections: layout (left menu / top tabs), Profile overview, Achievements, People & groups
    and Settings in the page, Home into Settings.
 3. Desktop Trips panel with breadcrumb; map pins open it.
