@@ -302,10 +302,12 @@ async function buildWorldCities() {
   await download(`${GEONAMES}/cities15000.zip`, 'geonames-cities15000.zip', { binary: true })
   const tsv = execFileSync('unzip', ['-p', zipPath], { maxBuffer: 64 * 1024 * 1024 }).toString('utf8')
   const countries = {}
+  const continentOf = {}
   for (const line of (await download(`${GEONAMES}/countryInfo.txt`, 'geonames-countries.txt')).split('\n')) {
     if (!line || line.startsWith('#')) continue
     const cols = line.split('\t')
     countries[cols[0]] = cols[4]
+    continentOf[cols[0]] = cols[8]
   }
   const regions = new Map()
   for (const line of (await download(`${GEONAMES}/admin1CodesASCII.txt`, 'geonames-admin1.txt')).split('\n')) {
@@ -322,7 +324,9 @@ async function buildWorldCities() {
   cities.sort((a, b) => b[5] - a[5])
   const used = new Set(cities.map((c) => c[2]))
   const names = Object.fromEntries(Object.entries(countries).filter(([code]) => used.has(code) || code === 'US'))
-  await writeJson('world-cities.json', { countries: names, cities })
+  // Continent codes (AF, AN, AS, EU, NA, OC, SA) for every country, the US included, for achievements.
+  const continents = Object.fromEntries(Object.keys(countries).map((code) => [code, continentOf[code]]))
+  await writeJson('world-cities.json', { countries: names, continents, cities })
   console.log(`  ${cities.length} cities in ${used.size} countries`)
 }
 

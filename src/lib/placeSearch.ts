@@ -8,6 +8,8 @@ export type TownRow = [string, string, number, number, number]
 /** world-cities.json (GeoNames, outside the US): country names by code, and cities biggest first. */
 export interface WorldCities {
   countries: Record<string, string>
+  /** Continent code (AF, AN, AS, EU, NA, OC, SA) by country code. */
+  continents: Record<string, string>
   /** [name, region (state / province), country code, lat, lng, population] */
   cities: [string, string, string, number, number, number][]
 }
