@@ -8,11 +8,6 @@ const PAGES: { id: Page; label: string; icon: ReactNode }[] = [
     icon: <path d="M3.5 6.5 9 4l6 2.5L20.5 4v13.5L15 20l-6-2.5-5.5 2.5ZM9 4v13.5M15 6.5V20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />,
   },
   {
-    id: 'parks',
-    label: 'Parks',
-    icon: <path d="M12 3.5 6.5 11h3L5.5 16.5H11V21h2v-4.5h5.5L14.5 11h3Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />,
-  },
-  {
     id: 'you',
     label: 'You',
     icon: (
@@ -33,36 +28,48 @@ const PlusIcon = ({ className }: { className: string }) => (
 /** Trips live on the map, so their addresses count as the Map page. */
 const current = (page: Page): Page => (page === 'trips' ? 'map' : page)
 
-/** Page links for wider screens, inside the header, with Add trip as a colored circle after Map. */
-export function PageLinks({ page: shown, onAdd }: { page: Page; onAdd: () => void }) {
+/**
+ * The toolbar across the top, the same on every page: the title, then (wider screens) the pages as
+ * tabs, and on the right Add trip, the sync status and your photo. Every control is 36 px tall.
+ */
+export function TopBar({ page: shown, onAdd, sync, you }: { page: Page; onAdd: () => void; sync: ReactNode; you: ReactNode }) {
   const page = current(shown)
-  const link = (p: (typeof PAGES)[number]) => (
-    <a
-      key={p.id}
-      href={pageHref(p.id)}
-      aria-current={p.id === page ? 'page' : undefined}
-      className={`min-h-10 rounded-lg px-3 py-2 text-sm font-bold ${p.id === page ? 'bg-raised text-fg' : 'text-muted hover:text-fg'}`}
-    >
-      {p.label}
-    </a>
-  )
   return (
-    <nav aria-label="Pages" className="hidden items-center gap-0.5 sm:flex">
-      {PAGES.slice(0, 1).map(link)}
-      <button
-        onClick={onAdd}
-        aria-label="Add trip"
-        title="Add trip"
-        className="mx-1.5 grid size-11 place-items-center rounded-full bg-primary text-on-primary shadow-md ring-4 ring-primary/20 transition-transform hover:scale-105 active:scale-95"
-      >
-        <PlusIcon className="size-6" />
-      </button>
-      {PAGES.slice(1).map(link)}
-    </nav>
+    <header className="z-30 shrink-0 border-b border-line bg-surface pt-[env(safe-area-inset-top)]">
+      <div className="flex h-14 items-center gap-2 px-3 sm:gap-3 sm:px-4">
+        <h1 className="font-display text-xl font-semibold tracking-wide whitespace-nowrap sm:text-2xl">Travel Log</h1>
+        <nav aria-label="Pages" className="ml-3 hidden items-center gap-1 sm:flex">
+          {PAGES.map((p) => (
+            <a
+              key={p.id}
+              href={pageHref(p.id)}
+              aria-current={p.id === page ? 'page' : undefined}
+              className={`flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-bold ${p.id === page ? 'bg-raised text-fg' : 'text-muted hover:bg-raised hover:text-fg'}`}
+            >
+              <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true">
+                {p.icon}
+              </svg>
+              {p.label}
+            </a>
+          ))}
+        </nav>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={onAdd}
+            className="hidden h-9 items-center gap-1.5 rounded-lg bg-primary pr-3.5 pl-2.5 text-sm font-bold text-on-primary shadow-sm hover:brightness-110 active:brightness-95 sm:flex"
+          >
+            <PlusIcon className="size-5" />
+            Add trip
+          </button>
+          {sync}
+          {you}
+        </div>
+      </div>
+    </header>
   )
 }
 
-/** Phones: pages at the bottom in thumb reach, with Add trip as a large raised circle after Map. */
+/** Phones: pages at the bottom in thumb reach, with Add trip as a large raised circle between them. */
 export function TabBar({ page: shown, onAdd }: { page: Page; onAdd: () => void }) {
   const page = current(shown)
   const tab = (p: (typeof PAGES)[number]) => (
@@ -82,7 +89,7 @@ export function TabBar({ page: shown, onAdd }: { page: Page; onAdd: () => void }
   return (
     <nav aria-label="Pages" className="z-30 shrink-0 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] sm:hidden">
       <ul className="mx-auto flex max-w-md items-end">
-        {PAGES.slice(0, 1).map(tab)}
+        {tab(PAGES[0])}
         <li className="flex flex-1 justify-center">
           <button
             onClick={onAdd}
@@ -92,7 +99,7 @@ export function TabBar({ page: shown, onAdd }: { page: Page; onAdd: () => void }
             <PlusIcon className="size-8" />
           </button>
         </li>
-        {PAGES.slice(1).map(tab)}
+        {tab(PAGES[1])}
       </ul>
     </nav>
   )

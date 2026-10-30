@@ -1,5 +1,5 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test'
-import { openSettings } from './helpers.ts'
+import { openParks, openSettings } from './helpers.ts'
 
 /** A fake GitHub with the owner's private data repo and the public app repo. No request leaves the machine. */
 function fakeGitHub(owner: string) {
@@ -46,7 +46,7 @@ async function connect(page: Page, username: string) {
 }
 
 const openZion = async (page: Page) => {
-  await page.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: 'Parks' }).filter({ visible: true }).click()
+  await openParks(page)
   await page.getByRole('listitem', { name: 'Zion' }).getByRole('button', { name: /Zion/ }).click()
   return page.getByRole('dialog', { name: 'Zion National Park' })
 }

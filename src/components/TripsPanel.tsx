@@ -8,10 +8,10 @@ export type SheetSize = 'peek' | 'half' | 'full'
 
 /** The peeking sheet's height; the map above it ends there, so its buttons stay in reach. */
 export const PEEK_PX = 72
-/** Room left above the full sheet for the header. */
-const FULL_GAP_PX = 80
+/** Room left above the full sheet, so a bit of map shows. */
+const FULL_GAP_PX = 16
 const SIZES: SheetSize[] = ['peek', 'half', 'full']
-const HEIGHTS: Record<SheetSize, string> = { peek: `${PEEK_PX}px`, half: '50%', full: `calc(100% - ${FULL_GAP_PX}px - env(safe-area-inset-top))` }
+const HEIGHTS: Record<SheetSize, string> = { peek: `${PEEK_PX}px`, half: '50%', full: `calc(100% - ${FULL_GAP_PX}px)` }
 
 /** Trips › Moab › Moab 2021: where you are in the Trips panel or sheet; each step back is a link. */
 function Breadcrumb({ crumbs }: { crumbs: Crumb[] }) {
@@ -49,7 +49,7 @@ export function TripsPanel({ crumbs, onCollapse, children }: { crumbs: Crumb[]; 
   return (
     <aside
       aria-label="Trips panel"
-      className="absolute top-20 bottom-3 left-3 z-20 flex w-[26rem] max-w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_8px_30px_rgb(0_0_0/0.25)]"
+      className="absolute top-3 bottom-3 left-3 z-20 flex w-[26rem] max-w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_8px_30px_rgb(0_0_0/0.25)]"
     >
       <div className="flex items-center gap-1 border-b border-line py-1 pr-1 pl-2">
         <Breadcrumb crumbs={crumbs} />
@@ -74,7 +74,7 @@ export function ShowTripsButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="absolute top-20 left-3 z-10 flex min-h-11 items-center gap-1.5 rounded-xl border border-line bg-surface px-3 text-sm font-bold shadow-md hover:bg-raised"
+      className="absolute top-3 left-3 z-10 flex h-9 items-center gap-1.5 rounded-xl border border-line bg-surface px-3 text-sm font-bold shadow-md hover:bg-raised"
     >
       Show trips
       <svg viewBox="0 0 20 20" className="size-4" aria-hidden>

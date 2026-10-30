@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { openYou, setTripYear, toStep } from './helpers.ts'
+import { openParks, openYou, setTripYear, toStep } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -16,7 +16,7 @@ async function saveYear(page: Page, year: string) {
 
 test('parks checklist: log a visit with hikes, then add more hikes', async ({ page }) => {
   await page.goto('./')
-  await nav(page, 'Parks')
+  await openParks(page)
   await expect(page.getByText('0 / 64 visited')).toBeVisible()
 
   // "Log a visit" opens Add trip with the park filled in; hikes are added by name, with suggestions.
@@ -30,7 +30,7 @@ test('parks checklist: log a visit with hikes, then add more hikes', async ({ pa
   await expect(dialog.getByRole('button', { name: 'Remove Angels Landing' })).toBeVisible()
   await saveYear(page, '2023')
 
-  await nav(page, 'Parks')
+  await openParks(page)
   await expect(page.getByText('1 / 64 visited')).toBeVisible()
   const zion = page.getByRole('listitem', { name: 'Zion' })
   await expect(zion.getByLabel('Visited')).toBeVisible()

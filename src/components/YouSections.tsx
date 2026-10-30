@@ -33,7 +33,7 @@ function useAchievements(data: TravelData) {
 }
 
 /** You › Profile: your travel in numbers, what you earned lately, and your most visited places. */
-export function ProfileSection({ data, onGoTo, onOpenPlace }: { data: TravelData; onGoTo: (page: Page) => void; onOpenPlace: (place: Place) => void }) {
+export function ProfileSection({ data, onGoTo, onOpenPlace }: { data: TravelData; onGoTo: (page: Page | 'parks') => void; onOpenPlace: (place: Place) => void }) {
   const statuses = useAchievements(data)
   const totals = useMemo(() => travelTotals(data), [data])
 
@@ -45,7 +45,7 @@ export function ProfileSection({ data, onGoTo, onOpenPlace }: { data: TravelData
     .sort((a, b) => b.trips.length - a.trips.length || a.place.name.localeCompare(b.place.name))
     .slice(0, 5)
 
-  const stats: { label: string; value: string; go?: Page }[] = [
+  const stats: { label: string; value: string; go?: Page | 'parks' }[] = [
     { label: 'States', value: `${totals.states} / 50`, go: 'map' },
     { label: 'National parks', value: `${totals.parks} / 64`, go: 'parks' },
     { label: 'Countries', value: String(totals.countries) },

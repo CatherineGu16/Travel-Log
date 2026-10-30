@@ -138,6 +138,17 @@ input[type='month']::-webkit-date-and-time-value {
   outline-offset: 2px;
 }
 
+/* Tailwind 4 gives buttons the arrow cursor; anything you can press shows the hand. */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  summary,
+  select,
+  label:has(> input[type='checkbox'], > input[type='radio']) {
+    cursor: pointer;
+  }
+}
+
 /* MapLibre's attribution control, restyled to match the app. */
 .maplibregl-ctrl-attrib {
   background: color-mix(in srgb, var(--surface) 85%, transparent) !important;

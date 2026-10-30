@@ -1,9 +1,8 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FilterButton, FilterSheet } from './components/FilterSheet.tsx'
-import { PageLinks, TabBar } from './components/Navigation.tsx'
+import { TabBar, TopBar } from './components/Navigation.tsx'
 import { ParkSheet } from './components/ParkSheet.tsx'
 import { ParksLayerControl } from './components/ParksLayerControl.tsx'
-import { ParksPage } from './components/ParksPage.tsx'
 import { SyncChip } from './components/SyncChip.tsx'
 import { PinCard } from './components/PinCard.tsx'
 import { ToastProvider } from './components/Toast.tsx'
@@ -237,6 +236,23 @@ function Shell() {
 
   return (
     <div className="flex h-full w-full flex-col">
+      <TopBar
+        page={page}
+        onAdd={addTrip}
+        sync={<SyncChip onSettings={() => navigate(youHref('settings'))} />}
+        you={
+          <a
+            href={youHref('profile')}
+            aria-label="Your profile"
+            className="hidden size-9 place-items-center rounded-full border border-line text-muted hover:bg-raised hover:text-fg sm:grid"
+          >
+            <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
+              <circle cx="12" cy="8.5" r="3.8" fill="none" stroke="currentColor" strokeWidth="1.8" />
+              <path d="M4.5 20.5c.9-4 3.8-6.2 7.5-6.2s6.6 2.2 7.5 6.2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </a>
+        }
+      />
       <main className="relative min-h-0 flex-1 overflow-hidden">
         {/* Phones: the map ends where the peeking Trips sheet starts, so its buttons stay above it. */}
         <div className="absolute inset-x-0 top-0 bottom-[var(--peek)] sm:bottom-0" style={{ '--peek': `${PEEK_PX}px` } as React.CSSProperties}>
@@ -268,27 +284,22 @@ function Shell() {
         </Suspense>
         </div>
 
-        {page === 'parks' && (
-          <div className="absolute inset-0 z-10 overflow-y-auto bg-bg">
-            <ParksPage data={data} onOpenPark={setParkSheetId} onLogVisit={logParkVisit} />
-          </div>
-        )}
         {page === 'you' && (
           <div className="absolute inset-0 z-10 overflow-y-auto bg-bg">
-            <YouPage data={data} section={section} onGoTo={goTo} onOpenPlace={openPlace} onSection={(s) => navigate(youHref(s))} />
+            <YouPage
+              data={data}
+              section={section}
+              onGoTo={(p) => (p === 'parks' ? navigate(youHref('parks')) : goTo(p))}
+              onOpenPlace={openPlace}
+              onSection={(s) => navigate(youHref(s))}
+              onOpenPark={setParkSheetId}
+              onLogVisit={logParkVisit}
+            />
           </div>
         )}
 
-        <header className={`pointer-events-none absolute inset-x-0 top-0 z-20 justify-center ${shape ? 'hidden' : 'flex'} px-3 pt-[max(0.75rem,env(safe-area-inset-top))]`}>
-          <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-line bg-surface/95 py-1.5 pr-1 pl-3 whitespace-nowrap shadow-md sm:gap-3 sm:pl-4">
-            <h1 className="font-display text-xl font-semibold tracking-wide sm:text-2xl">Travel Log</h1>
-            <PageLinks page={page} onAdd={addTrip} />
-            <SyncChip onSettings={() => navigate(youHref('settings'))} />
-          </div>
-        </header>
-
         {error && (
-          <p role="alert" className="absolute inset-x-3 top-20 z-30 mx-auto max-w-md rounded-lg bg-surface p-3 text-center text-sm text-danger shadow">
+          <p role="alert" className="absolute inset-x-3 top-3 z-30 mx-auto max-w-md rounded-lg bg-surface p-3 text-center text-sm text-danger shadow">
             {error}
           </p>
         )}
@@ -297,7 +308,7 @@ function Shell() {
           <div
             role="region"
             aria-label="Shape the route"
-            className="absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-30 mx-auto flex max-w-md flex-col gap-2.5 rounded-2xl border border-line bg-surface p-3 text-sm shadow-[0_8px_30px_rgb(0_0_0/0.25)]"
+            className="absolute inset-x-3 top-3 z-30 mx-auto flex max-w-md flex-col gap-2.5 rounded-2xl border border-line bg-surface p-3 text-sm shadow-[0_8px_30px_rgb(0_0_0/0.25)]"
           >
             <div className="flex min-w-0 items-center gap-1.5">
               <RouteBadge>A</RouteBadge>
@@ -357,7 +368,7 @@ function Shell() {
         {onMap && !shape && (
           <>
             <ShadeLegend show={perRegion.size > 0 || pins.length > 0} />
-            <div className="absolute top-[calc(max(0.75rem,env(safe-area-inset-top))+4.25rem)] left-3 z-10 flex gap-2 sm:top-20 sm:right-3 sm:left-auto">
+            <div className="absolute top-3 left-3 z-10 flex gap-2 sm:right-3 sm:left-auto">
               {filterButton}
               <ParksLayerControl mode={parksMode} onChange={setParksMode} visited={visitedParks.size} total={parks.length} />
             </div>

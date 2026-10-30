@@ -90,18 +90,6 @@ function TripRow({ trip, data, onOpen }: { trip: Trip; data: TravelData; onOpen:
   )
 }
 
-export function ListPage({ title, count, children }: { title: string; count: string; children: React.ReactNode }) {
-  return (
-    <div className="mx-auto w-full max-w-3xl px-3 pt-[calc(max(0.75rem,env(safe-area-inset-top))+4.5rem)] pb-10 sm:px-6">
-      <div className="mb-4 flex items-baseline gap-3">
-        <h1 className="font-display text-[2rem] leading-none font-semibold">{title}</h1>
-        <span className="text-sm text-muted">{count}</span>
-      </div>
-      {children}
-    </div>
-  )
-}
-
 export function Select<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: { id: T; label: string }[]; onChange: (v: T) => void }) {
   return (
     <label className="flex h-11 items-center gap-1.5 rounded-lg border border-line bg-surface pl-3 text-sm">

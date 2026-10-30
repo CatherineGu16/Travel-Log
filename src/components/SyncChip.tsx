@@ -20,7 +20,7 @@ export function SyncChip({ onSettings }: { onSettings: () => void }) {
     <button
       onClick={() => (problem ? onSettings() : void sync.syncNow())}
       aria-label={problem ? 'Sync problem. Open Settings' : `${LABEL[status]}. Sync now`}
-      className={`flex min-h-9 min-w-9 items-center justify-center gap-1.5 rounded-full px-2 text-sm sm:px-3 ${problem ? 'bg-danger/15 font-bold text-danger' : 'text-muted hover:bg-raised hover:text-fg'}`}
+      className={`flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-lg border px-2.5 text-sm sm:px-3 ${problem ? 'border-danger/40 bg-danger/15 font-bold text-danger' : 'border-line text-muted hover:bg-raised hover:text-fg'}`}
     >
       <span className={`size-2 rounded-full ${dot}`} aria-hidden="true" />
       {/* Phones show just the dot; the label is still read out. */}

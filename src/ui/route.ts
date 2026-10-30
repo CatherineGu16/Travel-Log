@@ -1,33 +1,51 @@
 import { useCallback, useMemo, useSyncExternalStore } from 'react'
 
-export type Page = 'map' | 'trips' | 'parks' | 'you'
+export type Page = 'map' | 'trips' | 'you'
 
 /** The parts of the You page, each with its own address ("#/you/settings"). */
-export type YouSection = 'profile' | 'achievements' | 'people' | 'settings'
+export type YouSection = 'profile' | 'achievements' | 'parks' | 'people' | 'settings'
 
-/** Where you are: the page, plus the place and trip open on Trips or the section of You. */
-export type Route = { page: Page; placeId: string | null; tripId: string | null; section: YouSection }
+/** Your numbers on the You page that open a list of what they count ("#/you/stats/states"). */
+export type StatKind = 'states' | 'countries' | 'days' | 'drive' | 'flight' | 'hikes'
 
-/** (A Places page used to be here; old "#/places" links open the map.) */
-const PAGES: Page[] = ['map', 'trips', 'parks', 'you']
-const SECTIONS: YouSection[] = ['profile', 'achievements', 'people', 'settings']
+/**
+ * Where you are: the page, plus the place and trip open on Trips, or the section of You with a
+ * stat's list or an achievement's details open over it.
+ */
+export type Route = {
+  page: Page
+  placeId: string | null
+  tripId: string | null
+  section: YouSection
+  stat: StatKind | null
+  achievementId: string | null
+}
+
+/** (A Places page used to be here; old "#/places" links open the map. "#/parks" is now You › Parks.) */
+const PAGES: Page[] = ['map', 'trips', 'you']
+const SECTIONS: YouSection[] = ['profile', 'achievements', 'parks', 'people', 'settings']
+const STATS: StatKind[] = ['states', 'countries', 'days', 'drive', 'flight', 'hikes']
 
 /**
  * The page lives in the hash ("#/trips", "#/trips/<trip>", "#/trips/at/<place>/<trip>",
- * "#/you/settings") so GitHub Pages needs no server rules, the installed app opens on the map, and
- * Back moves between pages and views.
+ * "#/you/settings", "#/you/stats/states", "#/you/achievements/<id>") so GitHub Pages needs no
+ * server rules, the installed app opens on the map, and Back moves between pages and views.
  * Anything unknown falls back to the nearest page it names, else the map.
  */
 export function parseHash(hash: string): Route {
-  const [first = '', ...parts] = hash.replace(/^#\/?/, '').split('?')[0].replace(/\/+$/, '').split('/')
+  let [first = '', ...parts] = hash.replace(/^#\/?/, '').split('?')[0].replace(/\/+$/, '').split('/')
+  if (first === 'parks') [first, parts] = ['you', ['parks']]
   const page = (PAGES as string[]).includes(first) ? (first as Page) : 'map'
   const [second = '', third = '', fourth = ''] = parts.map(decodeURIComponent)
   const atPlace = page === 'trips' && second === 'at' && third !== ''
+  const you = page === 'you'
   return {
     page,
     placeId: atPlace ? third : null,
     tripId: page !== 'trips' ? null : atPlace ? fourth || null : second || null,
-    section: page === 'you' && (SECTIONS as string[]).includes(second) ? (second as YouSection) : 'profile',
+    section: you && (SECTIONS as string[]).includes(second) ? (second as YouSection) : 'profile',
+    stat: you && second === 'stats' && (STATS as string[]).includes(third) ? (third as StatKind) : null,
+    achievementId: you && second === 'achievements' && third ? third : null,
   }
 }
 
@@ -39,6 +57,10 @@ export const placeHref = (placeId: string, tripId?: string | null) =>
   `#/trips/at/${encodeURIComponent(placeId)}${tripId ? `/${encodeURIComponent(tripId)}` : ''}`
 /** A section of the You page; the profile is the page itself. */
 export const youHref = (section: YouSection) => (section === 'profile' ? '#/you' : `#/you/${section}`)
+/** A stat's list, over the profile. */
+export const statHref = (stat: StatKind) => `#/you/stats/${stat}`
+/** An achievement's details, over Achievements. */
+export const achievementHref = (id: string) => `#/you/achievements/${encodeURIComponent(id)}`
 
 function subscribe(listener: () => void) {
   window.addEventListener('hashchange', listener)

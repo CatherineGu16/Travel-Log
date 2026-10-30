@@ -6,7 +6,7 @@ import type { ParkInfo } from '../lib/placeSearch.ts'
 import { regionName } from '../lib/states.ts'
 import type { TravelData } from '../lib/types.ts'
 import { usePersistentState } from '../ui/usePersistentState.ts'
-import { Empty, ListPage, Select } from './TripList.tsx'
+import { Empty, Select } from './TripList.tsx'
 
 export type ParkShow = 'all' | 'visited' | 'not-visited'
 type ParkOrder = 'az' | 'state'
@@ -17,8 +17,8 @@ const SHOWS: { id: ParkShow; label: string }[] = [
   { id: 'not-visited', label: 'Not visited' },
 ]
 
-/** All 64 national parks as a checklist, with your visits stacked and how many hikes you've done. */
-export function ParksPage({ data, onOpenPark, onLogVisit }: { data: TravelData; onOpenPark: (parkId: string) => void; onLogVisit: (park: ParkInfo) => void }) {
+/** You › Parks: all 64 national parks as a checklist, with your visits and how many hikes you've done. */
+export function ParksSection({ data, onOpenPark, onLogVisit }: { data: TravelData; onOpenPark: (parkId: string) => void; onLogVisit: (park: ParkInfo) => void }) {
   const [show, setShow] = usePersistentState<ParkShow>('travel.parks.show', 'all', (v) => (SHOWS.some((s) => s.id === v) ? (v as ParkShow) : 'all'))
   const [order, setOrder] = usePersistentState<ParkOrder>('travel.parks.order', 'az', (v) => (v === 'state' ? 'state' : 'az'))
   const rows = useMemo(
@@ -40,7 +40,13 @@ export function ParksPage({ data, onOpenPark, onLogVisit }: { data: TravelData; 
           .sort((a, b) => a.label.localeCompare(b.label))
 
   return (
-    <ListPage title="National parks" count={`${visitedCount} / ${PARKS.length} visited`}>
+    <section aria-label="National parks">
+      <div className="mb-3 flex items-baseline gap-3">
+        <h2 className="font-display text-2xl font-semibold">National parks</h2>
+        <span className="text-sm text-muted">
+          {visitedCount} / {PARKS.length} visited
+        </span>
+      </div>
       <div
         className="mb-4 h-2 overflow-hidden rounded-full bg-raised"
         role="progressbar"
@@ -80,7 +86,7 @@ export function ParksPage({ data, onOpenPark, onLogVisit }: { data: TravelData; 
       ) : (
         groups.map((g) => (
           <section key={g.label ?? 'all'} aria-label={g.label ?? 'Parks'} className="mt-6">
-            {g.label && <h2 className="mb-2 font-display text-xl font-semibold">{g.label}</h2>}
+            {g.label && <h3 className="mb-2 font-display text-xl font-semibold">{g.label}</h3>}
             <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
               {g.rows.map(({ park, visits, hikesDone: hd }) => {
                 const visited = visits.length > 0
@@ -114,6 +120,6 @@ export function ParksPage({ data, onOpenPark, onLogVisit }: { data: TravelData; 
           </section>
         ))
       )}
-    </ListPage>
+    </section>
   )
 }

@@ -1,6 +1,8 @@
 import { useRef, type PointerEvent } from 'react'
 import type { Place, TravelData } from '../lib/types.ts'
 import { youHref, type Page, type YouSection } from '../ui/route.ts'
+import type { ParkInfo } from '../lib/placeSearch.ts'
+import { ParksSection } from './ParksSection.tsx'
 import { PeoplePanel } from './PeoplePanel.tsx'
 import { Settings } from './Settings.tsx'
 import { AchievementsSection, ProfileSection } from './YouSections.tsx'
@@ -8,6 +10,7 @@ import { AchievementsSection, ProfileSection } from './YouSections.tsx'
 const SECTIONS: { id: YouSection; label: string; short?: string }[] = [
   { id: 'profile', label: 'Profile' },
   { id: 'achievements', label: 'Achievements' },
+  { id: 'parks', label: 'Parks' },
   { id: 'people', label: 'People & groups', short: 'People' },
   { id: 'settings', label: 'Settings' },
 ]
@@ -22,12 +25,16 @@ export function YouPage({
   onGoTo,
   onOpenPlace,
   onSection,
+  onOpenPark,
+  onLogVisit,
 }: {
   data: TravelData
   section: YouSection
-  onGoTo: (page: Page) => void
+  onGoTo: (page: Page | 'parks') => void
   onOpenPlace: (place: Place) => void
   onSection: (section: YouSection) => void
+  onOpenPark: (parkId: string) => void
+  onLogVisit: (park: ParkInfo) => void
 }) {
   // A sideways swipe on a phone: to the next section on the left, the previous on the right.
   const swipe = useRef<{ x: number; y: number } | null>(null)
@@ -47,7 +54,7 @@ export function YouPage({
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-3 pt-[calc(max(0.75rem,env(safe-area-inset-top))+4.5rem)] pb-10 sm:px-6">
+    <div className="mx-auto w-full max-w-4xl px-3 pt-6 pb-10 sm:px-6">
       <h1 className="mb-3 font-display text-3xl font-semibold">You</h1>
       <div className="sm:flex sm:items-start sm:gap-6">
         <nav aria-label="You sections" className="-mx-3 mb-4 border-b border-line px-3 sm:sticky sm:top-24 sm:mx-0 sm:mb-0 sm:w-48 sm:shrink-0 sm:border-0 sm:px-0">
@@ -75,6 +82,7 @@ export function YouPage({
         <div className="min-w-0 flex-1 touch-pan-y" onPointerDown={startSwipe} onPointerUp={endSwipe} onPointerCancel={() => (swipe.current = null)}>
           {section === 'profile' && <ProfileSection data={data} onGoTo={onGoTo} onOpenPlace={onOpenPlace} />}
           {section === 'achievements' && <AchievementsSection data={data} />}
+          {section === 'parks' && <ParksSection data={data} onOpenPark={onOpenPark} onLogVisit={onLogVisit} />}
           {section === 'people' && <PeoplePanel />}
           {section === 'settings' && <Settings />}
         </div>

@@ -56,11 +56,14 @@ export const tripDetails = (page: Page, name: string | RegExp) =>
 export const openYou = (page: Page) => page.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: 'You' }).filter({ visible: true }).click()
 
 /** Goes to a section of the You page by its menu (tabs on phones), and returns the section. */
-export async function openYouSection(page: Page, name: 'Profile' | 'Achievements' | 'People & groups' | 'Settings') {
+export async function openYouSection(page: Page, name: 'Profile' | 'Achievements' | 'Parks' | 'People & groups' | 'Settings') {
   await openYou(page)
   await page.getByRole('navigation', { name: 'You sections' }).getByRole('link', { name, exact: true }).click()
-  return page.getByRole('region', { name, exact: true })
+  return page.getByRole('region', { name: name === 'Parks' ? 'National parks' : name, exact: true })
 }
+
+/** Opens the national parks checklist (You › Parks). */
+export const openParks = (page: Page) => openYouSection(page, 'Parks')
 
 /** Opens People & groups (on the You page). */
 export const openPeople = (page: Page) => openYouSection(page, 'People & groups')

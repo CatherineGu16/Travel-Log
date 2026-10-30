@@ -40,10 +40,10 @@ const PARK_LAYERS = ['park-areas', 'park-outlines', 'park-icons', 'park-labels']
  */
 const routePadding = (shaping: boolean) =>
   shaping
-    ? { top: 200, bottom: 120, left: 50, right: 150 }
+    ? { top: 160, bottom: 120, left: 50, right: 150 }
     : window.innerWidth < 640
-      ? { top: 90, bottom: Math.round(window.innerHeight * 0.5), left: 40, right: 40 }
-      : { top: 90, bottom: 60, left: 440, right: 80 }
+      ? { top: 70, bottom: Math.round(window.innerHeight * 0.5), left: 40, right: 40 }
+      : { top: 70, bottom: 60, left: 440, right: 80 }
 
 export interface MapViewProps {
   pins: Pin[]
