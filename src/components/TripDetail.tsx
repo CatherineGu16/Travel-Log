@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo } from 'react'
+import { useMemo } from 'react'
 import { visitsTo } from '../lib/derive.ts'
 import { PARKS } from '../lib/gazetteer.ts'
 import { formatDistance, legMemory } from '../lib/legs.ts'
@@ -9,11 +9,7 @@ import type { LegMode, TravelData, Trip } from '../lib/types.ts'
 import { useStore } from '../store/useTravel.ts'
 import { Avatar } from './Avatar.tsx'
 import { PinGlyph } from './PlacePicker.tsx'
-import { Sheet } from './Sheet.tsx'
 import { useToast } from './toastContext.ts'
-
-// MapLibre is its own chunk; the small map loads with it.
-const RouteMap = lazy(() => import('../map/RouteMap.tsx'))
 
 /** "820 mi driven": how far each way of traveling went, biggest first. */
 const MODE_WORDS: Record<LegMode, string> = { drive: 'driven', flight: 'flown', train: 'by train', cruise: 'cruising', boat: 'by boat', walk: 'walked', unknown: '' }
@@ -21,11 +17,10 @@ const MODE_WORDS: Record<LegMode, string> = { drive: 'driven', flight: 'flown', 
 export type TripStep = 'Details' | 'Route' | 'Notes'
 
 /**
- * Everything about one trip, the whole screen on a phone (pull the top down to close): a small map
- * of the route, how long and how far, who went, the stops in order (each with its day of the trip,
- * dates, note, and every other time you've been there), then the trip's notes: hikes,
- * description, highlights, rating and tags. Each part's Edit opens the trip on that step.
- * `inline`: in the Trips panel on wider screens instead, where the big map shows the route.
+ * Everything about one trip, in the Trips panel or sheet over the map (which draws its route): how
+ * long and how far, who went, the stops in order (each with its day of the trip, dates, note, and
+ * every other time you've been there), then the trip's notes: hikes, description, highlights,
+ * rating and tags. Each part's Edit opens the trip on that step.
  */
 export function TripDetail({
   trip,
@@ -35,7 +30,6 @@ export function TripDetail({
   onTag,
   onOpenPark,
   onClose,
-  inline = false,
 }: {
   trip: Trip
   data: TravelData
@@ -44,8 +38,8 @@ export function TripDetail({
   /** Show your trips with this tag. */
   onTag: (tag: string) => void
   onOpenPark: (parkId: string) => void
+  /** After deleting the trip. */
   onClose: () => void
-  inline?: boolean
 }) {
   const store = useStore()
   const toast = useToast()
@@ -100,11 +94,6 @@ export function TripDetail({
   )
   const body = (
     <div className="flex flex-col gap-6">
-      {!inline && route.length > 1 && (
-        <Suspense fallback={<div className="h-44 rounded-xl border border-line bg-raised" />}>
-          <RouteMap route={route} label={`Map of the route: ${route.map((r) => r.place.name).join(', ')}`} />
-        </Suspense>
-      )}
       {people.length > 0 && (
         <section>
           {heading('Who went', 'Details', 'who went')}
@@ -236,29 +225,14 @@ export function TripDetail({
     </div>
   )
 
-  if (inline)
-    return (
-      <section aria-label={trip.title} className="flex min-h-0 flex-1 flex-col">
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-3 pb-4">
-          <h2 className="font-display text-2xl leading-tight font-semibold">{trip.title}</h2>
-          <p className="mb-4 text-sm text-muted">{summary}</p>
-          {body}
-        </div>
-        <div className="border-t border-line px-4 py-2">{actions}</div>
-      </section>
-    )
   return (
-    <Sheet
-      open
-      full
-      swipeToClose
-      onOpenChange={(open) => !open && onClose()}
-      title={trip.title}
-      accent="var(--primary)"
-      description={summary}
-      footer={actions}
-    >
-      {body}
-    </Sheet>
+    <section aria-label={trip.title} className="flex min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-3 pb-4">
+        <h2 className="font-display text-2xl leading-tight font-semibold">{trip.title}</h2>
+        <p className="mb-4 text-sm text-muted">{summary}</p>
+        {body}
+      </div>
+      <div className="border-t border-line px-4 py-2">{actions}</div>
+    </section>
   )
 }

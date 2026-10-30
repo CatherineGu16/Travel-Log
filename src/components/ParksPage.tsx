@@ -6,7 +6,7 @@ import type { ParkInfo } from '../lib/placeSearch.ts'
 import { regionName } from '../lib/states.ts'
 import type { TravelData } from '../lib/types.ts'
 import { usePersistentState } from '../ui/usePersistentState.ts'
-import { Empty, ListPage, Select } from './TripsPage.tsx'
+import { Empty, ListPage, Select } from './TripList.tsx'
 
 export type ParkShow = 'all' | 'visited' | 'not-visited'
 type ParkOrder = 'az' | 'state'

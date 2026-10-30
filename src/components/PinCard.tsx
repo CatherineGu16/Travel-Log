@@ -7,16 +7,13 @@ import { regionName } from '../lib/states.ts'
 import { deleteTrip } from '../lib/travelActions.ts'
 import type { TravelData, Trip } from '../lib/types.ts'
 import { useStore } from '../store/useTravel.ts'
-import { usePhone } from '../ui/usePhone.ts'
 import { PinGlyph } from './PlacePicker.tsx'
 import { useToast } from './toastContext.ts'
 import { WhoWent } from './WhoWent.tsx'
 
 /**
- * The preview card for a selected pin. A place visited more than once has a card per trip: swipe
- * between them on a phone, or pick from the list on a wider screen. The trip shown is the one whose
- * route the map draws. A floating card, not a modal, so the map stays usable. `embedded`: filling
- * the Trips panel on wider screens (Trips › Moab) instead of floating.
+ * A place's trips (a map pin), filling the Trips panel or sheet (Trips › Moab): one card per visit,
+ * stacked. The highlighted one is the trip whose route the map draws; Details opens it.
  */
 export function PinCard({
   pin,
@@ -26,7 +23,6 @@ export function PinCard({
   onDetails,
   onEdit,
   onClose,
-  embedded = false,
 }: {
   pin: Pin
   trip: Trip
@@ -35,7 +31,6 @@ export function PinCard({
   onDetails: (trip: Trip) => void
   onEdit: (trip: Trip) => void
   onClose: () => void
-  embedded?: boolean
 }) {
   const store = useStore()
   const toast = useToast()
@@ -66,17 +61,12 @@ export function PinCard({
     />
   )
   const many = pin.trips.length > 1
-  const phone = usePhone()
   const where = pin.place.countryCode === 'US' ? pin.place.regionCode?.replace(/^US-/, '') : regionName(null, pin.place.countryCode)
 
   return (
     <section
       aria-label={`${pin.place.name} trips`}
-      className={
-        embedded
-          ? 'flex min-h-0 flex-1 flex-col'
-          : 'pointer-events-auto flex max-h-[min(55dvh,34rem)] w-full flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_8px_30px_rgb(0_0_0/0.25)] sm:max-h-[calc(100dvh-7rem)] sm:w-96'
-      }
+      className="flex min-h-0 flex-1 flex-col"
     >
       <header className="flex items-start gap-2 border-b border-line px-4 py-3">
         <PinGlyph park={pin.isPark} className="mt-1 size-5" />
@@ -94,93 +84,13 @@ export function PinCard({
         </button>
       </header>
 
-      {phone ? (
-        // Phones: a card per trip, side by side; swipe or tap a dot.
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          {many ? <Swiper trips={pin.trips} current={trip} onSelect={onSelectTrip} label={datesHere} card={summary} /> : summary(trip)}
-        </div>
-      ) : many ? (
-        // Wider screens: every trip as its own card, stacked in a column that scrolls. The one shown
-        // on the map is highlighted; click a card to show its route.
+      {many ? (
+        // Every trip as its own card, in a column that scrolls; click a card to show its route.
         <Stack trips={pin.trips} current={trip} onSelect={onSelectTrip} label={datesHere} card={(t) => summary(t, true)} />
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto">{summary(trip)}</div>
       )}
     </section>
-  )
-}
-
-/**
- * Trips side by side, one per screen width, snapping into place. Settling on a card picks its trip
- * (so the map redraws); picking a dot scrolls to it. Cards out of view are hidden from screen readers.
- */
-function Swiper({
-  trips,
-  current,
-  onSelect,
-  label,
-  card,
-}: {
-  trips: Trip[]
-  current: Trip
-  onSelect: (tripId: string) => void
-  label: (t: Trip) => string
-  card: (t: Trip) => React.ReactNode
-}) {
-  const strip = useRef<HTMLDivElement>(null)
-  const index = Math.max(0, trips.findIndex((t) => t.id === current.id))
-
-  // Show the chosen trip (picked from a dot, or opened from elsewhere).
-  useEffect(() => {
-    const el = strip.current
-    if (el && Math.round(el.scrollLeft / el.clientWidth) !== index) el.scrollTo({ left: index * el.clientWidth, behavior: 'smooth' })
-  }, [index])
-
-  // When a swipe settles, the card in view is the trip shown.
-  useEffect(() => {
-    const el = strip.current
-    if (!el) return
-    let timer = 0
-    const settle = () => {
-      window.clearTimeout(timer)
-      timer = window.setTimeout(() => {
-        const t = trips[Math.round(el.scrollLeft / el.clientWidth)]
-        if (t && t.id !== current.id) onSelect(t.id)
-      }, 120)
-    }
-    el.addEventListener('scroll', settle, { passive: true })
-    return () => {
-      el.removeEventListener('scroll', settle)
-      window.clearTimeout(timer)
-    }
-  }, [trips, current.id, onSelect])
-
-  return (
-    <div>
-      <div ref={strip} aria-roledescription="carousel" className="flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {trips.map((t, i) => (
-          <div key={t.id} aria-hidden={i !== index} aria-roledescription="slide" aria-label={`${i + 1} of ${trips.length}`} className="w-full shrink-0 snap-center">
-            {card(t)}
-          </div>
-        ))}
-      </div>
-      <div role="radiogroup" aria-label="Visits" className="flex items-center justify-center gap-1 pb-2">
-        {trips.map((t, i) => (
-          <button
-            key={t.id}
-            role="radio"
-            aria-checked={i === index}
-            onClick={() => onSelect(t.id)}
-            className="grid size-7 place-items-center rounded-full"
-          >
-            <span aria-hidden className={`block rounded-full transition-all ${i === index ? 'h-2 w-5 bg-primary' : 'size-2 bg-line'}`} />
-            <span className="sr-only">
-              {label(t)} {t.title}
-            </span>
-          </button>
-        ))}
-      </div>
-    </div>
   )
 }
 

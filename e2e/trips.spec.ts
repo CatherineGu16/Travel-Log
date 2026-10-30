@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { dateRange, openDates, openPeople, openSettings, openYou, pickDays, setTripYear, toStep, tripDetails } from './helpers.ts'
+import { dateRange, openDates, openPeople, openSettings, openTrips, openYou, pickDays, setTripYear, toStep, tripDetails } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -262,7 +262,7 @@ test('shaping the route between two places bends the dotted line through your ta
   await expect(edit.getByRole('button', { name: /^Shape the route from Zion/ })).toHaveText('Shape on map')
 })
 
-test('notes, rating and tags are their own step and show on the trip', async ({ page, isMobile }) => {
+test('notes, rating and tags are their own step and show on the trip', async ({ page }) => {
   await page.goto('./')
   await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
@@ -295,16 +295,6 @@ test('notes, rating and tags are their own step and show on the trip', async ({ 
   await expect(detail).not.toContainText('Flight')
   await expect(detail.getByRole('region', { name: 'Notes' })).toBeVisible()
 
-  if (isMobile) {
-    // The whole screen on a phone; pull the top down to close it.
-    const box = (await detail.boundingBox())!
-    expect(box.height).toBeGreaterThan((page.viewportSize()!.height ?? 0) * 0.95)
-    await page.mouse.move(box.x + box.width / 2, box.y + 10)
-    await page.mouse.down()
-    await page.mouse.move(box.x + box.width / 2, box.y + 250, { steps: 8 })
-    await page.mouse.up()
-    await expect(detail).toBeHidden()
-  }
 })
 
 test('legs between stops: guessed from distance, changed with a tap, and filterable', async ({ page }) => {
@@ -410,7 +400,7 @@ test('a road trip from home with two main pins; changing home leaves it alone', 
   await settings.getByRole('combobox', { name: 'Change home' }).fill('Denver')
   await settings.getByRole('option', { name: /^Denver\s*CO$/ }).first().click()
   await expect(settings).toContainText('Trips can start and end at Denver')
-  await page.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: 'Trips' }).filter({ visible: true }).click()
+  await openTrips(page)
   await page.getByRole('button', { name: /Las Vegas & Zion/ }).click()
   // Phones: the pin card on the map; wider: the trip in the Trips panel.
   const card = page.getByRole('region', { name: 'Las Vegas trips' }).or(tripDetails(page, /Las Vegas & Zion/))
@@ -468,7 +458,7 @@ test('cities abroad: biggest first, narrowed by country, and grouped by country'
   await expect(page.getByRole('heading', { name: /^Portugal/ })).toBeVisible()
 })
 
-test('stop dates from a strip of the trip days, shown as day numbers; details link to each step', async ({ page, isMobile }) => {
+test('stop dates from a strip of the trip days, shown as day numbers; details link to each step', async ({ page }) => {
   await page.goto('./')
   await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
@@ -507,8 +497,6 @@ test('stop dates from a strip of the trip days, shown as day numbers; details li
   await page.getByRole('region', { name: /trips$/ }).getByRole('button', { name: 'Details' }).click()
   const detail = tripDetails(page, /Zion/)
   await expect(detail).toContainText('6 days')
-  // A small map of the route on a phone; wider, the big map beside the panel shows it.
-  if (isMobile) await expect(detail.getByRole('img', { name: /^Map of the route/ })).toBeVisible()
   await expect(detail).toContainText('Days 1–3 · May 1 – 3, 2024')
   await detail.getByRole('button', { name: 'Edit the stops' }).click()
   const edit = page.getByRole('dialog', { name: 'Edit trip' })
@@ -516,13 +504,10 @@ test('stop dates from a strip of the trip days, shown as day numbers; details li
   await page.keyboard.press('Escape')
   await expect(edit).toBeHidden()
 
-  // A tag shows your trips with that tag; Delete removes the trip, with Undo. (Phones went back to
-  // the pin card when the form opened; wider screens still show the trip in the Trips panel.)
-  if (isMobile) await page.getByRole('region', { name: /trips$/ }).getByRole('button', { name: 'Details' }).click()
+  // The trip is still open. A tag shows your trips with that tag; Delete removes the trip, with Undo.
   await tripDetails(page, /Zion/).getByRole('button', { name: 'Show trips tagged canyons' }).click()
   await expect(page.getByRole('button', { name: 'Filter, 1 on' }).first()).toBeVisible()
   await page.getByRole('button', { name: /Zion 2024/ }).click()
-  if (isMobile) await page.getByRole('region', { name: /trips$/ }).getByRole('button', { name: 'Details' }).click()
   await tripDetails(page, /Zion/).getByRole('button', { name: 'Delete' }).click()
   await expect(page.getByRole('status')).toContainText('Deleted')
 })

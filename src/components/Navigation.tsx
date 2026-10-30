@@ -8,11 +8,6 @@ const PAGES: { id: Page; label: string; icon: ReactNode }[] = [
     icon: <path d="M3.5 6.5 9 4l6 2.5L20.5 4v13.5L15 20l-6-2.5-5.5 2.5ZM9 4v13.5M15 6.5V20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />,
   },
   {
-    id: 'trips',
-    label: 'Trips',
-    icon: <path d="M5 6h14M5 12h14M5 18h9" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />,
-  },
-  {
     id: 'parks',
     label: 'Parks',
     icon: <path d="M12 3.5 6.5 11h3L5.5 16.5H11V21h2v-4.5h5.5L14.5 11h3Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />,
@@ -35,8 +30,12 @@ const PlusIcon = ({ className }: { className: string }) => (
   </svg>
 )
 
-/** Page links for wider screens, inside the header, with Add trip as a colored circle in the middle. */
-export function PageLinks({ page, onAdd }: { page: Page; onAdd: () => void }) {
+/** Trips live on the map, so their addresses count as the Map page. */
+const current = (page: Page): Page => (page === 'trips' ? 'map' : page)
+
+/** Page links for wider screens, inside the header, with Add trip as a colored circle after Map. */
+export function PageLinks({ page: shown, onAdd }: { page: Page; onAdd: () => void }) {
+  const page = current(shown)
   const link = (p: (typeof PAGES)[number]) => (
     <a
       key={p.id}
@@ -49,7 +48,7 @@ export function PageLinks({ page, onAdd }: { page: Page; onAdd: () => void }) {
   )
   return (
     <nav aria-label="Pages" className="hidden items-center gap-0.5 sm:flex">
-      {PAGES.slice(0, 2).map(link)}
+      {PAGES.slice(0, 1).map(link)}
       <button
         onClick={onAdd}
         aria-label="Add trip"
@@ -58,13 +57,14 @@ export function PageLinks({ page, onAdd }: { page: Page; onAdd: () => void }) {
       >
         <PlusIcon className="size-6" />
       </button>
-      {PAGES.slice(2).map(link)}
+      {PAGES.slice(1).map(link)}
     </nav>
   )
 }
 
-/** Phones: pages at the bottom in thumb reach, with Add trip as a large raised circle in the center. */
-export function TabBar({ page, onAdd }: { page: Page; onAdd: () => void }) {
+/** Phones: pages at the bottom in thumb reach, with Add trip as a large raised circle after Map. */
+export function TabBar({ page: shown, onAdd }: { page: Page; onAdd: () => void }) {
+  const page = current(shown)
   const tab = (p: (typeof PAGES)[number]) => (
     <li key={p.id} className="flex-1">
       <a
@@ -82,7 +82,7 @@ export function TabBar({ page, onAdd }: { page: Page; onAdd: () => void }) {
   return (
     <nav aria-label="Pages" className="z-30 shrink-0 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] sm:hidden">
       <ul className="mx-auto flex max-w-md items-end">
-        {PAGES.slice(0, 2).map(tab)}
+        {PAGES.slice(0, 1).map(tab)}
         <li className="flex flex-1 justify-center">
           <button
             onClick={onAdd}
@@ -92,7 +92,7 @@ export function TabBar({ page, onAdd }: { page: Page; onAdd: () => void }) {
             <PlusIcon className="size-8" />
           </button>
         </li>
-        {PAGES.slice(2).map(tab)}
+        {PAGES.slice(1).map(tab)}
       </ul>
     </nav>
   )

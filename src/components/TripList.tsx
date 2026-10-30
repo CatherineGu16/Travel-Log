@@ -19,16 +19,6 @@ const SORTS: { id: TripSort; label: string }[] = [
   { id: 'rating', label: 'Rating' },
 ]
 
-/** Phones: the Trips page, every trip in a plain list. */
-export function TripsPage({ data, toolbar, onOpenTrip }: { data: TravelData; toolbar: React.ReactNode; onOpenTrip: (trip: Trip) => void }) {
-  const count = live(data.trips).length
-  return (
-    <ListPage title="Trips" count={`${count} ${count === 1 ? 'trip' : 'trips'}`}>
-      <TripList data={data} toolbar={toolbar} onOpenTrip={onOpenTrip} />
-    </ListPage>
-  )
-}
-
 /** Every trip in a plain list: search, group, sort. Uses the same filters as the map. */
 export function TripList({ data, toolbar, onOpenTrip }: { data: TravelData; toolbar?: React.ReactNode; onOpenTrip: (trip: Trip) => void }) {
   const [query, setQuery] = useState('')
