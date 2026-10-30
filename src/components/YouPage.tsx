@@ -3,15 +3,24 @@ import { parksVisited } from '../lib/derive.ts'
 import type { ParkInfo } from '../lib/placeSearch.ts'
 import { travelTotals } from '../lib/stats.ts'
 import { PROFILE_RECORD_ID } from '../lib/travelActions.ts'
-import type { Place, TravelData } from '../lib/types.ts'
-import { youHref, type Page, type YouSection } from '../ui/route.ts'
+import type { Place, TravelData, Trip } from '../lib/types.ts'
+import { youHref, type StatKind, type YouSection } from '../ui/route.ts'
 import { Avatar } from './Avatar.tsx'
 import { ParksSection } from './ParksSection.tsx'
 import { PeoplePanel, PersonEditor } from './PeoplePanel.tsx'
 import { Settings } from './Settings.tsx'
 import { Sheet } from './Sheet.tsx'
 import { useAchievements } from './useAchievements.ts'
-import { AchievementsSection, ProfileSection } from './YouSections.tsx'
+import { AchievementDetail, AchievementsSection, ProfileSection, StatList } from './YouSections.tsx'
+
+const STAT_TITLES: Record<StatKind, string> = {
+  states: 'States',
+  countries: 'Countries',
+  days: 'Days traveled',
+  drive: 'Miles driven',
+  flight: 'Miles flown',
+  hikes: 'Hikes',
+}
 
 const SECTIONS: { id: YouSection; label: string; short?: string }[] = [
   { id: 'profile', label: 'Profile' },
@@ -39,21 +48,29 @@ export function ProfileAvatar({ data, size }: { data: TravelData; size: number }
  * You, laid out like a profile page: a card with your photo, name, Home and "Traveling since" beside
  * the sections (Profile, Achievements, Parks, People & groups, Settings), each at its own address.
  * Wider screens: the card and a menu down the left, the section filling the rest. Phones: the card
- * on top, the sections as tabs under it, and a sideways swipe moves between them.
+ * on top, the sections as tabs under it, and a sideways swipe moves between them. A stat's list
+ * or an achievement's details open over the page (a panel from the right, a sheet on phones).
  */
 export function YouPage({
   data,
   section,
-  onGoTo,
+  stat,
+  achievementId,
   onOpenPlace,
+  onOpenTrip,
+  onClose,
   onSection,
   onOpenPark,
   onLogVisit,
 }: {
   data: TravelData
   section: YouSection
-  onGoTo: (page: Page | 'parks') => void
+  stat: StatKind | null
+  achievementId: string | null
   onOpenPlace: (place: Place) => void
+  onOpenTrip: (trip: Trip) => void
+  /** Closes a stat's list or an achievement (Back, or up to this address). */
+  onClose: (fallbackHref: string) => void
   onSection: (section: YouSection) => void
   onOpenPark: (parkId: string) => void
   onLogVisit: (park: ParkInfo) => void
@@ -61,6 +78,7 @@ export function YouPage({
   const [editing, setEditing] = useState(false)
   const totals = useMemo(() => travelTotals(data), [data])
   const statuses = useAchievements(data)
+  const achievement = achievementId ? statuses.find((s) => s.achievement.id === achievementId) : undefined
   const counts: Partial<Record<YouSection, number>> = {
     achievements: statuses.reduce((n, s) => n + s.earned.length, 0),
     parks: parksVisited(data).size,
@@ -155,13 +173,24 @@ export function YouPage({
       </aside>
 
       <div className="mt-5 min-w-0 touch-pan-y md:mt-0" onPointerDown={startSwipe} onPointerUp={endSwipe} onPointerCancel={() => (swipe.current = null)}>
-        {section === 'profile' && <ProfileSection data={data} onGoTo={onGoTo} onOpenPlace={onOpenPlace} />}
+        {section === 'profile' && <ProfileSection data={data} onOpenPlace={onOpenPlace} />}
         {section === 'achievements' && <AchievementsSection data={data} />}
         {section === 'parks' && <ParksSection data={data} onOpenPark={onOpenPark} onLogVisit={onLogVisit} />}
         {section === 'people' && <PeoplePanel />}
         {section === 'settings' && <Settings />}
       </div>
 
+      <Sheet open={stat !== null} onOpenChange={(open) => !open && onClose(youHref('profile'))} title={stat ? STAT_TITLES[stat] : ''} swipeToClose>
+        {stat && <StatList data={data} stat={stat} onOpenTrip={onOpenTrip} onOpenPark={onOpenPark} />}
+      </Sheet>
+      <Sheet
+        open={achievement !== undefined}
+        onOpenChange={(open) => !open && onClose(youHref('achievements'))}
+        title={achievement?.achievement.name ?? ''}
+        swipeToClose
+      >
+        {achievement && <AchievementDetail status={achievement} onOpenTrip={onOpenTrip} />}
+      </Sheet>
       <Sheet open={editing} onOpenChange={setEditing} title="Edit profile" swipeToClose>
         {editing && <PersonEditor id={null} profile onDone={() => setEditing(false)} />}
       </Sheet>

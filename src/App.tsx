@@ -62,7 +62,7 @@ type ShapeRequest = {
 function Shell() {
   const store = useStore()
   const { data, error } = useTravelState()
-  const { page, placeId: routePlaceId, tripId: detailTripId, section, goTo, navigate, close } = useRoute()
+  const { page, placeId: routePlaceId, tripId: detailTripId, section, stat, achievementId, goTo, navigate, close } = useRoute()
   const phone = usePhone()
   const toast = useToast()
   const detailed = useMapDetail() === 'detailed'
@@ -282,8 +282,11 @@ function Shell() {
             <YouPage
               data={data}
               section={section}
-              onGoTo={(p) => (p === 'parks' ? navigate(youHref('parks')) : goTo(p))}
+              stat={stat}
+              achievementId={achievementId}
               onOpenPlace={openPlace}
+              onOpenTrip={showOnMap}
+              onClose={close}
               onSection={(s) => navigate(youHref(s))}
               onOpenPark={setParkSheetId}
               onLogVisit={logParkVisit}

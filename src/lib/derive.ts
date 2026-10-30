@@ -50,9 +50,11 @@ export function tripsPerRegion(data: TravelData): Map<string, number> {
 
 const NOT_STATES = new Set(['US-DC', 'US-PR', 'US-VI', 'US-GU', 'US-AS', 'US-MP'])
 
+/** One of the 50 states ("US-UT"), not DC or a territory. */
+export const isState = (regionCode: string) => regionCode.startsWith('US-') && !NOT_STATES.has(regionCode)
+
 /** Of the 50 states, how many you've been to. */
-export const statesVisited = (perRegion: Map<string, number>) =>
-  [...perRegion.keys()].filter((r) => r.startsWith('US-') && !NOT_STATES.has(r)).length
+export const statesVisited = (perRegion: Map<string, number>) => [...perRegion.keys()].filter(isState).length
 
 export function parksVisited(data: TravelData): Set<string> {
   const parkOf = new Map(data.places.map((p) => [p.id, p.parkId]))
