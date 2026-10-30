@@ -75,8 +75,9 @@ const compareLoose = (a: PartialDate, b: PartialDate) => {
 /**
  * Add or edit a trip in three steps: Details (title, dates, who went), Route (destinations in
  * order, any of them main, each with its own dates; how you went between them; travel to and from
- * home), and Notes (hikes, description, rating, tags). The sheet hides (keeping everything you've
- * entered) while you shape a route on the map.
+ * home), and Notes (hikes, description, rating, tags). On the Route step the trip so far is drawn
+ * on the map. `inline`: in the Trips panel beside the map (wider screens), which stays open while
+ * you shape a leg; otherwise a sheet that hides (keeping everything you've entered) while you do.
  */
 export function TripForm({
   trip,
@@ -86,6 +87,9 @@ export function TripForm({
   requestShape,
   onClose,
   onSaved,
+  inline = false,
+  onDraftRoute,
+  shapeLegAt,
 }: {
   trip: Trip | null
   initialMain: PlaceInput | null
@@ -95,6 +99,11 @@ export function TripForm({
   requestShape: RequestShape
   onClose: () => void
   onSaved: (mainPlaceId: string, tripId: string) => void
+  inline?: boolean
+  /** The route so far while the Route step is open (null otherwise), for drawing on the map. */
+  onDraftRoute?: (route: RoutePoint[] | null) => void
+  /** A leg tapped on the map: shape the leg arriving at this point of the draft route. */
+  shapeLegAt?: { at: number; token: number } | null
 }) {
   const store = useStore()
   const { data } = useTravelState()
@@ -268,6 +277,38 @@ export function TripForm({
     ]
   }
 
+  /**
+   * The route so far, for the map: the start, the destinations (places you haven't saved yet get a
+   * ★, since they have no pin), and the way back; points line up with draftPoints().
+   */
+  const draftRoute = (): RoutePoint[] => {
+    const at = (id: string, name: string, lng: number, lat: number) => ({ id, name, lng, lat }) as Place
+    let n = 0
+    return [
+      ...(home && toLeg ? [{ place: at('draft-start', start!.name, home.lng, home.lat), role: 'home' as const, number: null, via: [], leg: null }] : []),
+      ...destinations.map((d, k) => ({
+        place: at(`draft-${d.key}`, d.place.label, ends[k]?.lng ?? 0, ends[k]?.lat ?? 0),
+        role: d.isMain ? ('main' as const) : ('stop' as const),
+        number: d.isMain ? null : ++n,
+        ...(d.isMain && 'place' in d.place.ref ? { marker: '★' } : {}),
+        via: k ? d.via : toLeg ? toLeg.via : [],
+        leg: k ? legBefore(k) : toLeg,
+      })),
+      ...(home && backLeg ? [{ place: at('draft-end', start!.name, home.lng, home.lat), role: 'home' as const, number: null, via: backLeg.via, leg: backLeg }] : []),
+    ]
+  }
+  // Drawn on the map while the Route step is open; told again only when it changes.
+  const draft = step === 1 ? draftRoute() : null
+  const draftKey = draft ? JSON.stringify(draft.map((r) => [r.place.lng, r.place.lat, r.role, r.number, r.marker, r.via, r.leg?.mode])) : ''
+  const draftRef = useRef(draft)
+  useLayoutEffect(() => {
+    draftRef.current = draft
+  })
+  useEffect(() => {
+    onDraftRoute?.(draftRef.current)
+  }, [draftKey, onDraftRoute])
+  useEffect(() => () => onDraftRoute?.(null), [onDraftRoute])
+
   /** Swaps a destination's place, keeping its dates, note and pin; the legs to and from it start over. */
   const changePlace = (key: string, place: ChosenPlace) =>
     updateDestinations((ds) =>
@@ -288,6 +329,22 @@ export function TripForm({
       if (next.length && !next.some((x) => x.isMain)) next[0] = { ...next[0], isMain: true }
       return next
     })
+
+  // A leg tapped on the map (wider screens): shape it, as its Shape button would.
+  const shapeAt = (at: number) => {
+    const offset = home && toLeg ? 1 : 0
+    if (offset && at === 1 && startMode !== 'flight') return shapeHome('start')
+    if (home && backLeg && at === draftPoints().length - 1 && endMode !== 'flight') return shapeHome('end')
+    const i = at - offset
+    if (i > 0 && i < destinations.length && legBefore(i)?.mode !== 'flight') shapeLeg(i)
+  }
+  const shapeAtRef = useRef(shapeAt)
+  useLayoutEffect(() => {
+    shapeAtRef.current = shapeAt
+  })
+  useEffect(() => {
+    if (shapeLegAt) shapeAtRef.current(shapeLegAt.at)
+  }, [shapeLegAt])
 
   /** Shows a problem on the step where it can be fixed. */
   const fail = (at: Step, message: string) => {
@@ -445,310 +502,333 @@ export function TripForm({
     )
   }
 
-  return (
-    <Sheet
-      open={!hidden}
-      onOpenChange={(open) => !open && onClose()}
-      title={trip ? 'Edit trip' : 'Add trip'}
-      accent="var(--primary)"
-      tall
-      toolbar={<Steps step={step} onGo={goTo} />}
-      footer={
-        <div className="flex flex-wrap items-center gap-2">
-          {error && (
-            <p role="alert" className="mr-auto text-sm text-danger">
-              {error}
-            </p>
-          )}
-          {step === 0 ? (
-            <button type="button" onClick={onClose} className={`ml-auto ${secondary}`}>
-              Cancel
-            </button>
-          ) : (
-            <button type="button" onClick={() => goTo((step - 1) as Step)} className={`ml-auto ${secondary}`}>
-              Back
-            </button>
-          )}
-          {step < 2 && (
-            <button type="button" onClick={() => goTo((step + 1) as Step)} className={canSave ? secondary : primary}>
-              Next: {STEPS[step + 1]}
-            </button>
-          )}
-          {canSave && (
-            <button type="button" onClick={save} className={primary}>
-              {saveLabel}
-            </button>
-          )}
-        </div>
-      }
+  const heading = trip ? 'Edit trip' : 'Add trip'
+  // In the panel, the form takes the keyboard focus when it opens (as the sheet does), unless a field already has it.
+  const panel = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (inline && !panel.current?.contains(document.activeElement)) panel.current?.focus({ preventScroll: true })
+  }, [inline])
+  const footer = (
+    <div className="flex flex-wrap items-center gap-2">
+      {error && (
+        <p role="alert" className="mr-auto text-sm text-danger">
+          {error}
+        </p>
+      )}
+      {step === 0 ? (
+        <button type="button" onClick={onClose} className={`ml-auto ${secondary}`}>
+          Cancel
+        </button>
+      ) : (
+        <button type="button" onClick={() => goTo((step - 1) as Step)} className={`ml-auto ${secondary}`}>
+          Back
+        </button>
+      )}
+      {step < 2 && (
+        <button type="button" onClick={() => goTo((step + 1) as Step)} className={canSave ? secondary : primary}>
+          Next: {STEPS[step + 1]}
+        </button>
+      )}
+      {canSave && (
+        <button type="button" onClick={save} className={primary}>
+          {saveLabel}
+        </button>
+      )}
+    </div>
+  )
+  const form = (
+    <form
+      className="flex flex-col gap-5"
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (!canSave) goTo((step + 1) as Step)
+        else save()
+      }}
     >
-      <form
-        className="flex flex-col gap-5"
-        onSubmit={(e) => {
-          e.preventDefault()
-          if (!canSave) goTo((step + 1) as Step)
-          else save()
+      {step === 0 && (
+        <>
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-bold">Title</span>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={suggestedTitle || 'e.g. Utah Parks 2023'} className={`${input} h-11`} />
+            {!title && !suggestedTitle && <span className="mt-1 block text-xs text-muted">Leave it empty to name it after where you went.</span>}
+          </label>
+
+          <DateRangeField
+            label="Trip dates"
+            start={startDate}
+            end={endDate}
+            onChange={(s, e) => {
+              setDatesTouched(true)
+              setStartDate(s)
+              setEndDate(e)
+            }}
+          />
+
+          <PeoplePicker
+            data={data}
+            value={companions}
+            onChange={setCompanions}
+            onAddPerson={(name, groupIds) => {
+              const id = newId()
+              const ok = store.apply((d, c) => addPerson(d, c, id, { name, groupIds }), `Added ${name}`)
+              return ok === null ? null : id
+            }}
+          />
+        </>
+      )}
+
+      {step === 1 && (
+        <section aria-label="Where you went">
+          <h3 className="text-sm font-bold">Where you went</h3>
+          <p className="mb-3 text-xs text-muted">Main places get a pin on the map. Tap a leg to change how you went.</p>
+          {startRow('top')}
+          {toLeg && (
+            <LegRow leg={toLeg} allowGuess={false} onPick={(mode) => mode && setStartMode(mode)}>
+              {homeShaping(toLeg, startVia, () => shapeHome('start'), () => setStartShape({ key: destinations[0]?.key, at: startKey(start), via: [] }))}
+            </LegRow>
+          )}
+          {destinations.length > 0 && (
+            <ol className="flex flex-col">
+              {destinations.map((d, i) => {
+                const number = d.isMain ? null : ++stopNumber
+                const onlyMain = d.isMain && mains.length === 1
+                const leg = i > 0 ? legBefore(i) : null
+                const into = i === 0 ? toLeg : leg
+                const out = i < destinations.length - 1 ? legBefore(i + 1) : backLeg
+                return (
+                  <li key={d.key} aria-label={d.place.label}>
+                    {leg && (
+                      <LegRow leg={leg} onPick={(legMode) => patch(d.key, { legMode })}>
+                        {leg.mode !== 'flight' && (
+                          <button
+                            type="button"
+                            onClick={() => shapeLeg(i)}
+                            aria-label={`Shape the route from ${destinations[i - 1].place.label} to ${d.place.label} on the map`}
+                            className="min-h-10 rounded-md px-1.5 font-bold text-[var(--route)] hover:bg-raised"
+                          >
+                            {d.via.length ? `Bends ${d.via.length}× · Edit` : 'Shape on map'}
+                          </button>
+                        )}
+                        {d.via.length > 0 && (
+                          <button type="button" onClick={() => patch(d.key, { via: [] })} className="min-h-10 rounded-md px-1.5 hover:bg-raised hover:text-fg">
+                            Straighten
+                          </button>
+                        )}
+                      </LegRow>
+                    )}
+                    <TimelineRow
+                      above={into?.mode}
+                      below={out?.mode ?? (i < destinations.length - 1 ? 'unknown' : undefined)}
+                      marker={
+                        d.isMain ? (
+                          <PinGlyph park={d.place.isPark} className="size-7" />
+                        ) : (
+                          <span className="grid size-7 place-items-center rounded-full bg-[var(--route)] text-xs font-bold text-[var(--route-text)]">{number}</span>
+                        )
+                      }
+                    >
+                      <div className="flex items-start gap-1">
+                        <div className="min-w-0 flex-1 py-1">
+                          <button
+                            type="button"
+                            onClick={() => patch(d.key, { open: !d.open })}
+                            aria-expanded={d.open}
+                            aria-label={`${d.place.label}: change place, name or note`}
+                            className="block max-w-full text-left leading-snug break-words hover:underline"
+                          >
+                            <span className={d.isMain ? 'font-bold' : ''}>{d.place.label}</span>
+                            {d.place.detail && <span className="ml-1.5 text-xs text-muted">{d.place.detail}</span>}
+                          </button>
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                            <button
+                              type="button"
+                              aria-label={d.isMain ? `${d.place.label} is a main destination` : `Make ${d.place.label} a main destination`}
+                              aria-pressed={d.isMain}
+                              disabled={onlyMain}
+                              title={onlyMain ? 'A trip needs at least one main destination' : d.isMain ? 'Tap to make it a stop' : 'Tap to give it a pin'}
+                              onClick={() => patch(d.key, { isMain: !d.isMain })}
+                              className={`min-h-7 rounded-full border px-2.5 text-xs font-bold disabled:cursor-default ${d.isMain ? 'border-primary/40 bg-primary/10 text-primary' : 'border-line text-muted hover:text-fg'}`}
+                            >
+                              {d.isMain ? 'Main' : 'Stop'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDatesFor(datesFor === d.key ? null : d.key)}
+                              aria-expanded={datesFor === d.key}
+                              aria-label={d.startDate ? `Dates at ${d.place.label}: ${stopDates(d)}` : `Add dates at ${d.place.label}`}
+                              className={`flex min-h-7 min-w-0 items-center gap-1 rounded-full px-2 text-left text-xs hover:bg-raised ${d.startDate ? 'text-fg' : 'font-bold text-primary'}`}
+                            >
+                              <svg viewBox="0 0 20 20" className="size-3.5 shrink-0" aria-hidden>
+                                <rect x="3" y="4.5" width="14" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+                                <path d="M3 8.5h14M7 3v3M13 3v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                              </svg>
+                              <span>{d.startDate ? stopDates(d) : 'Add dates'}</span>
+                            </button>
+                            {d.note && <span className="min-w-0 truncate text-xs text-muted">{d.note}</span>}
+                          </div>
+                        </div>
+                        <StopMenu
+                          place={d.place.label}
+                          first={i === 0}
+                          last={i === destinations.length - 1}
+                          onMove={(by) => move(i, by)}
+                          onEdit={() => patch(d.key, { open: true })}
+                          onRemove={() => remove(d.key)}
+                        />
+                      </div>
+                      <div className="empty:hidden">
+                        <ParkSuggestion
+                          value={d.place}
+                          onLink={(park) =>
+                            'place' in d.place.ref &&
+                            patch(d.key, { place: describeRef({ place: { ...d.place.ref.place, parkId: park.id, name: park.fullName } }, data) })
+                          }
+                        />
+                      </div>
+                      {datesFor === d.key && (
+                        <div className="mt-1 mb-2 overflow-hidden rounded-xl border border-line bg-bg">
+                          <StopDates
+                            place={d.place.label}
+                            tripStart={startDate}
+                            tripEnd={endDate}
+                            start={d.startDate}
+                            end={d.endDate}
+                            suggested={suggestedStart(i)}
+                            calendarOnly={!datesTouched}
+                            onChange={(start, end) => patch(d.key, { startDate: start, endDate: end })}
+                            onDone={() => setDatesFor(null)}
+                          />
+                        </div>
+                      )}
+                      {d.open && (
+                        <div className="mt-1 mb-2 flex flex-col gap-3 rounded-xl border border-line bg-bg p-3">
+                          <PlacePicker label="Change to another place" data={data} near={near} value={null} onChange={(p) => p && changePlace(d.key, p)} />
+                          {'place' in d.place.ref && !d.place.ref.place.parkId && (
+                            <label className="block">
+                              <span className="mb-1 block text-sm font-bold">Name</span>
+                              <input
+                                aria-label={`${d.place.label} name`}
+                                value={d.place.label}
+                                onChange={(e) =>
+                                  'place' in d.place.ref &&
+                                  patch(d.key, { place: { ...d.place, label: e.target.value, ref: { place: { ...d.place.ref.place, name: e.target.value } } } })
+                                }
+                                className={`${input} h-10`}
+                              />
+                            </label>
+                          )}
+                          <label className="block">
+                            <span className="mb-1 block text-sm font-bold">Note</span>
+                            <input value={d.note} onChange={(e) => patch(d.key, { note: e.target.value })} className={`${input} h-10`} />
+                          </label>
+                          <button type="button" onClick={() => patch(d.key, { open: false })} className="min-h-9 self-end rounded-lg px-3 text-sm font-bold text-primary hover:bg-raised">
+                            Done
+                          </button>
+                        </div>
+                      )}
+                    </TimelineRow>
+                  </li>
+                )
+              })}
+            </ol>
+          )}
+          {/* Adding a place: a node on the timeline after the last place, before the way back. */}
+          <TimelineRow
+            above={destinations.length ? backLeg?.mode : undefined}
+            below={destinations.length ? backLeg?.mode : undefined}
+            marker={
+              <span className="grid size-7 place-items-center rounded-full border-2 border-dashed border-muted bg-surface text-muted">
+                <svg viewBox="0 0 20 20" className="size-3.5" aria-hidden>
+                  <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+                </svg>
+              </span>
+            }
+          >
+            <div className="py-0.5">
+              <PlacePicker
+                label={destinations.length ? 'Add another destination' : 'Add a destination'}
+                hideLabel
+                placeholder={destinations.length ? 'Add another place' : 'Where did you go?'}
+                data={data}
+                near={near}
+                value={null}
+                onChange={(p) => {
+                  if (p) addDestination(p)
+                  setError(null)
+                }}
+                autoFocus={destinations.length === 0 && !matchMedia('(pointer: coarse)').matches}
+              />
+            </div>
+          </TimelineRow>
+          {backLeg && (
+            <>
+              <LegRow leg={backLeg} allowGuess={false} onPick={(mode) => mode && setEndMode(mode)}>
+                {homeShaping(backLeg, endVia, () => shapeHome('end'), () => setEndShape({ key: destinations.at(-1)?.key, at: startKey(start), via: [] }))}
+              </LegRow>
+              {startRow('bottom')}
+            </>
+          )}
+        </section>
+      )}
+
+      {step === 2 && (
+        <>
+          <HikesField parkIds={parkIds} data={data} value={hikes} onChange={setHikes} />
+          <label className="block">
+            <span className="mb-1 block text-sm font-bold">Description</span>
+            <GrowingTextarea value={description} onChange={setDescription} className={`${input} py-2`} />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm font-bold">Highlights</span>
+            <GrowingTextarea value={highlights} onChange={setHighlights} className={`${input} py-2`} />
+          </label>
+          <fieldset>
+            <legend className="mb-1 text-sm font-bold">Rating</legend>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  aria-label={`${n} star${n > 1 ? 's' : ''}`}
+                  aria-pressed={rating !== null && n <= rating}
+                  onClick={() => setRating(rating === n ? null : n)}
+                  className={`grid size-10 place-items-center rounded-lg text-2xl ${rating !== null && n <= rating ? 'text-[#e0a526]' : 'text-line'}`}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          <TagsField value={tags} suggestions={usedTags} onChange={setTags} />
+        </>
+      )}
+      <button type="submit" hidden />
+    </form>
+  )
+
+  if (inline)
+    return (
+      <section
+        ref={panel}
+        tabIndex={-1}
+        aria-label={heading}
+        className="flex min-h-0 flex-1 flex-col outline-none"
+        onKeyDown={(e) => {
+          // Escape closes it, like the sheet; not when it's closing a menu inside it.
+          if (e.key === 'Escape' && !e.defaultPrevented && !(e.target as HTMLElement).closest('[role="menu"]')) onClose()
         }}
       >
-        {step === 0 && (
-          <>
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-bold">Title</span>
-              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={suggestedTitle || 'e.g. Utah Parks 2023'} className={`${input} h-11`} />
-              {!title && !suggestedTitle && <span className="mt-1 block text-xs text-muted">Leave it empty to name it after where you went.</span>}
-            </label>
-
-            <DateRangeField
-              label="Trip dates"
-              start={startDate}
-              end={endDate}
-              onChange={(s, e) => {
-                setDatesTouched(true)
-                setStartDate(s)
-                setEndDate(e)
-              }}
-            />
-
-            <PeoplePicker
-              data={data}
-              value={companions}
-              onChange={setCompanions}
-              onAddPerson={(name, groupIds) => {
-                const id = newId()
-                const ok = store.apply((d, c) => addPerson(d, c, id, { name, groupIds }), `Added ${name}`)
-                return ok === null ? null : id
-              }}
-            />
-          </>
-        )}
-
-        {step === 1 && (
-          <section aria-label="Where you went">
-            <h3 className="text-sm font-bold">Where you went</h3>
-            <p className="mb-3 text-xs text-muted">Main places get a pin on the map. Tap a leg to change how you went.</p>
-            {startRow('top')}
-            {toLeg && (
-              <LegRow leg={toLeg} allowGuess={false} onPick={(mode) => mode && setStartMode(mode)}>
-                {homeShaping(toLeg, startVia, () => shapeHome('start'), () => setStartShape({ key: destinations[0]?.key, at: startKey(start), via: [] }))}
-              </LegRow>
-            )}
-            {destinations.length > 0 && (
-              <ol className="flex flex-col">
-                {destinations.map((d, i) => {
-                  const number = d.isMain ? null : ++stopNumber
-                  const onlyMain = d.isMain && mains.length === 1
-                  const leg = i > 0 ? legBefore(i) : null
-                  const into = i === 0 ? toLeg : leg
-                  const out = i < destinations.length - 1 ? legBefore(i + 1) : backLeg
-                  return (
-                    <li key={d.key} aria-label={d.place.label}>
-                      {leg && (
-                        <LegRow leg={leg} onPick={(legMode) => patch(d.key, { legMode })}>
-                          {leg.mode !== 'flight' && (
-                            <button
-                              type="button"
-                              onClick={() => shapeLeg(i)}
-                              aria-label={`Shape the route from ${destinations[i - 1].place.label} to ${d.place.label} on the map`}
-                              className="min-h-10 rounded-md px-1.5 font-bold text-[var(--route)] hover:bg-raised"
-                            >
-                              {d.via.length ? `Bends ${d.via.length}× · Edit` : 'Shape on map'}
-                            </button>
-                          )}
-                          {d.via.length > 0 && (
-                            <button type="button" onClick={() => patch(d.key, { via: [] })} className="min-h-10 rounded-md px-1.5 hover:bg-raised hover:text-fg">
-                              Straighten
-                            </button>
-                          )}
-                        </LegRow>
-                      )}
-                      <TimelineRow
-                        above={into?.mode}
-                        below={out?.mode ?? (i < destinations.length - 1 ? 'unknown' : undefined)}
-                        marker={
-                          d.isMain ? (
-                            <PinGlyph park={d.place.isPark} className="size-7" />
-                          ) : (
-                            <span className="grid size-7 place-items-center rounded-full bg-[var(--route)] text-xs font-bold text-[var(--route-text)]">{number}</span>
-                          )
-                        }
-                      >
-                        <div className="flex items-start gap-1">
-                          <div className="min-w-0 flex-1 py-1">
-                            <button
-                              type="button"
-                              onClick={() => patch(d.key, { open: !d.open })}
-                              aria-expanded={d.open}
-                              aria-label={`${d.place.label}: change place, name or note`}
-                              className="block max-w-full text-left leading-snug break-words hover:underline"
-                            >
-                              <span className={d.isMain ? 'font-bold' : ''}>{d.place.label}</span>
-                              {d.place.detail && <span className="ml-1.5 text-xs text-muted">{d.place.detail}</span>}
-                            </button>
-                            <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                              <button
-                                type="button"
-                                aria-label={d.isMain ? `${d.place.label} is a main destination` : `Make ${d.place.label} a main destination`}
-                                aria-pressed={d.isMain}
-                                disabled={onlyMain}
-                                title={onlyMain ? 'A trip needs at least one main destination' : d.isMain ? 'Tap to make it a stop' : 'Tap to give it a pin'}
-                                onClick={() => patch(d.key, { isMain: !d.isMain })}
-                                className={`min-h-7 rounded-full border px-2.5 text-xs font-bold disabled:cursor-default ${d.isMain ? 'border-primary/40 bg-primary/10 text-primary' : 'border-line text-muted hover:text-fg'}`}
-                              >
-                                {d.isMain ? 'Main' : 'Stop'}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setDatesFor(datesFor === d.key ? null : d.key)}
-                                aria-expanded={datesFor === d.key}
-                                aria-label={d.startDate ? `Dates at ${d.place.label}: ${stopDates(d)}` : `Add dates at ${d.place.label}`}
-                                className={`flex min-h-7 min-w-0 items-center gap-1 rounded-full px-2 text-left text-xs hover:bg-raised ${d.startDate ? 'text-fg' : 'font-bold text-primary'}`}
-                              >
-                                <svg viewBox="0 0 20 20" className="size-3.5 shrink-0" aria-hidden>
-                                  <rect x="3" y="4.5" width="14" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
-                                  <path d="M3 8.5h14M7 3v3M13 3v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                                </svg>
-                                <span>{d.startDate ? stopDates(d) : 'Add dates'}</span>
-                              </button>
-                              {d.note && <span className="min-w-0 truncate text-xs text-muted">{d.note}</span>}
-                            </div>
-                          </div>
-                          <StopMenu
-                            place={d.place.label}
-                            first={i === 0}
-                            last={i === destinations.length - 1}
-                            onMove={(by) => move(i, by)}
-                            onEdit={() => patch(d.key, { open: true })}
-                            onRemove={() => remove(d.key)}
-                          />
-                        </div>
-                        <div className="empty:hidden">
-                          <ParkSuggestion
-                            value={d.place}
-                            onLink={(park) =>
-                              'place' in d.place.ref &&
-                              patch(d.key, { place: describeRef({ place: { ...d.place.ref.place, parkId: park.id, name: park.fullName } }, data) })
-                            }
-                          />
-                        </div>
-                        {datesFor === d.key && (
-                          <div className="mt-1 mb-2 overflow-hidden rounded-xl border border-line bg-bg">
-                            <StopDates
-                              place={d.place.label}
-                              tripStart={startDate}
-                              tripEnd={endDate}
-                              start={d.startDate}
-                              end={d.endDate}
-                              suggested={suggestedStart(i)}
-                              calendarOnly={!datesTouched}
-                              onChange={(start, end) => patch(d.key, { startDate: start, endDate: end })}
-                              onDone={() => setDatesFor(null)}
-                            />
-                          </div>
-                        )}
-                        {d.open && (
-                          <div className="mt-1 mb-2 flex flex-col gap-3 rounded-xl border border-line bg-bg p-3">
-                            <PlacePicker label="Change to another place" data={data} near={near} value={null} onChange={(p) => p && changePlace(d.key, p)} />
-                            {'place' in d.place.ref && !d.place.ref.place.parkId && (
-                              <label className="block">
-                                <span className="mb-1 block text-sm font-bold">Name</span>
-                                <input
-                                  aria-label={`${d.place.label} name`}
-                                  value={d.place.label}
-                                  onChange={(e) =>
-                                    'place' in d.place.ref &&
-                                    patch(d.key, { place: { ...d.place, label: e.target.value, ref: { place: { ...d.place.ref.place, name: e.target.value } } } })
-                                  }
-                                  className={`${input} h-10`}
-                                />
-                              </label>
-                            )}
-                            <label className="block">
-                              <span className="mb-1 block text-sm font-bold">Note</span>
-                              <input value={d.note} onChange={(e) => patch(d.key, { note: e.target.value })} className={`${input} h-10`} />
-                            </label>
-                            <button type="button" onClick={() => patch(d.key, { open: false })} className="min-h-9 self-end rounded-lg px-3 text-sm font-bold text-primary hover:bg-raised">
-                              Done
-                            </button>
-                          </div>
-                        )}
-                      </TimelineRow>
-                    </li>
-                  )
-                })}
-              </ol>
-            )}
-            {/* Adding a place: a node on the timeline after the last place, before the way back. */}
-            <TimelineRow
-              above={destinations.length ? backLeg?.mode : undefined}
-              below={destinations.length ? backLeg?.mode : undefined}
-              marker={
-                <span className="grid size-7 place-items-center rounded-full border-2 border-dashed border-muted bg-surface text-muted">
-                  <svg viewBox="0 0 20 20" className="size-3.5" aria-hidden>
-                    <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-                  </svg>
-                </span>
-              }
-            >
-              <div className="py-0.5">
-                <PlacePicker
-                  label={destinations.length ? 'Add another destination' : 'Add a destination'}
-                  hideLabel
-                  placeholder={destinations.length ? 'Add another place' : 'Where did you go?'}
-                  data={data}
-                  near={near}
-                  value={null}
-                  onChange={(p) => {
-                    if (p) addDestination(p)
-                    setError(null)
-                  }}
-                  autoFocus={destinations.length === 0 && !matchMedia('(pointer: coarse)').matches}
-                />
-              </div>
-            </TimelineRow>
-            {backLeg && (
-              <>
-                <LegRow leg={backLeg} allowGuess={false} onPick={(mode) => mode && setEndMode(mode)}>
-                  {homeShaping(backLeg, endVia, () => shapeHome('end'), () => setEndShape({ key: destinations.at(-1)?.key, at: startKey(start), via: [] }))}
-                </LegRow>
-                {startRow('bottom')}
-              </>
-            )}
-          </section>
-        )}
-
-        {step === 2 && (
-          <>
-            <HikesField parkIds={parkIds} data={data} value={hikes} onChange={setHikes} />
-            <label className="block">
-              <span className="mb-1 block text-sm font-bold">Description</span>
-              <GrowingTextarea value={description} onChange={setDescription} className={`${input} py-2`} />
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-sm font-bold">Highlights</span>
-              <GrowingTextarea value={highlights} onChange={setHighlights} className={`${input} py-2`} />
-            </label>
-            <fieldset>
-              <legend className="mb-1 text-sm font-bold">Rating</legend>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    aria-label={`${n} star${n > 1 ? 's' : ''}`}
-                    aria-pressed={rating !== null && n <= rating}
-                    onClick={() => setRating(rating === n ? null : n)}
-                    className={`grid size-10 place-items-center rounded-lg text-2xl ${rating !== null && n <= rating ? 'text-[#e0a526]' : 'text-line'}`}
-                  >
-                    ★
-                  </button>
-                ))}
-              </div>
-            </fieldset>
-            <TagsField value={tags} suggestions={usedTags} onChange={setTags} />
-          </>
-        )}
-        <button type="submit" hidden />
-      </form>
+        <div className="border-b border-line px-4 pt-3 pb-2">
+          <h2 className="font-display text-2xl leading-tight font-semibold">{heading}</h2>
+          <Steps step={step} onGo={goTo} />
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{form}</div>
+        <div className="border-t border-line px-4 py-2">{footer}</div>
+      </section>
+    )
+  return (
+    <Sheet open={!hidden} onOpenChange={(open) => !open && onClose()} title={heading} accent="var(--primary)" tall toolbar={<Steps step={step} onGo={goTo} />} footer={footer}>
+      {form}
     </Sheet>
   )
 }

@@ -30,7 +30,7 @@ function Breadcrumb({ crumbs }: { crumbs: Crumb[] }) {
                 {c.label}
               </a>
             ) : (
-              <span aria-current="page" className="truncate px-2 font-bold">
+              <span aria-current={i === crumbs.length - 1 ? 'page' : undefined} className={`truncate px-2 font-bold ${i === crumbs.length - 1 ? '' : 'text-muted'}`}>
                 {c.label}
               </span>
             )}
@@ -43,26 +43,54 @@ function Breadcrumb({ crumbs }: { crumbs: Crumb[] }) {
 
 /**
  * Wider screens: Trips as a panel on the left over the map, so the map stays in view. The
- * breadcrumb goes back up; « hides the panel for the full map.
+ * breadcrumb goes back up; + Add trip opens the trip form in the panel (`onAdd`, left out while
+ * it's open); « hides the panel for the full map.
  */
-export function TripsPanel({ crumbs, onCollapse, children }: { crumbs: Crumb[]; onCollapse: () => void; children: ReactNode }) {
+export function TripsPanel({
+  crumbs,
+  onAdd,
+  onCollapse,
+  hidden = false,
+  children,
+}: {
+  crumbs: Crumb[]
+  onAdd?: () => void
+  /** Left out while the trip form is open. */
+  onCollapse?: () => void
+  hidden?: boolean
+  children: ReactNode
+}) {
   return (
     <aside
       aria-label="Trips panel"
+      hidden={hidden}
       className="absolute top-3 bottom-3 left-3 z-20 flex w-[26rem] max-w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_8px_30px_rgb(0_0_0/0.25)]"
     >
       <div className="flex items-center gap-1 border-b border-line py-1 pr-1 pl-2">
         <Breadcrumb crumbs={crumbs} />
-        <button
-          onClick={onCollapse}
-          aria-label="Hide trips"
-          title="Hide trips (full map)"
-          className="grid size-10 shrink-0 place-items-center rounded-lg text-muted hover:bg-raised hover:text-fg"
-        >
-          <svg viewBox="0 0 20 20" className="size-5" aria-hidden>
-            <path d="M10 5 5 10l5 5M15 5l-5 5 5 5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
+        {onAdd && (
+          <button
+            onClick={onAdd}
+            className="flex h-9 shrink-0 items-center gap-1 rounded-lg bg-primary pr-3 pl-2 text-sm font-bold text-on-primary shadow-sm hover:brightness-110 active:brightness-95"
+          >
+            <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
+              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+            </svg>
+            Add trip
+          </button>
+        )}
+        {onCollapse && (
+          <button
+            onClick={onCollapse}
+            aria-label="Hide trips"
+            title="Hide trips (full map)"
+            className="grid size-10 shrink-0 place-items-center rounded-lg text-muted hover:bg-raised hover:text-fg"
+          >
+            <svg viewBox="0 0 20 20" className="size-5" aria-hidden>
+              <path d="M10 5 5 10l5 5M15 5l-5 5 5 5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        )}
       </div>
       {children}
     </aside>

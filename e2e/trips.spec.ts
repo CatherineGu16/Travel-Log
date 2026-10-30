@@ -1,11 +1,12 @@
 import { expect, test, type Page } from '@playwright/test'
-import { dateRange, openDates, openPeople, openSettings, openTrips, openYou, pickDays, setTripYear, toStep, tripDetails } from './helpers.ts'
+import { dateRange, openAddTrip, openDates, openPeople, openSettings, openTrips, openYou, pickDays, setTripYear, toStep, tripDetails, tripForm } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
 
 async function choosePlace(page: Page, field: string | RegExp, query: string, option: RegExp) {
-  const dialog = page.getByRole('dialog')
+  // The trip form: a sheet on phones, in the Trips panel on wider screens.
+  const dialog = page.getByRole('dialog').or(page.getByRole('complementary', { name: 'Trips panel' }))
   await dialog.getByRole('combobox', { name: field }).fill(query)
   await dialog.getByRole('option', { name: option }).first().click()
 }
@@ -14,8 +15,8 @@ test('log a multi-stop family trip, see it on the map, and it survives a reload'
   await page.goto('./')
   await expect(page.locator('[data-testid="map"] canvas')).toBeVisible()
 
-  await page.getByRole('button', { name: 'Add trip' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await openAddTrip(page)
+  const dialog = tripForm(page, 'Add trip')
   await toStep(dialog, 'Route')
   await choosePlace(page, DEST, 'zion', /Zion National Park/)
   await choosePlace(page, DEST, 'Springdale, UT', /^Springdale\s*UT$/)
@@ -52,8 +53,8 @@ test('log a multi-stop family trip, see it on the map, and it survives a reload'
 test('a second trip to the same place stacks on its pin', async ({ page }) => {
   await page.goto('./')
   for (const year of ['2019', '2024']) {
-    await page.getByRole('button', { name: 'Add trip' }).click()
-    const dialog = page.getByRole('dialog', { name: 'Add trip' })
+    await openAddTrip(page)
+    const dialog = tripForm(page, 'Add trip')
     await toStep(dialog, 'Route')
     await choosePlace(page, DEST, 'moab', /^Moab/)
     await toStep(dialog, 'Details')
@@ -74,8 +75,8 @@ test('picking a stacked date shows that trip’s route, and details show other v
     ['2024', [['Monticello, UT', /^Monticello\s*UT$/], ['Blanding', /^Blanding\s*UT$/]]],
   ]
   for (const [year, stops] of trips) {
-    await page.getByRole('button', { name: 'Add trip' }).click()
-    const dialog = page.getByRole('dialog', { name: 'Add trip' })
+    await openAddTrip(page)
+    const dialog = tripForm(page, 'Add trip')
     await toStep(dialog, 'Route')
     await choosePlace(page, DEST, 'moab', /^Moab/)
     for (const [q, o] of stops) await choosePlace(page, DEST, q, o)
@@ -106,8 +107,8 @@ test('picking a stacked date shows that trip’s route, and details show other v
 
 test('a trip with two main destinations, each with its own dates', async ({ page }) => {
   await page.goto('./')
-  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
-  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await openAddTrip(page)
+  const dialog = tripForm(page, 'Add trip')
   await toStep(dialog, 'Route')
   await choosePlace(page, DEST, 'zion', /Zion National Park/)
   await choosePlace(page, DEST, 'Las Vegas', /^Las Vegas\s*NV$/)
@@ -144,8 +145,8 @@ test('a trip with two main destinations, each with its own dates', async ({ page
 
 test('trip dates are a range picker: tap the first day, then the last', async ({ page }) => {
   await page.goto('./')
-  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
-  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await openAddTrip(page)
+  const dialog = tripForm(page, 'Add trip')
   const range = dialog.getByRole('group', { name: /^Trip dates/ })
   // Folded away until you tap it.
   await expect(range.getByRole('radiogroup', { name: 'Trip dates precision' })).toHaveCount(0)
@@ -185,8 +186,8 @@ test('who went: groups are on or off, anyone else is searched for and added', as
     await editor.getByRole('button', { name: 'Save' }).click()
   }
 
-  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
-  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await openAddTrip(page)
+  const dialog = tripForm(page, 'Add trip')
   const groups = dialog.getByRole('group', { name: 'Groups' })
   const others = dialog.getByRole('list', { name: 'Also going' })
   await expect(groups.getByRole('button')).toHaveText(['Family', 'Friends'])
@@ -221,17 +222,19 @@ test('who went: groups are on or off, anyone else is searched for and added', as
   await expect(others.getByRole('listitem')).toHaveText([/Robin/])
 })
 
-test('shaping the route between two places bends the dotted line through your taps', async ({ page }) => {
+test('shaping the route between two places bends the dotted line through your taps', async ({ page, isMobile }) => {
   await page.goto('./')
-  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
-  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await openAddTrip(page)
+  const dialog = tripForm(page, 'Add trip')
   await toStep(dialog, 'Route')
   await choosePlace(page, DEST, 'zion', /Zion National Park/)
   await choosePlace(page, DEST, 'Las Vegas', /^Las Vegas\s*NV$/)
   await expect(dialog.getByRole('button', { name: 'Pick on map' })).toHaveCount(0)
 
   await dialog.getByRole('button', { name: 'Shape the route from Zion National Park to Las Vegas on the map' }).click()
-  await expect(dialog).toBeHidden()
+  // Phones: the form steps aside while you shape; wider, it stays in the panel beside the map.
+  if (isMobile) await expect(dialog).toBeHidden()
+  else await expect(dialog).toBeVisible()
   const banner = page.getByRole('region', { name: 'Shape the route' })
   await expect(banner).toContainText('Zion National Park')
   const map = page.locator('[data-testid="map"] canvas')
@@ -255,7 +258,7 @@ test('shaping the route between two places bends the dotted line through your ta
 
   // Saved with the trip.
   await page.getByRole('region', { name: 'Zion National Park trips' }).getByRole('button', { name: /^Edit/ }).click()
-  const edit = page.getByRole('dialog', { name: 'Edit trip' })
+  const edit = tripForm(page, 'Edit trip')
   await toStep(edit, 'Route')
   await expect(edit.getByRole('button', { name: /^Shape the route from Zion/ })).toHaveText('Bends 1× · Edit')
   await edit.getByRole('button', { name: 'Straighten' }).click()
@@ -264,8 +267,8 @@ test('shaping the route between two places bends the dotted line through your ta
 
 test('notes, rating and tags are their own step and show on the trip', async ({ page }) => {
   await page.goto('./')
-  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
-  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await openAddTrip(page)
+  const dialog = tripForm(page, 'Add trip')
   await toStep(dialog, 'Route')
   await choosePlace(page, DEST, 'zion', /Zion National Park/)
   await dialog.getByRole('button', { name: 'Next: Notes' }).click()
@@ -299,8 +302,8 @@ test('notes, rating and tags are their own step and show on the trip', async ({ 
 
 test('legs between stops: guessed from distance, changed with a tap, and filterable', async ({ page }) => {
   await page.goto('./')
-  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
-  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await openAddTrip(page)
+  const dialog = tripForm(page, 'Add trip')
   // Details first; Next moves on to the route.
   await dialog.getByRole('button', { name: 'Next: Route' }).click()
   await choosePlace(page, DEST, 'Los Angeles', /^Los Angeles\s*CA$/)
@@ -351,8 +354,8 @@ test('a road trip from home with two main pins; changing home leaves it alone', 
   await expect(settings).toContainText('Trips can start and end at Pasadena')
   await page.keyboard.press('Escape')
 
-  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
-  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await openAddTrip(page)
+  const dialog = tripForm(page, 'Add trip')
   // The route starts and ends at home.
   await toStep(dialog, 'Route')
   await expect(dialog.getByRole('button', { name: 'Change where the trip started (Pasadena)' })).toBeVisible()
@@ -407,21 +410,21 @@ test('a road trip from home with two main pins; changing home leaves it alone', 
 
   // Editing: the trip shows its own start, not the new home, and can switch to it.
   await card.getByRole('button', { name: /^Edit (trip|Las Vegas)/ }).click()
-  const edit = page.getByRole('dialog', { name: 'Edit trip' })
+  const edit = tripForm(page, 'Edit trip')
   await toStep(edit, 'Route')
   await expect(edit.getByLabel(/^Drive from Pasadena to Las Vegas/)).toBeVisible()
   await edit.getByRole('button', { name: 'Change where the trip started (Pasadena)' }).click()
   await edit.getByRole('button', { name: 'Use home (Denver)' }).click()
   await edit.getByRole('button', { name: 'Save' }).click()
   await card.getByRole('button', { name: /^Edit (trip|Las Vegas)/ }).click()
-  await toStep(page.getByRole('dialog', { name: 'Edit trip' }), 'Route')
-  await expect(page.getByRole('dialog', { name: 'Edit trip' }).getByRole('button', { name: 'Change where the trip started (Denver)' })).toBeVisible()
+  await toStep(tripForm(page, 'Edit trip'), 'Route')
+  await expect(tripForm(page, 'Edit trip').getByRole('button', { name: 'Change where the trip started (Denver)' })).toBeVisible()
 })
 
 test('a destination can be swapped for another place from its row', async ({ page }) => {
   await page.goto('./')
-  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
-  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await openAddTrip(page)
+  const dialog = tripForm(page, 'Add trip')
   await toStep(dialog, 'Route')
   await choosePlace(page, DEST, 'Las Vegas', /^Las Vegas\s*NV$/)
   await choosePlace(page, DEST, 'Reno', /^Reno\s*NV$/)
@@ -438,8 +441,8 @@ test('a destination can be swapped for another place from its row', async ({ pag
 
 test('cities abroad: biggest first, narrowed by country, and grouped by country', async ({ page }) => {
   await page.goto('./')
-  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
-  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await openAddTrip(page)
+  const dialog = tripForm(page, 'Add trip')
   await toStep(dialog, 'Route')
   const search = dialog.getByRole('combobox', { name: DEST })
   await search.fill('Lisbon')
@@ -460,8 +463,8 @@ test('cities abroad: biggest first, narrowed by country, and grouped by country'
 
 test('stop dates from a strip of the trip days, shown as day numbers; details link to each step', async ({ page }) => {
   await page.goto('./')
-  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
-  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await openAddTrip(page)
+  const dialog = tripForm(page, 'Add trip')
   await pickDays(dialog, 'Trip dates', '2024-05-01', '2024-05-06')
   await toStep(dialog, 'Route')
   await choosePlace(page, DEST, 'zion', /Zion National Park/)
@@ -499,7 +502,7 @@ test('stop dates from a strip of the trip days, shown as day numbers; details li
   await expect(detail).toContainText('6 days')
   await expect(detail).toContainText('Days 1–3 · May 1 – 3, 2024')
   await detail.getByRole('button', { name: 'Edit the stops' }).click()
-  const edit = page.getByRole('dialog', { name: 'Edit trip' })
+  const edit = tripForm(page, 'Edit trip')
   await expect(edit.getByRole('navigation', { name: 'Steps' }).getByRole('button', { name: 'Route', exact: true })).toHaveAttribute('aria-current', 'step')
   await page.keyboard.press('Escape')
   await expect(edit).toBeHidden()
@@ -514,8 +517,8 @@ test('stop dates from a strip of the trip days, shown as day numbers; details li
 
 test('shaping a leg can follow the way you came, then take more taps', async ({ page }) => {
   await page.goto('./')
-  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
-  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await openAddTrip(page)
+  const dialog = tripForm(page, 'Add trip')
   await toStep(dialog, 'Route')
   await choosePlace(page, DEST, 'Las Vegas', /^Las Vegas\s*NV$/)
   await choosePlace(page, DEST, 'bryce', /Bryce Canyon National Park/)
@@ -555,8 +558,8 @@ test('tags you have used before are chips to add; who went in the details is jus
     ['moab', /^Moab/, 'First'],
     ['chicago', /^Chicago/, 'Second'],
   ] as const) {
-    await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
-    const dialog = page.getByRole('dialog', { name: 'Add trip' })
+    await openAddTrip(page)
+    const dialog = tripForm(page, 'Add trip')
     await dialog.getByRole('textbox', { name: 'Title' }).fill(title)
     await dialog.getByRole('group', { name: 'Groups' }).getByRole('button', { name: /^Family/ }).click()
     await toStep(dialog, 'Route')

@@ -30,10 +30,10 @@ const current = (page: Page): Page => (page === 'trips' ? 'map' : page)
 
 /**
  * The toolbar across the top, the same on every page: the title, then (wider screens) the Map tab,
- * and on the right Add trip, the sync status and your photo (which opens You, so You needs no tab
- * here). Every control is 36 px tall.
+ * and on the right the sync status and your photo (which opens You, so You needs no tab here).
+ * Add trip is in the Trips panel on wider screens and the tab bar on phones. Controls are 36 px tall.
  */
-export function TopBar({ page: shown, onAdd, sync, you }: { page: Page; onAdd: () => void; sync: ReactNode; you: ReactNode }) {
+export function TopBar({ page: shown, sync, you }: { page: Page; sync: ReactNode; you: ReactNode }) {
   const page = current(shown)
   return (
     <header className="z-30 shrink-0 border-b border-line bg-surface pt-[env(safe-area-inset-top)]">
@@ -55,13 +55,6 @@ export function TopBar({ page: shown, onAdd, sync, you }: { page: Page; onAdd: (
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={onAdd}
-            className="hidden h-9 items-center gap-1.5 rounded-lg bg-primary pr-3.5 pl-2.5 text-sm font-bold text-on-primary shadow-sm hover:brightness-110 active:brightness-95 sm:flex"
-          >
-            <PlusIcon className="size-5" />
-            Add trip
-          </button>
           {sync}
           {you}
         </div>

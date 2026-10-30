@@ -109,7 +109,14 @@ function Shell() {
       { place: end(shape.to, 'shape-to'), role: 'stop', number: null, marker: 'B', via: shape.via, leg: null },
     ]
   }, [shape])
-  const route = shape ? shapeRoute : tripRoute
+  // While you edit a trip's route, the map shows it as it stands (the form tells us).
+  const [draft, setDraft] = useState<RoutePoint[] | null>(null)
+  const editingRoute = form !== null && draft !== null
+  const route = shape ? shapeRoute : editingRoute ? draft : tripRoute
+  // A leg tapped on the map while editing (wider screens): the form shapes it.
+  const [legRequest, setLegRequest] = useState<{ at: number; token: number } | null>(null)
+  // Wider screens: the trip form sits in the Trips panel beside the map.
+  const formInPanel = form !== null && !phone
 
   /** Moves the map to a trip: a trip with several places is fitted to its route, otherwise centered on its pin. */
   const focusTrip = (tripId: string) => {
@@ -158,14 +165,20 @@ function Shell() {
   const openTrip = (trip: Trip) => navigate(tripHref(trip.id))
   // Closing a trip goes back up: to its place when you came from a pin, else to the list.
   const closeTrip = () => close(routePlaceId ? placeHref(routePlaceId) : pageHref('trips'))
-  const addTrip = () => {
+  /** Opens the trip form: in the Trips panel over the map on wider screens, a sheet on phones. */
+  const openForm = (next: FormState) => {
     finishShape(null)
-    setForm({ trip: null, initialMain: null })
+    if (!phone) {
+      if (page === 'you') navigate(pageHref('trips'))
+      setPanelOpen(true)
+    }
+    setForm(next)
   }
+  const addTrip = () => openForm({ trip: null, initialMain: null })
   /** "Log a visit" to a park: Add trip with the park as the main destination. */
   const logParkVisit = (park: ParkInfo) => {
     setParkSheetId(null)
-    setForm({ trip: null, initialMain: parkInput(park) })
+    openForm({ trip: null, initialMain: parkInput(park) })
   }
 
   const requestShape = useCallback<RequestShape>(
@@ -174,7 +187,11 @@ function Shell() {
         // Trips are on the map too, so an open trip stays open behind the shaping.
         const { page } = parseHash(window.location.hash)
         if (page !== 'map' && page !== 'trips') goTo('map')
-        setShape({ from, to, via, follow, context, history: [], resolve })
+        // Shaping another leg first lets go of the one you were on.
+        setShape((prev) => {
+          prev?.resolve(null)
+          return { from, to, via, follow, context, history: [], resolve }
+        })
       }),
     [goTo],
   )
@@ -198,8 +215,34 @@ function Shell() {
   const crumbs: Crumb[] = [{ label: 'Trips', href: routePlaceId || detailTrip ? pageHref('trips') : undefined }]
   if (crumbPlace) crumbs.push({ label: crumbPlace.name, href: detailTrip ? placeHref(crumbPlace.id) : undefined })
   if (detailTrip) crumbs.push({ label: detailTrip.title })
+  // The form in the panel: Trips › Add trip, or Trips › Utah 2023 › Edit trip (no links while it's open).
+  const formCrumbs: Crumb[] = form ? [{ label: 'Trips' }, ...(form.trip ? [{ label: form.trip.title }] : []), { label: form.trip ? 'Edit trip' : 'Add trip' }] : []
 
   const filterButton = <FilterButton filter={filter} onClick={() => setFilterOpen(true)} />
+  const tripForm = form && (
+    <TripForm
+      key={form.trip?.id ?? 'new'}
+      trip={form.trip}
+      initialMain={form.initialMain}
+      initialStep={form.step}
+      inline={!phone}
+      hidden={phone && shape !== null}
+      onDraftRoute={setDraft}
+      shapeLegAt={legRequest}
+      requestShape={requestShape}
+      onClose={() => {
+        finishShape(null)
+        setForm(null)
+      }}
+      onSaved={(mainPlaceId, tripId) => {
+        setForm(null)
+        setSelectedTripId(tripId)
+        // The trip stays open if it was; otherwise its place's trips open, with it on the map.
+        if (detailTripId !== tripId) navigate(placeHref(mainPlaceId))
+        focusTrip(tripId)
+      }}
+    />
+  )
   // What's in the Trips panel or sheet: a trip, a place's trips (a pin), or every trip.
   const tripsView = detailTrip ? (
     <TripDetail
@@ -238,7 +281,6 @@ function Shell() {
     <div className="flex h-full w-full flex-col">
       <TopBar
         page={page}
-        onAdd={addTrip}
         sync={<SyncChip onSettings={() => navigate(youHref('settings'))} />}
         you={
           <a
@@ -260,7 +302,8 @@ function Shell() {
             tripsPerRegion={perRegion}
             selectedPlaceId={selectedPlaceId}
             route={route}
-            routeTripId={shape ? 'shaping' : (drawnTrip?.id ?? null)}
+            // A draft refits when a place is added or removed.
+            routeTripId={shape ? 'shaping' : editingRoute ? `draft:${draft.length}` : (drawnTrip?.id ?? null)}
             showBends={shape !== null}
             onDragBend={dragBend}
             contextLines={shape?.context}
@@ -278,6 +321,8 @@ function Shell() {
             detailed={detailed}
             onDetailedFailed={() => toast("The detailed map couldn't load (offline?). Showing the outline map.")}
             focus={focus}
+            onPickLeg={formInPanel && editingRoute && !shape ? (at) => setLegRequest({ at, token: Date.now() }) : undefined}
+            leftInset={!phone && onMap && panelOpen ? 428 : 0}
           />
         </Suspense>
         </div>
@@ -309,7 +354,8 @@ function Shell() {
           <div
             role="region"
             aria-label="Shape the route"
-            className="absolute inset-x-3 top-3 z-30 mx-auto flex max-w-md flex-col gap-2.5 rounded-2xl border border-line bg-surface p-3 text-sm shadow-[0_8px_30px_rgb(0_0_0/0.25)]"
+            // Wider screens with the trip form in the panel: centered over the map beside it.
+            className={`absolute inset-x-3 top-3 z-30 mx-auto flex max-w-md flex-col gap-2.5 rounded-2xl border border-line bg-surface p-3 text-sm shadow-[0_8px_30px_rgb(0_0_0/0.25)] ${formInPanel && panelOpen ? 'sm:left-[27.5rem]' : ''}`}
           >
             <div className="flex min-w-0 items-center gap-1.5">
               <RouteBadge>A</RouteBadge>
@@ -376,12 +422,18 @@ function Shell() {
           </>
         )}
 
-        {onMap && !shape && !phone && panelOpen && (
-          <TripsPanel crumbs={crumbs} onCollapse={() => setPanelOpen(false)}>
-            {tripsView}
+        {/* The trip form stays in the panel (hidden off the map) until you save or cancel, so nothing typed is lost. */}
+        {!phone && (formInPanel || (onMap && panelOpen && !shape)) && (
+          <TripsPanel
+            crumbs={formInPanel ? formCrumbs : crumbs}
+            onAdd={formInPanel ? undefined : addTrip}
+            onCollapse={formInPanel ? undefined : () => setPanelOpen(false)}
+            hidden={!onMap}
+          >
+            {formInPanel ? tripForm : tripsView}
           </TripsPanel>
         )}
-        {onMap && !shape && !phone && !panelOpen && <ShowTripsButton onClick={() => setPanelOpen(true)} />}
+        {onMap && !shape && !phone && !panelOpen && !formInPanel && <ShowTripsButton onClick={() => setPanelOpen(true)} />}
         {onMap && !shape && phone && (
           <TripsSheet crumbs={crumbs} size={sheetSize} onSize={sizeSheet}>
             {tripsView}
@@ -404,27 +456,7 @@ function Shell() {
         />
       )}
 
-      {form && (
-        <TripForm
-          key={form.trip?.id ?? 'new'}
-          trip={form.trip}
-          initialMain={form.initialMain}
-          initialStep={form.step}
-          hidden={shape !== null}
-          requestShape={requestShape}
-          onClose={() => {
-            finishShape(null)
-            setForm(null)
-          }}
-          onSaved={(mainPlaceId, tripId) => {
-            setForm(null)
-            setSelectedTripId(tripId)
-            // The trip stays open if it was; otherwise its place's trips open, with it on the map.
-            if (detailTripId !== tripId) navigate(placeHref(mainPlaceId))
-            focusTrip(tripId)
-          }}
-        />
-      )}
+      {phone && tripForm}
 
       <FilterSheet
         open={filterOpen}

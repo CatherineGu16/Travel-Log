@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test'
-import { openYou, setTripYear, toStep, tripDetails } from './helpers.ts'
+import { openAddTrip, openYou, setTripYear, toStep, tripDetails, tripForm } from './helpers.ts'
 
 async function addTrip(page: import('@playwright/test').Page, query: string, option: RegExp, year: string) {
-  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
-  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await openAddTrip(page)
+  const dialog = tripForm(page, 'Add trip')
   await toStep(dialog, 'Route')
   await dialog.getByRole('combobox', { name: /^Add (a|another) destination$/ }).fill(query)
   await dialog.getByRole('option', { name: option }).first().click()

@@ -28,7 +28,8 @@ export function routeCollection(route: RoutePoint[], showBends = false, context:
       })),
       ...route.slice(1).map((r, i) => ({
         type: 'Feature' as const,
-        properties: { style: legStyle(r) },
+        // `leg`: the point it arrives at, so tapping the line can shape that leg.
+        properties: { style: legStyle(r), leg: i + 1 },
         geometry: { type: 'LineString' as const, coordinates: unwrapLngs(paths[i + 1] ?? flightArc(route[i], r)) },
       })),
       // Home starts and ends the trip at the same spot: one marker.

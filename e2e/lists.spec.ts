@@ -1,12 +1,12 @@
 import { expect, test, type Page } from '@playwright/test'
-import { openTrips, openYou, setTripYear, toStep, tripDetails } from './helpers.ts'
+import { openAddTrip, openTrips, openYou, setTripYear, toStep, tripDetails, tripForm } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
 
 async function addTrip(page: Page, opts: { main: [string, RegExp]; year: string; stops?: [string, RegExp][]; family?: string; friend?: string }) {
-  await page.getByRole('button', { name: 'Add trip' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await openAddTrip(page)
+  const dialog = tripForm(page, 'Add trip')
   await toStep(dialog, 'Route')
   await dialog.getByRole('combobox', { name: DEST }).fill(opts.main[0])
   await dialog.getByRole('option', { name: opts.main[1] }).first().click()

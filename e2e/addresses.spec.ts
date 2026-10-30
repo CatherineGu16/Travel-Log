@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test'
-import { openSettings, toStep, tripDetails } from './helpers.ts'
+import { openAddTrip, openSettings, toStep, tripDetails, tripForm } from './helpers.ts'
 
 test('a trip’s details have their own address: reload keeps them open, Back closes them', async ({ page }) => {
   await page.goto('./')
-  await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
-  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await openAddTrip(page)
+  const dialog = tripForm(page, 'Add trip')
   await toStep(dialog, 'Route')
   await dialog.getByRole('combobox', { name: /^Add (a|another) destination$/ }).fill('moab')
   await dialog.getByRole('option', { name: /^Moab/ }).first().click()

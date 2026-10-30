@@ -35,15 +35,17 @@ export type ParksMode = 'off' | 'all' | 'visited' | 'not-visited'
 const PARK_LAYERS = ['park-areas', 'park-outlines', 'park-icons', 'park-labels']
 
 /**
- * Room around a fitted route for the header and the pin card (left panel on desktop, bottom sheet
- * on phones), or, while you shape a route, for the instructions across the top.
+ * Room around a fitted route for the Trips panel on the left (wider screens) or the Trips sheet
+ * below (phones), and while you shape a leg, for the instructions across the top too.
  */
 const routePadding = (shaping: boolean) =>
   shaping
-    ? { top: 160, bottom: 120, left: 50, right: 150 }
+    ? window.innerWidth < 640
+      ? { top: 160, bottom: 120, left: 50, right: 150 }
+      : { top: 160, bottom: 80, left: 470, right: 170 }
     : window.innerWidth < 640
       ? { top: 70, bottom: Math.round(window.innerHeight * 0.5), left: 40, right: 40 }
-      : { top: 70, bottom: 60, left: 440, right: 80 }
+      : { top: 70, bottom: 60, left: 470, right: 170 }
 
 export interface MapViewProps {
   pins: Pin[]
@@ -73,6 +75,10 @@ export interface MapViewProps {
   onDetailedFailed: () => void
   /** Changes when the map should fly to a place (e.g. a trip you just saved). */
   focus: { lng: number; lat: number; token: number } | null
+  /** While you edit a trip's route: a ground leg tapped on the map, by the route point it arrives at. */
+  onPickLeg?: (at: number) => void
+  /** Room on the left the Trips panel covers, kept clear when fitting the US. */
+  leftInset?: number
 }
 
 export function MapView(props: MapViewProps) {
@@ -285,7 +291,11 @@ export function MapView(props: MapViewProps) {
         <MapControls
           onZoomIn={() => map.zoomIn()}
           onZoomOut={() => map.zoomOut()}
-          onReset={() => map.fitBounds(VIEWS.us.bounds, { padding: fitPadding(), duration: 900 })}
+          onReset={() => {
+            // Fits the US into the part of the map beside the Trips panel when it's open.
+            const pad = fitPadding()
+            map.fitBounds(VIEWS.us.bounds, { padding: { top: pad, bottom: pad, right: pad, left: pad + (latest.current.leftInset ?? 0) }, duration: 900 })
+          }}
           globe={projection === 'globe'}
           onToggleGlobe={() => setMapProjection(projection === 'globe' ? 'flat' : 'globe')}
         />
@@ -335,11 +345,18 @@ function bindInteractions(map: MapLibreMap, latest: { current: MapViewProps }) {
     ]
     const pin = map.queryRenderedFeatures(box, { layers: pinLayers })[0]
     if (pin) return props.onSelectPin(pin.properties.placeId as string)
+    const leg = props.onPickLeg ? map.queryRenderedFeatures(box, { layers: ['route-ground', 'route-unknown'] })[0] : undefined
+    if (leg) return props.onPickLeg!(leg.properties.leg as number)
     const park = props.parksMode !== 'off' ? map.queryRenderedFeatures(box, { layers: ['park-icons'] })[0] : undefined
     if (park) return props.onSelectPark(park.properties.parkId as string)
     props.onSelectPin(null)
   })
 
+  // Route lines you can tap to shape, while editing a trip's route.
+  for (const layer of ['route-ground', 'route-unknown']) {
+    map.on('mouseenter', layer, () => latest.current.onPickLeg && !latest.current.picking && (map.getCanvas().style.cursor = 'pointer'))
+    map.on('mouseleave', layer, () => !latest.current.picking && (map.getCanvas().style.cursor = ''))
+  }
   for (const layer of [...pinLayers, 'pin-clusters', 'park-icons']) {
     map.on('mouseenter', layer, () => !latest.current.picking && (map.getCanvas().style.cursor = 'pointer'))
     map.on('mouseleave', layer, () => !latest.current.picking && (map.getCanvas().style.cursor = ''))

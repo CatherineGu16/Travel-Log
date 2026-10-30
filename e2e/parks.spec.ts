@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { openParks, openYou, setTripYear, toStep } from './helpers.ts'
+import { openAddTrip, openParks, openYou, setTripYear, toStep, tripForm } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -7,7 +7,7 @@ const DEST = /^Add (a|another) destination$/
 const nav = (page: Page, name: string) => page.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name }).filter({ visible: true }).click()
 
 async function saveYear(page: Page, year: string) {
-  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  const dialog = tripForm(page, 'Add trip')
   await toStep(dialog, 'Details')
   await setTripYear(dialog, year)
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
@@ -21,7 +21,7 @@ test('parks checklist: log a visit with hikes, then add more hikes', async ({ pa
 
   // "Log a visit" opens Add trip with the park filled in; hikes are added by name, with suggestions.
   await page.getByRole('listitem', { name: 'Zion' }).getByRole('button', { name: 'Log a visit' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  const dialog = tripForm(page, 'Add trip')
   await toStep(dialog, 'Route')
   await expect(dialog.getByText('Zion National Park', { exact: true })).toBeVisible()
   await toStep(dialog, 'Notes')
@@ -68,8 +68,8 @@ test('parks checklist: log a visit with hikes, then add more hikes', async ({ pa
 
 test('a town inside a park offers to link the trip to the park', async ({ page }) => {
   await page.goto('./')
-  await page.getByRole('button', { name: 'Add trip' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Add trip' })
+  await openAddTrip(page)
+  const dialog = tripForm(page, 'Add trip')
   await toStep(dialog, 'Route')
   await dialog.getByRole('combobox', { name: DEST }).fill('Yosemite Valley')
   await dialog.getByRole('option', { name: /^Yosemite Valley\s*CA$/ }).click()
