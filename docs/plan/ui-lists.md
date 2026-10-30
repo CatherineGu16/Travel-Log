@@ -9,7 +9,7 @@
 - **Who-went filter**: Family, Friends, other groups or people, same as the map. Filters are shared with the map
   and remembered per device, as in Watchlist.
 - **Search** across title, places, description, people, groups and tags.
-- **No travel-mode chip on rows** (here or on pin cards). Instead the Filter sheet has **Road
+- **No travel-mode chip on rows** (here or on pin cards). Instead the filter has **Road
   trip** (every leg a drive), **Flight** (any leg a flight) and **Cruise** (any leg a cruise).
 - Tapping a row opens the trip detail and highlights its route on the map.
 
@@ -32,12 +32,13 @@
 ## Trip detail
 - **In the Trips panel or sheet over the map** (see navigation-and-layout.md), under the
   breadcrumb; the big map draws the route.
-- Title, then dates, **how many days** and **roughly how far by each way of traveling** ("8 days ·
-  ~194 mi driven · ~1,200 mi flown", from the drawn lines). Who went, then **the stops** in order (each with its **day of the trip**
+- Title, then where it went and **roughly how far by each way of traveling** ("Zion · ~194 mi
+  driven · ~1,200 mi flown", from the drawn lines) in the heading. **When** (dates and how many
+  days), **Who went** ("No one added" when nobody), then **the stops** in order (each with its **day of the trip**
   ("Days 2–3") and own dates, its note, and "Also
   here" chips for every other visit to that place, which open those trips). How you traveled
   between them isn't listed here (it's on the map and in Edit). Below the stops, the trip's
   **notes**: hikes (each park opens its page), description, highlights, rating and tags (each shows
-  your trips with that tag). **Edit** next to each part opens the trip on that step (Who went →
-  Details, Stops → Route, Notes → Notes); "Add notes, a rating or tags" when there are none.
-  **Delete** with Undo, and Edit trip.
+  your trips with that tag). **Edit** next to each part opens the trip on that step (When and Who
+  went → Details, Stops → Route, Notes → Notes); "Add notes, a rating or tags" when there are none.
+  No Edit trip button. **Delete trip** (with Undo) is a quiet link at the end.

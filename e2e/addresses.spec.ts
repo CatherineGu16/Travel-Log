@@ -11,28 +11,35 @@ test('a trip’s details have their own address: reload keeps them open, Back cl
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(dialog).toBeHidden()
 
-  // After saving, the place's trips are open over the map (Trips › Moab).
-  const card = page.getByRole('region', { name: 'Moab trips' })
-  await card.getByRole('button', { name: /^Details of Moab/ }).click()
+  // Saved, the trip opens with its details, at its own address, under Trips.
   const detail = tripDetails(page, /^Moab( \d{4})?$/)
   await expect(detail).toBeVisible()
-  await expect(page).toHaveURL(/#\/trips\/at\/[^/]+\/[^/]+$/)
-  await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toHaveText(/^Trips\s*›\s*Moab\s*›\s*Moab/)
+  await expect(page).toHaveURL(/#\/trips\/[^/]+$/)
+  await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toHaveText(/^Trips\s*›\s*Moab/)
 
   const address = page.url()
   await page.reload()
   await expect(detail).toBeVisible()
   await page.goBack()
   await expect(detail).toBeHidden()
-  await expect(card).toBeVisible()
+  const search = page.getByRole('searchbox', { name: 'Search trips' })
 
-  // Opened straight from its address, the breadcrumb goes up a level.
+  // Opened straight from its address, the back button goes to all trips.
   await page.goto(address)
   await expect(detail).toBeVisible()
-  await page.getByRole('navigation', { name: 'Breadcrumb' }).getByRole('link', { name: 'Moab' }).click()
-  await expect(page).toHaveURL(/#\/trips\/at\/[^/]+$/)
-  await expect(card).toBeVisible()
+  await page.getByRole('link', { name: 'Back to Trips' }).click()
+  await expect(page).toHaveURL(/#\/trips$/)
   await expect(detail).toBeHidden()
+  await expect(search).toBeAttached()
+
+  // Clicking the bare map lets go of the trip, back to the list.
+  await page.goto(address)
+  await expect(detail).toBeVisible()
+  const map = page.locator('[data-testid="map"] canvas')
+  const box = (await map.boundingBox())!
+  await map.click({ position: { x: box.width * 0.85, y: 120 } })
+  await expect(detail).toBeHidden()
+  await expect(page).toHaveURL(/#\/$/)
 })
 
 test('phones: Trips is a sheet over the map, peeking until you tap or drag it up', async ({ page, isMobile }) => {

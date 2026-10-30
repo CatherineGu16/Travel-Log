@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { dateRange, openAddTrip, openDates, openPeople, openSettings, openTrips, openYou, pickDays, setTripYear, toStep, tripDetails, tripForm } from './helpers.ts'
+import { dateRange, openAddTrip, openDates, openPeople, openPlaceTrips, openSettings, openTrips, openYou, pickDays, setTripYear, toStep, tripDetails, tripForm } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -31,11 +31,10 @@ test('log a multi-stop family trip, see it on the map, and it survives a reload'
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(dialog).toBeHidden()
 
-  const card = page.getByRole('region', { name: 'Zion National Park trips' })
-  await expect(card).toBeVisible()
-  // The route follows the destinations in the order they were added.
-  await expect(card.getByRole('list', { name: 'Route' }).getByRole('listitem')).toHaveText([/Zion National Park/, /1\s*Springdale/, /2\s*Las Vegas/])
-  await expect(card.getByText('Mom')).toBeAttached()
+  // Saved, the trip opens with all its details; the stops follow the order they were added.
+  const detail = tripDetails(page, /^Zion/)
+  await expect(detail.getByRole('list', { name: 'Stops' }).getByRole('listitem')).toHaveText([/Zion National Park/, /1\s*Springdale/, /2\s*Las Vegas/])
+  await expect(detail.getByText('Mom')).toBeVisible()
   // Your numbers, on the You page.
   await openYou(page)
   const numbers = page.getByRole('region', { name: 'Your travel in numbers' })
@@ -62,12 +61,13 @@ test('a second trip to the same place stacks on its pin', async ({ page }) => {
     await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
     await expect(dialog).toBeHidden()
   }
-  const card = page.getByRole('region', { name: 'Moab trips' })
+  // Its pin now has two trips: a card for each, newest first.
+  await openPlaceTrips(page, /^Moab/)
   await expect(page.getByRole('complementary', { name: 'Trips panel' }).getByText('2 visits')).toBeVisible()
-  await expect(card.getByRole('radio')).toHaveText([/2024\s*Moab 2024/, /2019\s*Moab 2019/])
+  await expect(page.getByRole('region', { name: 'Moab trips' }).getByRole('listitem')).toHaveText([/^Moab 2024/, /^Moab 2019/])
 })
 
-test('picking a stacked date shows that trip’s route, and details show other visits', async ({ page }) => {
+test('a pin with two trips lists them as cards; a card shows its route and opens the trip', async ({ page }) => {
   await page.goto('./')
   const trips: [string, [string, RegExp][]][] = [
     ['2019', [['Green River, UT', /^Green River\s*UT$/]]],
@@ -85,20 +85,21 @@ test('picking a stacked date shows that trip’s route, and details show other v
     await expect(dialog).toBeHidden()
   }
 
-  const card = page.getByRole('region', { name: 'Moab trips' })
-  await expect(card.getByRole('radio', { name: /2024/ })).toBeChecked()
-  const route2024 = card.getByRole('list', { name: 'Route of Moab 2024' })
-  await expect(route2024).toContainText('Monticello')
-  await expect(route2024).toContainText('Blanding')
+  await openPlaceTrips(page, /^Moab/)
+  const cards = page.getByRole('region', { name: 'Moab trips' }).getByRole('listitem')
+  // The newest is on the map; each card shows its places in order.
+  await expect(cards.nth(0)).toContainText('On the map')
+  await expect(cards.nth(0)).toContainText(/Moab\s*›\s*1\s*Monticello\s*›\s*2\s*Blanding/)
+  await expect(cards.nth(1)).toContainText('Green River')
+  // Pointing at a card puts its route on the map.
+  await cards.nth(1).getByRole('button').hover()
+  await expect(cards.nth(1)).toContainText('On the map')
 
-  await card.getByRole('radio', { name: /2019/ }).click()
-  await expect(card.getByRole('radio', { name: /2019/ })).toBeChecked()
-  await expect(card.getByRole('list', { name: 'Route of Moab 2019' })).toContainText('Green River')
-  await expect(card.getByRole('list', { name: 'Route of Moab 2019' })).not.toContainText('Blanding')
-
-  await card.getByRole('button', { name: 'Details of Moab 2019' }).click()
+  // Tapping it opens the trip, with its details right there.
+  await cards.nth(1).getByRole('button').click()
   const detail = tripDetails(page, 'Moab 2019')
   await expect(detail.getByText('Main destination')).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toHaveText(/Trips\s*›\s*Moab\s*›\s*Moab 2019/)
   await detail.getByRole('button', { name: '2024' }).click()
   await expect(tripDetails(page, 'Moab 2024')).toBeVisible()
 })
@@ -254,8 +255,8 @@ test('shaping the route between two places bends the dotted line through your ta
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(dialog).toBeHidden()
 
-  // Saved with the trip.
-  await page.getByRole('region', { name: 'Zion National Park trips' }).getByRole('button', { name: /^Edit/ }).click()
+  // Saved with the trip, which opens with its details; its stops' Edit opens the Route step.
+  await tripDetails(page, /^Zion/).getByRole('button', { name: 'Edit the stops' }).click()
   const edit = tripForm(page, 'Edit trip')
   await toStep(edit, 'Route')
   await expect(edit.getByRole('button', { name: /^Shape the route from Zion/ })).toHaveText('Bends 1× · Edit')
@@ -286,7 +287,7 @@ test('notes, rating and tags are their own step and show on the trip', async ({ 
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(dialog).toBeHidden()
 
-  await page.getByRole('region', { name: 'Zion National Park trips' }).getByRole('button', { name: /Details/ }).click()
+  // Saved, the trip opens with all its details.
   const detail = tripDetails(page, /Zion/)
   await expect(detail).toContainText('Sunrise at Canyon Overlook')
   await expect(detail).toContainText('camping')
@@ -321,9 +322,8 @@ test('legs between stops: guessed from distance, changed with a tap, and filtera
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(dialog).toBeHidden()
 
-  // The pin card shows how you went between stops.
-  // The pin card lists just the places, not how you traveled between them.
-  const route = page.getByRole('region', { name: 'Los Angeles trips' }).getByRole('list', { name: /^Route/ })
+  // The trip's details list just the places, not how you traveled between them.
+  const route = tripDetails(page, /Los Angeles/).getByRole('list', { name: 'Stops' })
   await expect(route.getByRole('listitem')).toHaveText([/Los Angeles/, /Las Vegas/, /Seattle/])
   await expect(route).not.toContainText('Train')
 
@@ -331,10 +331,12 @@ test('legs between stops: guessed from distance, changed with a tap, and filtera
   await page.goto('./#/trips')
   const row = page.getByRole('button', { name: /Los Angeles/ })
   await expect(row).not.toContainText('Flight')
+  // The filter opens in place under the search; "Show N trips" folds it away.
   const filterBy = async (mode: RegExp) => {
     await page.getByRole('button', { name: /^Filter/ }).first().click()
-    await page.getByRole('dialog', { name: /Filter/ }).getByRole('button', { name: mode }).click()
-    await page.keyboard.press('Escape')
+    const filters = page.getByRole('region', { name: 'Filter trips' })
+    await filters.getByRole('button', { name: mode }).click()
+    await filters.getByRole('button', { name: /^Show \d+ trips?$/ }).click()
   }
   await filterBy(/Road trip/)
   await expect(row).toHaveCount(0)
@@ -385,15 +387,15 @@ test('a road trip from home with two main pins; changing home leaves it alone', 
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(dialog).toBeHidden()
 
-  // The pin card lists the places, without home.
-  const route = page.getByRole('region', { name: 'Las Vegas trips' }).getByRole('list', { name: /^Route/ })
+  // The trip's stops are the places, without home.
+  const route = tripDetails(page, /Las Vegas & Zion/).getByRole('list', { name: 'Stops' })
   await expect(route.getByRole('listitem')).toHaveText([/Las Vegas/, /Zion National Park/])
 
   // Every leg a drive, home included: a road trip.
   await page.goto('./#/trips')
   await page.getByRole('button', { name: /^Filter/ }).first().click()
-  await page.getByRole('dialog', { name: /Filter/ }).getByRole('button', { name: /Road trip/ }).click()
-  await page.keyboard.press('Escape')
+  await page.getByRole('region', { name: 'Filter trips' }).getByRole('button', { name: /Road trip/ }).click()
+  await page.getByRole('region', { name: 'Filter trips' }).getByRole('button', { name: /^Show \d+ trips?$/ }).click()
   await expect(page.getByRole('button', { name: /Las Vegas & Zion/ })).toHaveCount(1)
 
   // Moving home doesn't move this trip; new trips start at the new home.
@@ -403,18 +405,17 @@ test('a road trip from home with two main pins; changing home leaves it alone', 
   await expect(settings).toContainText('Trips can start and end at Denver')
   await openTrips(page)
   await page.getByRole('button', { name: /Las Vegas & Zion/ }).click()
-  // Phones: the pin card on the map; wider: the trip in the Trips panel.
-  const card = page.getByRole('region', { name: 'Las Vegas trips' }).or(tripDetails(page, /Las Vegas & Zion/))
+  const card = tripDetails(page, /Las Vegas & Zion/)
 
   // Editing: the trip shows its own start, not the new home, and can switch to it.
-  await card.getByRole('button', { name: /^Edit (trip|Las Vegas)/ }).click()
+  await card.getByRole('button', { name: 'Edit the stops' }).click()
   const edit = tripForm(page, 'Edit trip')
   await toStep(edit, 'Route')
   await expect(edit.getByLabel(/^Drive from Pasadena to Las Vegas/)).toBeVisible()
   await edit.getByRole('button', { name: 'Change where the trip started (Pasadena)' }).click()
   await edit.getByRole('button', { name: 'Use home (Denver)' }).click()
   await edit.getByRole('button', { name: 'Save' }).click()
-  await card.getByRole('button', { name: /^Edit (trip|Las Vegas)/ }).click()
+  await card.getByRole('button', { name: 'Edit the stops' }).click()
   await toStep(tripForm(page, 'Edit trip'), 'Route')
   await expect(tripForm(page, 'Edit trip').getByRole('button', { name: 'Change where the trip started (Denver)' })).toBeVisible()
 })
@@ -452,7 +453,7 @@ test('cities abroad: biggest first, narrowed by country, and grouped by country'
   await choosePlace(page, DEST, 'Porto, Portugal', /^Porto\s*Portugal$/)
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(dialog).toBeHidden()
-  await expect(page.getByRole('region', { name: 'Lisbon trips' })).toBeVisible()
+  await expect(tripDetails(page, /^Lisbon/)).toBeVisible()
 
   await page.goto('./#/trips')
   await page.getByRole('combobox', { name: 'Group by' }).selectOption('state')
@@ -494,8 +495,7 @@ test('stop dates from a strip of the trip days, shown as day numbers; details li
   await expect(page.getByRole('status')).toContainText('🏅 Bronze · Park Hopper')
   await expect(page.getByRole('status').getByRole('button', { name: 'Undo' })).toBeVisible()
 
-  // Details: how long, a map, each stop's days, and Edit on each part.
-  await page.getByRole('region', { name: /trips$/ }).getByRole('button', { name: 'Details' }).click()
+  // Saved, the trip opens with its details: how long, each stop's days, and Edit on each part.
   const detail = tripDetails(page, /Zion/)
   // How long it was is under the trip's title, at the top of the Trips panel or sheet.
   await expect(page.getByRole('complementary', { name: 'Trips panel' })).toContainText('6 days')
@@ -577,7 +577,6 @@ test('tags you have used before are chips to add; who went in the details is jus
     await expect(dialog).toBeHidden()
   }
 
-  await page.getByRole('region', { name: 'Chicago trips' }).getByRole('button', { name: /^Details/ }).click()
   const detail = tripDetails(page, 'Second')
   await expect(detail.getByRole('list', { name: 'Tags' })).toHaveText(/road food/)
   // Who went lists the people, not the group they're in.

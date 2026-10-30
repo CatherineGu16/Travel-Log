@@ -47,22 +47,29 @@
 The map page always has Trips over it, showing one of three views, with a **breadcrumb** on top
 (`Trips › Moab › Moab 2021`; each step back is a link):
 
-- **The list** (`TripList.tsx`): search, group, sort. The map's Filter applies to it.
-- **A place** (a map pin, or Most visited): `Trips › Moab`, its trips as stacked cards
-  (`PinCard.tsx`). The highlighted card's route is on the map; click another to switch, Details to
-  open it. Close goes back to the list.
-- **A trip** (`TripDetail.tsx`): the details, with its route drawn on the big map (no small map).
-  Edit opens the trip form over it; after saving, the trip stays open. Saving from anywhere else
-  opens the trip's place with it on the map. Delete goes back up a level.
+- **The list** (`TripList.tsx`): search, filter, group, sort.
+- **A pin** (or a place in Most visited): with **one trip**, that trip opens straight away
+  (`Trips › Moab 2023`). With **more than one**, `Trips › Moab` lists them as cards
+  (`PinCard.tsx`), newest first, each with its dates, places in order and who went; pointing at a
+  card puts its route on the map, tapping it opens the trip (`Trips › Moab › Moab 2021`).
+- **A trip** (`TripDetail.tsx`): every detail right away (no Details button), with its route on
+  the big map: When, Who went, Stops, Notes, each with its own Edit (which opens the form on that
+  step, so there's no Edit trip button), and a quiet "Delete trip" at the end (back up a level,
+  with Undo). Saving a trip opens it.
+- **Getting back**: below the list, a ‹ button by the title goes up a level; the breadcrumb's links
+  too. **Clicking the bare map** lets go of the place or trip and goes back to the list (on a phone
+  with nothing open, it lowers the sheet).
 
 **Heading** (the same in every view, on the panel and the sheet): where you came from as small
 links (Trips › Moab), then where you are as the title, with one line under it: "3 trips", "2 visits
-· UT", or the trip's dates, days and distances (`tripSummary` in `stats.ts`). It's one breadcrumb,
+· UT", or where a trip went and how far (`tripWhere` in `stats.ts`; its dates are under When). It's one breadcrumb,
 read as "Trips › Moab › Moab 2021". The views below it don't repeat the title.
 
 **The list's controls**: search (with an icon), then Filter, Group and Sort as small chips, kept at
-the top as the list scrolls on wider screens. Group names are small labels; trips are plain rows
-with a ›. While the list is in view, the map shows only the Parks button (Filter is in the list).
+the top as the list scrolls on wider screens. **Filter** opens its options in place, right under
+them (`FilterPanel.tsx`: with, people, how you traveled, year, tag; Clear all; "Show N trips" folds
+it away), not as a panel of its own. Group names are small labels; trips are plain rows with a ›.
+The map has no Filter button, just Parks.
 
 Where it sits (`TripsPanel.tsx`):
 

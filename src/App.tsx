@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FilterButton, FilterSheet } from './components/FilterSheet.tsx'
+import { FilterButton, FilterPanel } from './components/FilterPanel.tsx'
 import { TabBar, TopBar } from './components/Navigation.tsx'
 import { ParkSheet } from './components/ParkSheet.tsx'
 import { ParksLayerControl } from './components/ParksLayerControl.tsx'
@@ -19,7 +19,7 @@ import { placeAt } from './lib/gazetteer.ts'
 import { parkInput, type ParkInfo } from './lib/placeSearch.ts'
 import { legMemory } from './lib/legs.ts'
 import { addBend, routeOf, type RoutePoint } from './lib/route.ts'
-import { tripSummary } from './lib/stats.ts'
+import { tripWhere } from './lib/stats.ts'
 import { regionName } from './lib/states.ts'
 import { live, type PlaceInput } from './lib/travelActions.ts'
 import type { LngLat, Place, Trip } from './lib/types.ts'
@@ -156,12 +156,21 @@ function Shell() {
   }
   /** A place from Most visited: its trips open over the map, and the map moved there. */
   const openPlace = (place: Place) => {
-    navigate(placeHref(place.id))
+    openPin(place.id)
     setFocus({ lng: place.lng, lat: place.lat, token: ++focusToken.current })
   }
-  /** A map pin opens its place's trips; tapping the bare map on a phone lowers the sheet. */
+  /** A place's trips: straight to the trip when there's only one, otherwise a card per visit. */
+  const openPin = (placeId: string) => {
+    const only = pins.find((p) => p.place.id === placeId)?.trips
+    navigate(only?.length === 1 ? tripHref(only[0].id) : placeHref(placeId))
+  }
+  /**
+   * A map pin opens its trips. Tapping the bare map lets go of the place or trip you were on, back
+   * to the list (on a phone with nothing open, it lowers the sheet).
+   */
   const choosePin = (placeId: string | null) => {
-    if (placeId) navigate(placeHref(placeId))
+    if (placeId) openPin(placeId)
+    else if (routePlaceId || detailTrip) navigate(pageHref('map'))
     else if (phone && sheetSize !== 'peek') sizeSheet('peek')
   }
 
@@ -222,7 +231,7 @@ function Shell() {
   // The line under the title: how many trips, a place's visits and where it is, or a trip's dates and distances.
   const tripCount = live(shown.trips).length
   const subtitle = detailTrip
-    ? tripSummary(detailTrip, data)
+    ? tripWhere(detailTrip, data)
     : placePin
       ? [placePin.trips.length === 1 ? '1 visit' : `${placePin.trips.length} visits`, placePin.place.countryCode === 'US' ? placePin.place.regionCode?.replace(/^US-/, '') : regionName(null, placePin.place.countryCode)]
           .filter(Boolean)
@@ -240,10 +249,7 @@ function Shell() {
         { label: form.trip ? 'Edit trip' : 'Add trip' },
       ]
     : []
-  // The list shows the Filter by its search; the map shows it only when the list isn't in view.
-  const listInView = !routePlaceId && !detailTrip && (phone ? sheetSize !== 'peek' : panelOpen && !formInPanel)
 
-  const filterButton = <FilterButton filter={filter} onClick={() => setFilterOpen(true)} />
   const tripForm = form && (
     <TripForm
       key={form.trip?.id ?? 'new'}
@@ -267,12 +273,12 @@ function Shell() {
         setForm(null)
         setLeaveTo(null)
       }}
-      onSaved={(mainPlaceId, tripId) => {
+      onSaved={(_mainPlaceId, tripId) => {
         setForm(null)
         setLeaveTo(null)
         setSelectedTripId(tripId)
         // The trip stays open if it was; otherwise its place's trips open, with it on the map.
-        if (detailTripId !== tripId) navigate(placeHref(mainPlaceId))
+        if (detailTripId !== tripId) navigate(tripHref(tripId))
         focusTrip(tripId)
       }}
     />
@@ -297,16 +303,24 @@ function Shell() {
         pin={placePin}
         trip={placeTrip}
         data={data}
-        onSelectTrip={setSelectedTripId}
-        onDetails={(trip) => navigate(placeHref(placePin.place.id, trip.id))}
-        onEdit={(trip) => setForm({ trip, initialMain: null })}
+        onPreview={setSelectedTripId}
+        onOpen={(trip) => navigate(placeHref(placePin.place.id, trip.id))}
       />
     ) : (
       <p className="p-4 text-sm text-muted">No trips here match the filter.</p>
     )
   ) : (
     <div className="min-h-0 flex-1 overflow-y-auto p-3">
-      <TripList data={shown} toolbar={<FilterButton compact filter={filter} onClick={() => setFilterOpen(true)} />} onOpenTrip={showOnMap} />
+      <TripList
+        data={shown}
+        toolbar={<FilterButton compact filter={filter} expanded={filterOpen} onClick={() => setFilterOpen(!filterOpen)} />}
+        filters={
+          filterOpen && (
+            <FilterPanel onClose={() => setFilterOpen(false)} data={data} filter={filter} onChange={setFilter} resultCount={live(shown.trips).length} />
+          )
+        }
+        onOpenTrip={showOnMap}
+      />
     </div>
   )
 
@@ -450,7 +464,6 @@ function Shell() {
           <>
             <ShadeLegend show={perRegion.size > 0 || pins.length > 0} />
             <div className="absolute top-3 left-3 z-10 flex gap-2 sm:right-3 sm:left-auto">
-              {!listInView && filterButton}
               <ParksLayerControl mode={parksMode} onChange={setParksMode} visited={visitedParks.size} total={parks.length} />
             </div>
           </>
@@ -492,14 +505,6 @@ function Shell() {
 
       {phone && tripForm}
 
-      <FilterSheet
-        open={filterOpen}
-        onClose={() => setFilterOpen(false)}
-        data={data}
-        filter={filter}
-        onChange={setFilter}
-        resultCount={live(shown.trips).length}
-      />
     </div>
   )
 }

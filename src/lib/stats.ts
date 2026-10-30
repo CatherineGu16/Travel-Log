@@ -1,6 +1,6 @@
 import { isState, parksVisited, statesVisited, tripPlaceIds, tripsPerRegion } from './derive.ts'
 import { formatDistance, legMemory } from './legs.ts'
-import { comparePartialDates, formatDateRange, tripDays, yearOf } from './partialDate.ts'
+import { comparePartialDates, tripDays, yearOf } from './partialDate.ts'
 import { distancesByMode, routeOf } from './route.ts'
 import { countryName, regionName } from './states.ts'
 import type { LegMode, TravelData, Trip, TripHike } from './types.ts'
@@ -77,13 +77,20 @@ export function hikesLogged(data: TravelData): { hike: TripHike; trip: Trip }[] 
 /** "820 mi driven": how each way of traveling reads in a trip's summary. */
 const MODE_WORDS: Record<LegMode, string> = { drive: 'driven', flight: 'flown', train: 'by train', cruise: 'cruising', boat: 'by boat', walk: 'walked', unknown: '' }
 
-/** A trip in one line: "May 1 – 6, 2024 · 6 days · ~820 mi driven · ~1,200 mi flown" (biggest distance first). */
-export function tripSummary(trip: Trip, data: TravelData): string {
+/** How far a trip went each way, biggest first: ["~820 mi driven", "~1,200 mi flown"]. */
+function tripDistances(trip: Trip, data: TravelData): string[] {
   const route = routeOf(trip, data.places, { home: data.home, memory: legMemory(data) })
-  const days = tripDays(trip.startDate, trip.endDate)
-  const distances = Object.entries(distancesByMode(route))
+  return Object.entries(distancesByMode(route))
     .filter(([mode, m]) => mode !== 'unknown' && m >= 1609)
     .sort((a, b) => b[1] - a[1])
     .map(([mode, m]) => `~${formatDistance(m)} ${MODE_WORDS[mode as LegMode]}`)
-  return [formatDateRange(trip.startDate, trip.endDate, trip.approximate), days && (days === 1 ? '1 day' : `${days} days`), ...distances].filter(Boolean).join(' · ')
+}
+
+/** Where a trip went and how far, for under its title (its dates are in its details): "Zion & Bryce Canyon · ~820 mi driven". */
+export function tripWhere(trip: Trip, data: TravelData): string {
+  const mains = trip.destinations
+    .filter((d) => d.isMain)
+    .map((d) => data.places.find((p) => p.id === d.placeId)?.name)
+    .filter((n): n is string => !!n)
+  return [mains.join(' & '), ...tripDistances(trip, data)].filter(Boolean).join(' · ')
 }

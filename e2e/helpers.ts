@@ -57,6 +57,12 @@ export async function openAddTrip(page: Page) {
   return tripForm(page, 'Add trip')
 }
 
+/** A place's trips over the map (its pin, opened from You › Most visited): one trip opens straight away, several as cards. */
+export async function openPlaceTrips(page: Page, name: RegExp) {
+  await openYou(page)
+  await page.getByRole('region', { name: 'Most visited' }).getByRole('button', { name }).click()
+}
+
 /** Opens the list of trips over the map (the panel on wider screens, the sheet on phones). */
 export const openTrips = (page: Page) => page.goto('./#/trips')
 

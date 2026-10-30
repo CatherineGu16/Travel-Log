@@ -57,9 +57,11 @@ test('trips list: search, group, filter by who went, and open a trip on the map'
   await expect(page.getByRole('region', { name: 'Illinois' }).getByRole('button')).toHaveCount(1)
 
   // Filtering by a group applies to the list and the map, and is remembered.
+  // The filter opens in place under the search.
   await page.getByRole('button', { name: 'Filter' }).first().click()
-  await page.getByRole('dialog', { name: 'Filter trips' }).getByRole('button', { name: 'Friends' }).click()
-  await page.getByRole('dialog', { name: 'Filter trips' }).getByRole('button', { name: 'Show 1 trip' }).click()
+  await page.getByRole('region', { name: 'Filter trips' }).getByRole('button', { name: 'Friends' }).click()
+  await page.getByRole('region', { name: 'Filter trips' }).getByRole('button', { name: 'Show 1 trip' }).click()
+  await expect(page.getByRole('region', { name: 'Filter trips' })).toBeHidden()
   await expect(page.getByRole('main').getByRole('button', { name: /Moab|Chicago/ })).toHaveText([/Moab 2024/])
   await page.reload()
   await expect(page.getByRole('button', { name: 'Filter, 1 on' }).first()).toBeVisible()
@@ -96,12 +98,10 @@ test('the You page: numbers, achievements, and most visited places that open on 
   await expect(most).toHaveText([/Moab\s*2 visits/, /Arches National Park\s*1 visit/])
   await page.getByRole('region', { name: 'Most visited' }).getByRole('button', { name: /^Moab/ }).click()
 
-  // It opens with its pin selected, newest visit first; the other is a tap away.
-  const card = page.getByRole('region', { name: 'Moab trips' })
+  // It opens on its trips, a card each, the newest on the map; a card opens its trip.
+  const cards = page.getByRole('region', { name: 'Moab trips' }).getByRole('listitem')
   await expect(page.getByRole('complementary', { name: 'Trips panel' })).toContainText('2 visits')
-  const visits = card.getByRole('radiogroup', { name: 'Visits' })
-  await expect(visits.getByRole('radio', { checked: true })).toHaveText(/2021/)
-  await visits.getByRole('radio', { name: /2019/ }).click()
-  await expect(visits.getByRole('radio', { checked: true })).toHaveText(/2019/)
-  await expect(card.getByRole('heading', { name: 'Moab 2019' })).toBeVisible()
+  await expect(cards.nth(0)).toContainText(/Moab 2021.*On the map/)
+  await cards.nth(1).getByRole('button', { name: /^Moab 2019/ }).click()
+  await expect(tripDetails(page, 'Moab 2019')).toBeVisible()
 })

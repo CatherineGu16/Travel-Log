@@ -1,188 +1,93 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useMemo } from 'react'
 import type { Pin } from '../lib/derive.ts'
 import { legMemory } from '../lib/legs.ts'
 import { formatDateRange } from '../lib/partialDate.ts'
-import { routeOf, type RoutePoint } from '../lib/route.ts'
-import { deleteTrip } from '../lib/travelActions.ts'
+import { routeOf } from '../lib/route.ts'
 import type { TravelData, Trip } from '../lib/types.ts'
-import { useStore } from '../store/useTravel.ts'
+import { PRESSABLE_CARD } from './cards.ts'
 import { PinGlyph } from './PlacePicker.tsx'
-import { useToast } from './toastContext.ts'
 import { WhoWent } from './WhoWent.tsx'
 
 /**
- * A place's trips (a map pin), filling the Trips panel or sheet (Trips › Moab): one card per visit,
- * stacked. The highlighted one is the trip whose route the map draws; Details opens it.
+ * A place's trips (a pin visited more than once), filling the Trips panel or sheet (Trips › Moab):
+ * a card per visit, newest first. Pointing at a card (or focusing it) draws its route on the map;
+ * tapping it opens the trip with all its details.
  */
 export function PinCard({
   pin,
   trip,
   data,
-  onSelectTrip,
-  onDetails,
-  onEdit,
+  onPreview,
+  onOpen,
 }: {
   pin: Pin
+  /** The visit whose route the map shows. */
   trip: Trip
   data: TravelData
-  onSelectTrip: (tripId: string) => void
-  onDetails: (trip: Trip) => void
-  onEdit: (trip: Trip) => void
+  onPreview: (tripId: string) => void
+  onOpen: (trip: Trip) => void
 }) {
-  const store = useStore()
-  const toast = useToast()
   const routes = useMemo(() => {
     const memory = legMemory(data)
     return new Map(pin.trips.map((t) => [t.id, routeOf(t, data.places, { home: data.home, memory })]))
   }, [pin.trips, data])
 
-  const remove = (t: Trip) => {
-    const undoId = store.apply((d, c) => deleteTrip(d, c, t.id), `Deleted ${t.title}`)
-    if (undoId !== null) toast(`Deleted ${t.title}`, [{ label: 'Undo', onClick: () => store.undo(undoId) }])
-  }
-  // This place's own dates on a trip, when you gave them.
-  const datesHere = (t: Trip) => {
-    const here = t.destinations.find((d) => d.placeId === pin.place.id)
-    return here?.startDate ? formatDateRange(here.startDate, here.endDate) : formatDateRange(t.startDate, t.endDate, t.approximate)
-  }
-  const summary = (t: Trip, dated = false) => (
-    <TripSummary
-      trip={t}
-      route={routes.get(t.id) ?? []}
-      data={data}
-      // In the stack, the card's top line already shows the dates; repeat the trip's only if they differ.
-      hideDates={dated && datesHere(t) === formatDateRange(t.startDate, t.endDate, t.approximate)}
-      onDetails={onDetails}
-      onEdit={onEdit}
-      onDelete={remove}
-    />
-  )
-  const many = pin.trips.length > 1
-
   return (
-    <section
-      aria-label={`${pin.place.name} trips`}
-      className="flex min-h-0 flex-1 flex-col"
-    >
-      {many ? (
-        // Every trip as its own card, in a column that scrolls; click a card to show its route.
-        <Stack trips={pin.trips} current={trip} onSelect={onSelectTrip} label={datesHere} card={(t) => summary(t, true)} />
-      ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto">{summary(trip)}</div>
-      )}
-    </section>
-  )
-}
-
-/**
- * The trips at a place, one card each, in a column that scrolls. Each card's date line picks it
- * (or click anywhere on the card); the picked one is highlighted and kept in view.
- */
-function Stack({
-  trips,
-  current,
-  onSelect,
-  label,
-  card,
-}: {
-  trips: Trip[]
-  current: Trip
-  onSelect: (tripId: string) => void
-  label: (t: Trip) => string
-  card: (t: Trip) => React.ReactNode
-}) {
-  const column = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    column.current?.querySelector('[aria-checked="true"]')?.closest('[data-card]')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-  }, [current.id])
-  return (
-    <div ref={column} role="radiogroup" aria-label="Visits" className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto bg-bg p-2">
-      {trips.map((t) => {
-        const on = t.id === current.id
-        return (
-          <div
-            key={t.id}
-            data-card
-            onClick={() => !on && onSelect(t.id)}
-            className={`shrink-0 overflow-hidden rounded-xl border bg-surface transition-shadow ${on ? 'border-primary shadow-[0_0_0_2px_var(--primary)]' : 'cursor-pointer border-line hover:border-muted'}`}
-          >
-            <button
-              role="radio"
-              aria-checked={on}
-              onClick={(e) => {
-                e.stopPropagation()
-                onSelect(t.id)
-              }}
-              className="flex w-full items-center gap-2 border-b border-line px-4 pt-2.5 pb-2 text-left text-xs"
-            >
-              <span className={`tabular-nums ${on ? 'font-bold text-primary' : 'font-bold text-muted'}`}>{label(t)}</span>
-              <span className="sr-only">{t.title}</span>
-              {on && <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 font-bold text-primary">On the map</span>}
-            </button>
-            {card(t)}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-/** One trip on the pin card: title, dates, the places in order, who went, and what you can do. */
-function TripSummary({
-  trip,
-  route,
-  data,
-  hideDates = false,
-  onDetails,
-  onEdit,
-  onDelete,
-}: {
-  trip: Trip
-  route: RoutePoint[]
-  data: TravelData
-  hideDates?: boolean
-  onDetails: (trip: Trip) => void
-  onEdit: (trip: Trip) => void
-  onDelete: (trip: Trip) => void
-}) {
-  // Just the places you went, in order: how you traveled and the way from home are on the map.
-  const places = route.filter((r) => r.role !== 'home')
-  return (
-    <div className="px-4 py-3">
-      <h3 className="truncate font-bold">{trip.title}</h3>
-      {!hideDates && <p className="text-sm text-muted">{formatDateRange(trip.startDate, trip.endDate, trip.approximate)}</p>}
-      {places.length > 1 && (
-        <ol aria-label={`Route of ${trip.title}`} className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
-          {places.map((r, i) => (
-            <li key={r.place.id + i} className="flex items-center gap-1.5">
-              {i > 0 && (
-                <span aria-hidden className="text-muted">
-                  ›
+    <section aria-label={`${pin.place.name} trips`} className="flex min-h-0 flex-1 flex-col">
+      <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3">
+        {pin.trips.map((t) => {
+          const shown = t.id === trip.id
+          // Just the places you went, in order: how you traveled and the way from home are on the map.
+          const places = (routes.get(t.id) ?? []).filter((r) => r.role !== 'home')
+          const here = t.destinations.find((d) => d.placeId === pin.place.id)
+          return (
+            <li key={t.id}>
+              <button
+                onClick={() => onOpen(t)}
+                onMouseEnter={() => onPreview(t.id)}
+                onFocus={() => onPreview(t.id)}
+                aria-label={`${t.title}, ${formatDateRange(t.startDate, t.endDate, t.approximate)}`}
+                className={`${PRESSABLE_CARD} flex w-full items-start gap-3 p-3 ${shown ? 'border-primary/60' : ''}`}
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-baseline gap-2">
+                    <span className="min-w-0 flex-1 truncate font-bold">{t.title}</span>
+                    {shown && <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">On the map</span>}
+                  </span>
+                  <span className="block text-sm text-muted">
+                    {here?.startDate ? formatDateRange(here.startDate, here.endDate) : formatDateRange(t.startDate, t.endDate, t.approximate)}
+                  </span>
+                  {places.length > 1 && (
+                    <span className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
+                      {places.map((r, i) => (
+                        <span key={r.place.id + i} className="flex items-center gap-1.5">
+                          {i > 0 && (
+                            <span aria-hidden className="text-muted">
+                              ›
+                            </span>
+                          )}
+                          {r.number === null ? (
+                            <PinGlyph park={!!r.place.parkId} className="size-4" />
+                          ) : (
+                            <span className="grid size-5 place-items-center rounded-full bg-[var(--route)] text-[0.7rem] font-bold text-[var(--route-text)]">{r.number}</span>
+                          )}
+                          <span className={r.role === 'main' ? 'font-bold' : ''}>{r.place.name}</span>
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                  <span className="mt-2 block">
+                    <WhoWent trip={t} data={data} />
+                  </span>
                 </span>
-              )}
-              {r.number === null ? (
-                <PinGlyph park={!!r.place.parkId} className="size-4" />
-              ) : (
-                <span className="grid size-5 place-items-center rounded-full bg-[var(--route)] text-[0.7rem] font-bold text-[var(--route-text)]">{r.number}</span>
-              )}
-              <span className={r.role === 'main' ? 'font-bold' : ''}>{r.place.name}</span>
+                <svg viewBox="0 0 20 20" className="mt-1 size-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden>
+                  <path d="m8 5 5 5-5 5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
             </li>
-          ))}
-        </ol>
-      )}
-      <div className="mt-3 flex items-center gap-1">
-        <WhoWent trip={trip} data={data} />
-        <span className="ml-auto" />
-        <button onClick={() => onDetails(trip)} aria-label={`Details of ${trip.title}`} className="min-h-10 rounded-lg px-3 text-sm font-bold hover:bg-raised">
-          Details
-        </button>
-        <button onClick={() => onEdit(trip)} aria-label={`Edit ${trip.title}`} className="min-h-10 rounded-lg px-3 text-sm font-bold text-primary hover:bg-raised">
-          Edit
-        </button>
-        <button onClick={() => onDelete(trip)} aria-label={`Delete ${trip.title}`} className="min-h-10 rounded-lg px-3 text-sm text-muted hover:bg-raised hover:text-danger">
-          Delete
-        </button>
-      </div>
-    </div>
+          )
+        })}
+      </ul>
+    </section>
   )
 }

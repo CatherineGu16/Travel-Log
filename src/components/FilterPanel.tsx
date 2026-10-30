@@ -4,20 +4,19 @@ import { activeFilterCount, filterOptions, NO_FILTER, type TripFilter } from '..
 import type { TravelData } from '../lib/types.ts'
 import { Avatar } from './Avatar.tsx'
 import { GroupIcon } from './PeoplePicker.tsx'
-import { Sheet } from './Sheet.tsx'
 import { MODE_FILTERS } from '../lib/legs.ts'
 
-
-/** The filters shared by the map and the lists. Changes apply as you tap. */
-export function FilterSheet({
-  open,
+/**
+ * The filters shared by the map and the lists, opening in place under the trip list's search (not
+ * a panel of its own). Changes apply as you tap; "Show N trips" folds it away.
+ */
+export function FilterPanel({
   onClose,
   data,
   filter,
   onChange,
   resultCount,
 }: {
-  open: boolean
   onClose: () => void
   data: TravelData
   filter: TripFilter
@@ -31,29 +30,8 @@ export function FilterSheet({
   const chip = (on: boolean) => `min-h-9 rounded-full border px-3 text-sm ${on ? 'border-primary bg-primary text-on-primary font-bold' : 'border-line hover:bg-raised'}`
 
   return (
-    <Sheet
-      swipeToClose
-      open={open}
-      onOpenChange={(o) => !o && onClose()}
-      title="Filter trips"
-      description="Applies to the map and the lists."
-      footer={
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={activeFilterCount(filter) === 0}
-            onClick={() => onChange(NO_FILTER)}
-            className="min-h-11 rounded-lg px-3 font-bold text-muted hover:text-fg disabled:opacity-40"
-          >
-            Clear all
-          </button>
-          <button type="button" onClick={onClose} className="ml-auto min-h-11 rounded-lg bg-primary px-5 font-bold text-on-primary">
-            Show {resultCount} {resultCount === 1 ? 'trip' : 'trips'}
-          </button>
-        </div>
-      }
-    >
-      <div className="flex flex-col gap-6">
+    <section aria-label="Filter trips" className="-mx-3 border-b border-line bg-bg/60 px-3 py-3">
+      <div className="flex flex-col gap-4">
         <fieldset>
           <legend className="mb-2 text-sm font-bold">With</legend>
           <div className="flex flex-wrap gap-1.5">
@@ -134,18 +112,32 @@ export function FilterSheet({
             </div>
           </fieldset>
         )}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={activeFilterCount(filter) === 0}
+            onClick={() => onChange(NO_FILTER)}
+            className="min-h-10 rounded-lg px-3 text-sm font-bold text-muted hover:text-fg disabled:opacity-40"
+          >
+            Clear all
+          </button>
+          <button type="button" onClick={onClose} className="ml-auto min-h-10 rounded-lg bg-primary px-4 text-sm font-bold text-on-primary">
+            Show {resultCount} {resultCount === 1 ? 'trip' : 'trips'}
+          </button>
+        </div>
       </div>
-    </Sheet>
+    </section>
   )
 }
 
 /** A button that opens the filters and shows how many are on. */
-export function FilterButton({ filter, onClick, compact = false }: { filter: TripFilter; onClick: () => void; compact?: boolean }) {
+export function FilterButton({ filter, onClick, compact = false, expanded }: { filter: TripFilter; onClick: () => void; compact?: boolean; expanded?: boolean }) {
   const n = activeFilterCount(filter)
   return (
     <button
       onClick={onClick}
       aria-label={n ? `Filter, ${n} on` : 'Filter'}
+      aria-expanded={expanded}
       className={`flex items-center gap-1.5 rounded-full border px-3 text-sm font-bold ${compact ? 'h-9' : 'min-h-10 shadow-sm'} ${n ? 'border-primary bg-primary text-on-primary' : 'border-line bg-surface text-fg hover:bg-raised'}`}
     >
       <svg viewBox="0 0 24 24" className="size-4" aria-hidden>

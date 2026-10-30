@@ -23,7 +23,18 @@ const SORTS: { id: TripSort; label: string }[] = [
  * Every trip in a plain list: search, filter (`toolbar`), group and sort (kept in view as the list
  * scrolls on wider screens; the phone's sheet is too short for that). Uses the same filters as the map.
  */
-export function TripList({ data, toolbar, onOpenTrip }: { data: TravelData; toolbar?: React.ReactNode; onOpenTrip: (trip: Trip) => void }) {
+export function TripList({
+  data,
+  toolbar,
+  filters,
+  onOpenTrip,
+}: {
+  data: TravelData
+  toolbar?: React.ReactNode
+  /** The filter options, when open: under the search, scrolling with the list. */
+  filters?: React.ReactNode
+  onOpenTrip: (trip: Trip) => void
+}) {
   const [query, setQuery] = useState('')
   const q = useDeferredValue(query)
   const [grouping, setGrouping] = usePersistentState<TripGrouping>('travel.trips.group', 'year', (v) =>
@@ -57,6 +68,7 @@ export function TripList({ data, toolbar, onOpenTrip }: { data: TravelData; tool
           <Select compact label="Sort" value={sort} options={SORTS} onChange={setSort} />
         </div>
       </div>
+      {filters}
 
       {groups.length === 0 ? (
         <Empty>{live(data.trips).length || query ? 'No trips match.' : 'No trips yet. Add one with “Add trip”.'}</Empty>

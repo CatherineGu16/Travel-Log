@@ -41,7 +41,7 @@ formats are documented in `docs/plan/data.md` and the loaders in `src/lib/gazett
   `followTraveledBends`, `distancesByMode`, bend helpers.
 - `derive.ts`: pins, visits, parks/states visited, shading. `filters.ts`: filter, search, grouping.
 - `achievements.ts`: tiered achievements (`ACHIEVEMENTS`, `achievementStatus`, `newlyEarned`),
-  worked out from trips, never stored. `stats.ts`: totals and the stat lists for the You page, `tripSummary` (a trip's dates · days · distances).
+  worked out from trips, never stored. `stats.ts`: totals and the stat lists for the You page, `tripWhere` (a trip's main places · distances).
 - `placeSearch.ts` (offline search ranking, country narrowing), `gazetteer.ts` (lazy data loaders,
   naming a dropped pin), `onlineSearch.ts` (Photon, Detailed map only), `partialDate.ts`
   (YYYY / YYYY-MM / YYYY-MM-DD, day numbers), `geo.ts`, `states.ts`.
@@ -61,12 +61,12 @@ formats are documented in `docs/plan/data.md` and the loaders in `src/lib/gazett
   strip), `LegRow.tsx` + `timeline.ts`, `PeoplePicker.tsx` (who went), `TagsField.tsx`,
   `PlacePicker.tsx`, `DateRangeField.tsx`.
 - `TripsPanel.tsx` (Trips over the map: `TripsPanel` on wider screens with its edge tab, `TripsSheet` on
-  phones; the heading: breadcrumb, title, subtitle), `TripList.tsx` (the list), `PinCard.tsx` (a place's trips, stacked),
+  phones; the heading: breadcrumb, title, subtitle), `TripList.tsx` (the list), `PinCard.tsx` (a pin's trips as cards),
   `TripDetail.tsx` (a trip),
   `ParkSheet.tsx`, `YouPage.tsx` (You: profile card, section menu/tabs, swipe, stat and
   achievement panels) with its sections `YouSections.tsx` (Profile, Achievements, `StatList`,
   `AchievementDetail`), `ParksSection.tsx` (the 64-park checklist), `PeoplePanel.tsx`
-  (`PersonEditor` also edits your profile), `Settings.tsx` (+ panels, Home), `FilterSheet.tsx`.
+  (`PersonEditor` also edits your profile), `Settings.tsx` (+ panels, Home), `FilterPanel.tsx` (the filter, opening in the trip list).
 - `Navigation.tsx` (`TopBar`, phone `TabBar`), `cards.ts` (pressable vs flat card classes),
   `useAchievements.ts`.
 - `Sheet.tsx`: every panel (props `tall`, `full`, `swipeToClose`, `toolbar`, `footer`).

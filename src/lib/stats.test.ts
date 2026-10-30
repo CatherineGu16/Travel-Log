@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hikesLogged, tripsBy, tripsByArea } from './stats.ts'
+import { hikesLogged, tripsBy, tripsByArea, tripWhere } from './stats.ts'
 import { emptyData, saveTrip } from './travelActions.ts'
 import type { EditContext, TravelData } from './types.ts'
 import { tripInput } from '../test/tripInput.ts'
@@ -43,5 +43,13 @@ describe('stat lists', () => {
 
   it('lists hikes newest first, with their trip', () => {
     expect(hikesLogged(data()).map((h) => [h.hike.name, h.trip.title])).toEqual([['Angels Landing', 'Utah']])
+  })
+})
+
+describe('tripWhere', () => {
+  it('names the main places and how far each way of traveling went', () => {
+    const d = data()
+    expect(tripWhere(d.trips.find((t) => t.title === 'Lisbon')!, d)).toBe('Lisbon')
+    expect(tripWhere(d.trips.find((t) => t.title === 'Utah')!, d)).toMatch(/^Zion National Park · ~\d+ mi driven$/)
   })
 })

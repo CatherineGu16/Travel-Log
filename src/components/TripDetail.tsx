@@ -1,6 +1,6 @@
 import { visitsTo } from '../lib/derive.ts'
 import { PARKS } from '../lib/gazetteer.ts'
-import { dayLabel, formatDateRange } from '../lib/partialDate.ts'
+import { dayLabel, formatDateRange, tripDays } from '../lib/partialDate.ts'
 import { deleteTrip } from '../lib/travelActions.ts'
 import type { TravelData, Trip } from '../lib/types.ts'
 import { useStore } from '../store/useTravel.ts'
@@ -13,9 +13,9 @@ export type TripStep = 'Details' | 'Route' | 'Notes'
 
 /**
  * Everything about one trip, in the Trips panel or sheet over the map (which draws its route, and
- * whose heading has its title and how long and how far): who went, the stops in order (each with its day of the trip, dates, note, and
+ * whose heading has its title and how long and how far): when, who went, the stops in order (each with its day of the trip, dates, note, and
  * every other time you've been there), then the trip's notes: hikes, description, highlights,
- * rating and tags. Each part's Edit opens the trip on that step.
+ * rating and tags. Each part's Edit opens the trip on that step (so there's no Edit trip button).
  */
 export function TripDetail({
   trip,
@@ -70,21 +70,20 @@ export function TripDetail({
   }))
   const hasNotes = trip.hikes.length > 0 || trip.description || trip.highlights || trip.rating || trip.tags.length > 0
 
-  const actions = (
-    <div className="flex items-center justify-between gap-2">
-      <button onClick={remove} className="min-h-11 rounded-lg px-3 text-muted hover:bg-raised hover:text-danger">
-        Delete
-      </button>
-      <button onClick={() => onEdit(trip)} className="min-h-11 rounded-lg bg-primary px-5 font-bold text-on-primary">
-        Edit trip
-      </button>
-    </div>
-  )
+  const days = tripDays(trip.startDate, trip.endDate)
   const body = (
     <div className="flex flex-col gap-6">
-      {people.length > 0 && (
-        <section>
-          {heading('Who went', 'Details', 'who went')}
+      <section>
+        {heading('When', 'Details', 'the title and dates')}
+        <p>
+          {formatDateRange(trip.startDate, trip.endDate, trip.approximate)}
+          {days ? <span className="text-muted"> · {days === 1 ? '1 day' : `${days} days`}</span> : null}
+        </p>
+      </section>
+
+      <section>
+        {heading('Who went', 'Details', 'who went')}
+        {people.length > 0 ? (
           <ul className="flex flex-wrap gap-2">
             {people.map((p) => (
               <li key={p.id} className="flex items-center gap-1.5 rounded-full bg-raised py-1 pr-3 pl-1 text-sm">
@@ -93,12 +92,14 @@ export function TripDetail({
               </li>
             ))}
           </ul>
-        </section>
-      )}
+        ) : (
+          <p className="text-sm text-muted">No one added</p>
+        )}
+      </section>
 
       <section>
         {heading(stops.length > 1 ? 'Stops' : 'Where', 'Route', 'the stops')}
-        <ol className="relative flex flex-col">
+        <ol aria-label="Stops" className="relative flex flex-col">
           {stops.map(({ place: p, destination: stop, number }, i) => {
             const others = visitsTo(data, p.id).filter((v) => v.trip.id !== trip.id)
             return (
@@ -217,8 +218,13 @@ export function TripDetail({
     <section aria-label={trip.title} className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {body}
+        {/* Each part has its own Edit; deleting the whole trip is the one thing left, kept quiet at the end. */}
+        <div className="mt-8 border-t border-line pt-3">
+          <button onClick={remove} className="-ml-2 min-h-10 rounded-lg px-2 text-sm text-muted hover:bg-raised hover:text-danger">
+            Delete trip
+          </button>
+        </div>
       </div>
-      <div className="border-t border-line px-4 py-2">{actions}</div>
     </section>
   )
 }

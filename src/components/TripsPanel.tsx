@@ -17,12 +17,33 @@ const HEIGHTS: Record<SheetSize, string> = { peek: `${PEEK_PX}px`, half: '50%', 
  * The top of the Trips panel or sheet: where you came from as small links (Trips › Moab), then
  * where you are as the title, with a line under it ("3 trips", "2 visits · UT", a trip's dates).
  * It's one breadcrumb, read as "Trips › Moab › Moab 2021". Wider screens put the title on its own
- * line under the links; phones keep it on one line.
+ * line under the links; phones keep it on one line. Below the list, a ‹ button goes up a level.
  */
 function PanelHeading({ crumbs, subtitle, stacked }: { crumbs: Crumb[]; subtitle?: string; stacked: boolean }) {
   const back = crumbs.slice(0, -1)
   const here = crumbs.at(-1)
+  const up = back.at(-1)
   return (
+    <div className="flex min-w-0 flex-1 items-start gap-1">
+      {up?.href && (
+        <a
+          href={up.href}
+          onClick={
+            up.onClick &&
+            ((e) => {
+              e.preventDefault()
+              up.onClick!()
+            })
+          }
+          aria-label={`Back to ${up.label}`}
+          title={`Back to ${up.label}`}
+          className={`-ml-2 grid size-10 shrink-0 place-items-center rounded-lg text-muted hover:bg-raised hover:text-fg ${stacked ? 'mt-1.5' : ''}`}
+        >
+          <svg viewBox="0 0 20 20" className="size-5" aria-hidden>
+            <path d="m12 5-5 5 5 5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </a>
+      )}
     <div className="min-w-0 flex-1">
       <nav aria-label="Breadcrumb">
         <ol className={`flex min-w-0 items-baseline ${stacked ? 'flex-wrap' : ''}`}>
@@ -60,6 +81,7 @@ function PanelHeading({ crumbs, subtitle, stacked }: { crumbs: Crumb[]; subtitle
         </ol>
       </nav>
       {subtitle && <p className="truncate text-sm text-muted">{subtitle}</p>}
+    </div>
     </div>
   )
 }
