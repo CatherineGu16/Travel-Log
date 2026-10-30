@@ -3,7 +3,6 @@ import type { Pin } from '../lib/derive.ts'
 import { legMemory } from '../lib/legs.ts'
 import { formatDateRange } from '../lib/partialDate.ts'
 import { routeOf, type RoutePoint } from '../lib/route.ts'
-import { regionName } from '../lib/states.ts'
 import { deleteTrip } from '../lib/travelActions.ts'
 import type { TravelData, Trip } from '../lib/types.ts'
 import { useStore } from '../store/useTravel.ts'
@@ -22,7 +21,6 @@ export function PinCard({
   onSelectTrip,
   onDetails,
   onEdit,
-  onClose,
 }: {
   pin: Pin
   trip: Trip
@@ -30,7 +28,6 @@ export function PinCard({
   onSelectTrip: (tripId: string) => void
   onDetails: (trip: Trip) => void
   onEdit: (trip: Trip) => void
-  onClose: () => void
 }) {
   const store = useStore()
   const toast = useToast()
@@ -61,29 +58,12 @@ export function PinCard({
     />
   )
   const many = pin.trips.length > 1
-  const where = pin.place.countryCode === 'US' ? pin.place.regionCode?.replace(/^US-/, '') : regionName(null, pin.place.countryCode)
 
   return (
     <section
       aria-label={`${pin.place.name} trips`}
       className="flex min-h-0 flex-1 flex-col"
     >
-      <header className="flex items-start gap-2 border-b border-line px-4 py-3">
-        <PinGlyph park={pin.isPark} className="mt-1 size-5" />
-        <div className="min-w-0 flex-1">
-          <h2 className="font-display text-2xl leading-tight font-semibold">{pin.place.name}</h2>
-          <p className="text-sm text-muted">
-            {many ? `${pin.trips.length} visits` : '1 visit'}
-            {where && ` · ${where}`}
-          </p>
-        </div>
-        <button onClick={onClose} aria-label="Close" className="-mt-1 -mr-2 grid size-11 shrink-0 place-items-center rounded-full text-muted hover:bg-raised hover:text-fg">
-          <svg viewBox="0 0 20 20" className="size-5" aria-hidden>
-            <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-        </button>
-      </header>
-
       {many ? (
         // Every trip as its own card, in a column that scrolls; click a card to show its route.
         <Stack trips={pin.trips} current={trip} onSelect={onSelectTrip} label={datesHere} card={(t) => summary(t, true)} />

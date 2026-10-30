@@ -4,16 +4,14 @@ import { openAddTrip, openYou, toStep } from './helpers.ts'
 test('wider screens: Add trip opens the form in the Trips panel, which stays while you shape a leg', async ({ page, isMobile }) => {
   test.skip(isMobile, 'Phones keep the full-screen form')
   await page.goto('./')
-  // Add trip lives in the Trips panel, not the toolbar.
-  await expect(page.locator('header').getByRole('button', { name: 'Add trip' })).toHaveCount(0)
+  // Add trip in the toolbar opens the form in the Trips panel.
   const panel = page.getByRole('complementary', { name: 'Trips panel' })
-  await panel.getByRole('button', { name: 'Add trip' }).click()
+  await page.locator('header').getByRole('button', { name: 'Add trip' }).click()
   const form = panel.getByRole('region', { name: 'Add trip', exact: true })
   await expect(form).toBeVisible()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(panel.getByRole('navigation', { name: 'Breadcrumb' })).toHaveText(/Trips\s*›\s*Add trip/)
-  // While it's open the panel's Add trip steps aside (the form's own appears once there's somewhere to go), and the panel can't be hidden.
-  await expect(panel.getByRole('button', { name: 'Add trip', exact: true })).toHaveCount(0)
+  // While it's open the panel can't be hidden.
   await expect(panel.getByRole('button', { name: 'Hide trips' })).toHaveCount(0)
 
   await toStep(form, 'Route')
@@ -35,7 +33,7 @@ test('wider screens: Add trip opens the form in the Trips panel, which stays whi
   await openYou(page)
   await page.getByRole('link', { name: 'Map' }).click()
   await expect(form.getByText('Zion National Park', { exact: true })).toBeVisible()
-  await form.getByRole('heading', { name: 'Add trip' }).click()
+  await form.getByText('Where you went').click()
   await page.keyboard.press('Escape')
   await expect(form).toBeHidden()
   await expect(panel.getByRole('searchbox', { name: 'Search trips' })).toBeVisible()

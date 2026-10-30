@@ -6,117 +6,124 @@ export type Crumb = { label: string; href?: string }
 /** How tall the phone's Trips sheet is: just its title, half the map, or nearly all of it. */
 export type SheetSize = 'peek' | 'half' | 'full'
 
-/** The peeking sheet's height; the map above it ends there, so its buttons stay in reach. */
-export const PEEK_PX = 72
+/** The peeking sheet's height (its handle, title and subtitle); the map above it ends there, so its buttons stay in reach. */
+export const PEEK_PX = 84
 /** Room left above the full sheet, so a bit of map shows. */
 const FULL_GAP_PX = 16
 const SIZES: SheetSize[] = ['peek', 'half', 'full']
 const HEIGHTS: Record<SheetSize, string> = { peek: `${PEEK_PX}px`, half: '50%', full: `calc(100% - ${FULL_GAP_PX}px)` }
 
-/** Trips › Moab › Moab 2021: where you are in the Trips panel or sheet; each step back is a link. */
-function Breadcrumb({ crumbs }: { crumbs: Crumb[] }) {
+/**
+ * The top of the Trips panel or sheet: where you came from as small links (Trips › Moab), then
+ * where you are as the title, with a line under it ("3 trips", "2 visits · UT", a trip's dates).
+ * It's one breadcrumb, read as "Trips › Moab › Moab 2021". Wider screens put the title on its own
+ * line under the links; phones keep it on one line.
+ */
+function PanelHeading({ crumbs, subtitle, stacked }: { crumbs: Crumb[]; subtitle?: string; stacked: boolean }) {
+  const back = crumbs.slice(0, -1)
+  const here = crumbs.at(-1)
   return (
-    <nav aria-label="Breadcrumb" className="min-w-0 flex-1">
-      <ol className="flex min-w-0 items-center gap-0.5 text-sm">
-        {crumbs.map((c, i) => (
-          <li key={i} className={`flex items-center gap-0.5 ${c.href ? 'shrink-0' : 'min-w-0'}`}>
-            {i > 0 && (
-              <span aria-hidden className="px-0.5 text-muted">
+    <div className="min-w-0 flex-1">
+      <nav aria-label="Breadcrumb">
+        <ol className={`flex min-w-0 items-baseline ${stacked ? 'flex-wrap' : ''}`}>
+          {back.map((c, i) => (
+            <li key={i} className="flex shrink-0 items-baseline text-sm">
+              {c.href ? (
+                <a href={c.href} className="-mx-1 max-w-40 truncate rounded px-1 font-bold text-primary hover:bg-raised">
+                  {c.label}
+                </a>
+              ) : (
+                <span className="max-w-40 truncate font-bold text-muted">{c.label}</span>
+              )}
+              <span aria-hidden className="px-1.5 text-muted">
                 ›
               </span>
-            )}
-            {c.href ? (
-              <a href={c.href} className="flex min-h-10 max-w-40 items-center truncate rounded-lg px-2 font-bold text-primary hover:bg-raised">
-                {c.label}
-              </a>
-            ) : (
-              <span aria-current={i === crumbs.length - 1 ? 'page' : undefined} className={`truncate px-2 font-bold ${i === crumbs.length - 1 ? '' : 'text-muted'}`}>
-                {c.label}
+            </li>
+          ))}
+          {here && (
+            <li className={`min-w-0 ${stacked ? 'basis-full' : 'flex-1'}`}>
+              <span aria-current="page" className={`block truncate font-display leading-tight font-semibold ${stacked ? 'text-2xl' : 'text-xl'}`}>
+                {here.label}
               </span>
-            )}
-          </li>
-        ))}
-      </ol>
-    </nav>
+            </li>
+          )}
+        </ol>
+      </nav>
+      {subtitle && <p className="truncate text-sm text-muted">{subtitle}</p>}
+    </div>
   )
 }
 
-/**
- * Wider screens: Trips as a panel on the left over the map, so the map stays in view. The
- * breadcrumb goes back up; + Add trip opens the trip form in the panel (`onAdd`, left out while
- * it's open); « hides the panel for the full map.
- */
-export function TripsPanel({
-  crumbs,
-  onAdd,
-  onCollapse,
-  hidden = false,
-  children,
-}: {
-  crumbs: Crumb[]
-  onAdd?: () => void
-  /** Left out while the trip form is open. */
-  onCollapse?: () => void
-  hidden?: boolean
-  children: ReactNode
-}) {
-  return (
-    <aside
-      aria-label="Trips panel"
-      hidden={hidden}
-      className="absolute top-3 bottom-3 left-3 z-20 flex w-[26rem] max-w-[calc(100%-1.5rem)] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_8px_30px_rgb(0_0_0/0.25)]"
-    >
-      <div className="flex items-center gap-1 border-b border-line py-1 pr-1 pl-2">
-        <Breadcrumb crumbs={crumbs} />
-        {onAdd && (
-          <button
-            onClick={onAdd}
-            className="flex h-9 shrink-0 items-center gap-1 rounded-lg bg-primary pr-3 pl-2 text-sm font-bold text-on-primary shadow-sm hover:brightness-110 active:brightness-95"
-          >
-            <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
-              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
-            </svg>
-            Add trip
-          </button>
-        )}
-        {onCollapse && (
-          <button
-            onClick={onCollapse}
-            aria-label="Hide trips"
-            title="Hide trips (full map)"
-            className="grid size-10 shrink-0 place-items-center rounded-lg text-muted hover:bg-raised hover:text-fg"
-          >
-            <svg viewBox="0 0 20 20" className="size-5" aria-hidden>
-              <path d="M10 5 5 10l5 5M15 5l-5 5 5 5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-        )}
-      </div>
-      {children}
-    </aside>
-  )
-}
-
-/** Wider screens, with the Trips panel hidden: a tab on the left of the map to bring it back. */
-export function ShowTripsButton({ onClick }: { onClick: () => void }) {
+/** The tab on the edge of the panel (or of the map, while it's hidden) that hides or shows the Trips panel. */
+function EdgeTab({ open, onClick, className }: { open: boolean; onClick: () => void; className: string }) {
   return (
     <button
       onClick={onClick}
-      className="absolute top-3 left-3 z-10 flex h-9 items-center gap-1.5 rounded-xl border border-line bg-surface px-3 text-sm font-bold shadow-md hover:bg-raised"
+      aria-label={open ? 'Hide trips' : 'Show trips'}
+      title={open ? 'Hide trips (full map)' : 'Show trips'}
+      className={`flex h-12 items-center gap-1 rounded-r-xl border border-l-0 border-line bg-surface text-sm font-bold text-muted shadow-md hover:text-fg ${className}`}
     >
-      Show trips
-      <svg viewBox="0 0 20 20" className="size-4" aria-hidden>
-        <path d="M10 5l5 5-5 5M5 5l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      {!open && <span className="pl-3">Trips</span>}
+      <svg viewBox="0 0 20 20" className={`size-5 ${open ? 'mx-1.5' : 'mr-2'}`} aria-hidden>
+        <path d={open ? 'm12 5-5 5 5 5' : 'm8 5 5 5-5 5'} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </button>
   )
 }
 
 /**
+ * Wider screens: Trips as a panel on the left over the map, so the map stays in view: the heading
+ * (breadcrumb, title, subtitle), then the view. The tab on its edge hides it for the full map
+ * (left out while the trip form is open, so it can't be hidden mid-edit).
+ */
+export function TripsPanel({
+  crumbs,
+  subtitle,
+  onCollapse,
+  hidden = false,
+  children,
+}: {
+  crumbs: Crumb[]
+  subtitle?: string
+  onCollapse?: () => void
+  hidden?: boolean
+  children: ReactNode
+}) {
+  return (
+    <aside aria-label="Trips panel" hidden={hidden} className="absolute top-3 bottom-3 left-3 z-20 flex w-[26rem] max-w-[calc(100%-4.5rem)]">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_8px_30px_rgb(0_0_0/0.25)]">
+        <div className="border-b border-line px-4 py-3">
+          <PanelHeading crumbs={crumbs} subtitle={subtitle} stacked />
+        </div>
+        {children}
+      </div>
+      {onCollapse && <EdgeTab open onClick={onCollapse} className="absolute top-4 left-full -ml-px" />}
+    </aside>
+  )
+}
+
+/** Wider screens, with the Trips panel hidden: the same tab, on the left edge of the map, brings it back. */
+export function ShowTripsButton({ onClick }: { onClick: () => void }) {
+  return <EdgeTab open={false} onClick={onClick} className="absolute top-7 left-0 z-10" />
+}
+
+/**
  * Phones: Trips as a sheet over the map. Drag its top (or tap the handle) between peeking, half
  * and nearly full height; a quick flick goes to the next size. While it peeks, only the title shows.
  */
-export function TripsSheet({ crumbs, size, onSize, children }: { crumbs: Crumb[]; size: SheetSize; onSize: (size: SheetSize) => void; children: ReactNode }) {
+export function TripsSheet({
+  crumbs,
+  subtitle,
+  size,
+  onSize,
+  children,
+}: {
+  crumbs: Crumb[]
+  subtitle?: string
+  size: SheetSize
+  onSize: (size: SheetSize) => void
+  children: ReactNode
+}) {
   const sheet = useRef<HTMLElement>(null)
   const drag = useRef<{ y: number; height: number; at: number; moved: boolean } | null>(null)
   const dragged = useRef(false)
@@ -191,12 +198,12 @@ export function TripsSheet({ crumbs, size, onSize, children }: { crumbs: Crumb[]
         <button
           onClick={cycle}
           aria-label={size === 'full' ? 'Shrink trips' : 'Expand trips'}
-          className="flex h-5 w-full items-end justify-center"
+          className="flex h-4 w-full items-end justify-center"
         >
           <span aria-hidden className="h-1.5 w-10 rounded-full bg-line" />
         </button>
-        <div className="flex h-12 items-center px-2">
-          <Breadcrumb crumbs={crumbs} />
+        <div className="flex h-[3.75rem] items-center px-4">
+          <PanelHeading crumbs={crumbs} subtitle={subtitle} stacked={false} />
         </div>
       </div>
       <div inert={size === 'peek'} className="flex min-h-0 flex-1 flex-col pb-6">

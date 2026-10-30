@@ -19,6 +19,8 @@ import { placeAt } from './lib/gazetteer.ts'
 import { parkInput, type ParkInfo } from './lib/placeSearch.ts'
 import { legMemory } from './lib/legs.ts'
 import { addBend, routeOf, type RoutePoint } from './lib/route.ts'
+import { tripSummary } from './lib/stats.ts'
+import { regionName } from './lib/states.ts'
 import { live, type PlaceInput } from './lib/travelActions.ts'
 import type { LngLat, Place, Trip } from './lib/types.ts'
 import { loadServices, ServicesContext, useStore, useTravelState, type AppServices } from './store/useTravel.ts'
@@ -215,8 +217,21 @@ function Shell() {
   const crumbs: Crumb[] = [{ label: 'Trips', href: routePlaceId || detailTrip ? pageHref('trips') : undefined }]
   if (crumbPlace) crumbs.push({ label: crumbPlace.name, href: detailTrip ? placeHref(crumbPlace.id) : undefined })
   if (detailTrip) crumbs.push({ label: detailTrip.title })
+  // The line under the title: how many trips, a place's visits and where it is, or a trip's dates and distances.
+  const tripCount = live(shown.trips).length
+  const subtitle = detailTrip
+    ? tripSummary(detailTrip, data)
+    : placePin
+      ? [placePin.trips.length === 1 ? '1 visit' : `${placePin.trips.length} visits`, placePin.place.countryCode === 'US' ? placePin.place.regionCode?.replace(/^US-/, '') : regionName(null, placePin.place.countryCode)]
+          .filter(Boolean)
+          .join(' · ')
+      : routePlaceId
+        ? undefined
+        : `${tripCount} ${tripCount === 1 ? 'trip' : 'trips'}`
   // The form in the panel: Trips › Add trip, or Trips › Utah 2023 › Edit trip (no links while it's open).
   const formCrumbs: Crumb[] = form ? [{ label: 'Trips' }, ...(form.trip ? [{ label: form.trip.title }] : []), { label: form.trip ? 'Edit trip' : 'Add trip' }] : []
+  // The list shows the Filter by its search; the map shows it only when the list isn't in view.
+  const listInView = !routePlaceId && !detailTrip && (phone ? sheetSize !== 'peek' : panelOpen && !formInPanel)
 
   const filterButton = <FilterButton filter={filter} onClick={() => setFilterOpen(true)} />
   const tripForm = form && (
@@ -266,14 +281,13 @@ function Shell() {
         onSelectTrip={setSelectedTripId}
         onDetails={(trip) => navigate(placeHref(placePin.place.id, trip.id))}
         onEdit={(trip) => setForm({ trip, initialMain: null })}
-        onClose={() => navigate(pageHref('trips'))}
       />
     ) : (
       <p className="p-4 text-sm text-muted">No trips here match the filter.</p>
     )
   ) : (
     <div className="min-h-0 flex-1 overflow-y-auto p-3">
-      <TripList data={shown} onOpenTrip={showOnMap} />
+      <TripList data={shown} toolbar={<FilterButton compact filter={filter} onClick={() => setFilterOpen(true)} />} onOpenTrip={showOnMap} />
     </div>
   )
 
@@ -281,6 +295,7 @@ function Shell() {
     <div className="flex h-full w-full flex-col">
       <TopBar
         page={page}
+        onAdd={addTrip}
         sync={<SyncChip onSettings={() => navigate(youHref('settings'))} />}
         you={
           <a
@@ -416,7 +431,7 @@ function Shell() {
           <>
             <ShadeLegend show={perRegion.size > 0 || pins.length > 0} />
             <div className="absolute top-3 left-3 z-10 flex gap-2 sm:right-3 sm:left-auto">
-              {filterButton}
+              {!listInView && filterButton}
               <ParksLayerControl mode={parksMode} onChange={setParksMode} visited={visitedParks.size} total={parks.length} />
             </div>
           </>
@@ -426,7 +441,7 @@ function Shell() {
         {!phone && (formInPanel || (onMap && panelOpen && !shape)) && (
           <TripsPanel
             crumbs={formInPanel ? formCrumbs : crumbs}
-            onAdd={formInPanel ? undefined : addTrip}
+            subtitle={formInPanel ? undefined : subtitle}
             onCollapse={formInPanel ? undefined : () => setPanelOpen(false)}
             hidden={!onMap}
           >
@@ -435,7 +450,7 @@ function Shell() {
         )}
         {onMap && !shape && !phone && !panelOpen && !formInPanel && <ShowTripsButton onClick={() => setPanelOpen(true)} />}
         {onMap && !shape && phone && (
-          <TripsSheet crumbs={crumbs} size={sheetSize} onSize={sizeSheet}>
+          <TripsSheet crumbs={crumbs} subtitle={subtitle} size={sheetSize} onSize={sizeSheet}>
             {tripsView}
           </TripsSheet>
         )}

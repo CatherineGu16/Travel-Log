@@ -140,13 +140,13 @@ export function FilterSheet({
 }
 
 /** A button that opens the filters and shows how many are on. */
-export function FilterButton({ filter, onClick, className = '' }: { filter: TripFilter; onClick: () => void; className?: string }) {
+export function FilterButton({ filter, onClick, compact = false }: { filter: TripFilter; onClick: () => void; compact?: boolean }) {
   const n = activeFilterCount(filter)
   return (
     <button
       onClick={onClick}
       aria-label={n ? `Filter, ${n} on` : 'Filter'}
-      className={`flex min-h-10 items-center gap-1.5 rounded-full border px-3 text-sm font-bold shadow-sm ${n ? 'border-primary bg-primary text-on-primary' : 'border-line bg-surface text-fg hover:bg-raised'} ${className}`}
+      className={`flex items-center gap-1.5 rounded-full border px-3 text-sm font-bold ${compact ? 'h-9' : 'min-h-10 shadow-sm'} ${n ? 'border-primary bg-primary text-on-primary' : 'border-line bg-surface text-fg hover:bg-raised'}`}
     >
       <svg viewBox="0 0 24 24" className="size-4" aria-hidden>
         <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />

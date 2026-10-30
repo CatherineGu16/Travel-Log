@@ -2,8 +2,8 @@
 # UI: add / edit trip
 
 **Where it opens**: on wider screens, in the **Trips panel** beside the map (Trips › Add trip, or
-Trips › Utah 2023 › Edit trip), from the panel's **+ Add trip** or a trip's Edit; from You (Log a
-visit, or the phone's +) it goes to the map first. It stays in the panel (hidden, keeping what you
+Trips › Utah 2023 › Edit trip, with the steps under the heading), from the toolbar's **+ Add
+trip** or a trip's Edit; from You (Log a visit, or Add trip) it goes to the map first. It stays in the panel (hidden, keeping what you
 typed) if you go to another page, and the panel can't be hidden while it's open; Escape or Cancel
 closes it. Phones: a full-screen sheet, as before. On the **Route step** the trip so far is drawn
 on the big map as you add places (places not saved yet get a ★) and the map fits it beside the

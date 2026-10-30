@@ -818,8 +818,8 @@ export function TripForm({
           if (e.key === 'Escape' && !e.defaultPrevented && !(e.target as HTMLElement).closest('[role="menu"]')) onClose()
         }}
       >
-        <div className="border-b border-line px-4 pt-3 pb-2">
-          <h2 className="font-display text-2xl leading-tight font-semibold">{heading}</h2>
+        {/* The panel's heading says Add trip / Edit trip; the steps sit under it. */}
+        <div className="border-b border-line px-4 pt-2 pb-1">
           <Steps step={step} onGo={goTo} />
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{form}</div>

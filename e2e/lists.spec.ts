@@ -34,8 +34,6 @@ async function addTrip(page: Page, opts: { main: [string, RegExp]; year: string;
   await setTripYear(dialog, opts.year)
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(dialog).toBeHidden()
-  const card = page.getByRole('region', { name: /trips$/ })
-  if (await card.count()) await card.getByRole('button', { name: 'Close' }).click()
 }
 
 
@@ -100,7 +98,7 @@ test('the You page: numbers, achievements, and most visited places that open on 
 
   // It opens with its pin selected, newest visit first; the other is a tap away.
   const card = page.getByRole('region', { name: 'Moab trips' })
-  await expect(card).toContainText('2 visits')
+  await expect(page.getByRole('complementary', { name: 'Trips panel' })).toContainText('2 visits')
   const visits = card.getByRole('radiogroup', { name: 'Visits' })
   await expect(visits.getByRole('radio', { checked: true })).toHaveText(/2021/)
   await visits.getByRole('radio', { name: /2019/ }).click()

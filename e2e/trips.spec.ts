@@ -61,10 +61,9 @@ test('a second trip to the same place stacks on its pin', async ({ page }) => {
     await setTripYear(dialog, year)
     await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
     await expect(dialog).toBeHidden()
-    if (year === '2019') await page.getByRole('region', { name: 'Moab trips' }).getByRole('button', { name: 'Close' }).click()
   }
   const card = page.getByRole('region', { name: 'Moab trips' })
-  await expect(card.getByText('2 visits')).toBeVisible()
+  await expect(page.getByRole('complementary', { name: 'Trips panel' }).getByText('2 visits')).toBeVisible()
   await expect(card.getByRole('radio')).toHaveText([/2024\s*Moab 2024/, /2019\s*Moab 2019/])
 })
 
@@ -84,7 +83,6 @@ test('picking a stacked date shows that trip’s route, and details show other v
     await setTripYear(dialog, year)
     await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
     await expect(dialog).toBeHidden()
-    if (year === '2019') await page.getByRole('region', { name: 'Moab trips' }).getByRole('button', { name: 'Close' }).click()
   }
 
   const card = page.getByRole('region', { name: 'Moab trips' })
@@ -499,7 +497,8 @@ test('stop dates from a strip of the trip days, shown as day numbers; details li
   // Details: how long, a map, each stop's days, and Edit on each part.
   await page.getByRole('region', { name: /trips$/ }).getByRole('button', { name: 'Details' }).click()
   const detail = tripDetails(page, /Zion/)
-  await expect(detail).toContainText('6 days')
+  // How long it was is under the trip's title, at the top of the Trips panel or sheet.
+  await expect(page.getByRole('complementary', { name: 'Trips panel' })).toContainText('6 days')
   await expect(detail).toContainText('Days 1–3 · May 1 – 3, 2024')
   await detail.getByRole('button', { name: 'Edit the stops' }).click()
   const edit = tripForm(page, 'Edit trip')

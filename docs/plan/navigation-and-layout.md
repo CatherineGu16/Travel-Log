@@ -4,8 +4,8 @@
 ## Pages and addresses
 
 - **Pages**: Map · **+** · You, as bottom tabs on phones; on wider screens the toolbar has a Map
-  tab and your photo, which opens You (ringed while you're there), so there's no You tab. **+ Add
-  trip** is in the Trips panel's header and opens the trip form in the panel (see ui-trip-form.md). There's no Trips tab (trips live on the map,
+  tab, **+ Add trip** (which opens the trip form in the Trips panel; see ui-trip-form.md) and your
+  photo, which opens You (ringed while you're there), so there's no You tab. There's no Trips tab (trips live on the map,
   below) and no Parks tab (the checklist is You › Parks). The toolbar spans the top, above the map
   and pages: the title, the pages, Add trip, the sync status and your photo (opens You); every
   control is 36 px tall.
@@ -55,10 +55,20 @@ The map page always has Trips over it, showing one of three views, with a **brea
   Edit opens the trip form over it; after saving, the trip stays open. Saving from anywhere else
   opens the trip's place with it on the map. Delete goes back up a level.
 
+**Heading** (the same in every view, on the panel and the sheet): where you came from as small
+links (Trips › Moab), then where you are as the title, with one line under it: "3 trips", "2 visits
+· UT", or the trip's dates, days and distances (`tripSummary` in `stats.ts`). It's one breadcrumb,
+read as "Trips › Moab › Moab 2021". The views below it don't repeat the title.
+
+**The list's controls**: search (with an icon), then Filter, Group and Sort as small chips, kept at
+the top as the list scrolls on wider screens. Group names are small labels; trips are plain rows
+with a ›. While the list is in view, the map shows only the Parks button (Filter is in the list).
+
 Where it sits (`TripsPanel.tsx`):
 
-- **Wider screens:** a panel on the left over the map. « hides it for the full map ("Show trips"
-  brings it back); opening a place or trip brings it back too. Moving the map to a trip centers it
+- **Wider screens:** a panel on the left over the map. A tab on its right edge (‹) hides it for
+  the full map; the same tab on the map's left edge ("Trips ›") brings it back, and so does opening
+  a place or trip. Moving the map to a trip centers it
   in the space beside the panel.
 - **Phones:** a sheet over the map, peeking (just the breadcrumb), half, or nearly full height.
   Drag the top (a quick flick goes one size; a slow drag settles on the nearest), or tap it to go

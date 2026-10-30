@@ -1,24 +1,19 @@
-import { useMemo } from 'react'
 import { visitsTo } from '../lib/derive.ts'
 import { PARKS } from '../lib/gazetteer.ts'
-import { formatDistance, legMemory } from '../lib/legs.ts'
-import { dayLabel, formatDateRange, tripDays } from '../lib/partialDate.ts'
-import { distancesByMode, routeOf } from '../lib/route.ts'
+import { dayLabel, formatDateRange } from '../lib/partialDate.ts'
 import { deleteTrip } from '../lib/travelActions.ts'
-import type { LegMode, TravelData, Trip } from '../lib/types.ts'
+import type { TravelData, Trip } from '../lib/types.ts'
 import { useStore } from '../store/useTravel.ts'
 import { Avatar } from './Avatar.tsx'
 import { PinGlyph } from './PlacePicker.tsx'
 import { useToast } from './toastContext.ts'
 
-/** "820 mi driven": how far each way of traveling went, biggest first. */
-const MODE_WORDS: Record<LegMode, string> = { drive: 'driven', flight: 'flown', train: 'by train', cruise: 'cruising', boat: 'by boat', walk: 'walked', unknown: '' }
 
 export type TripStep = 'Details' | 'Route' | 'Notes'
 
 /**
- * Everything about one trip, in the Trips panel or sheet over the map (which draws its route): how
- * long and how far, who went, the stops in order (each with its day of the trip, dates, note, and
+ * Everything about one trip, in the Trips panel or sheet over the map (which draws its route, and
+ * whose heading has its title and how long and how far): who went, the stops in order (each with its day of the trip, dates, note, and
  * every other time you've been there), then the trip's notes: hikes, description, highlights,
  * rating and tags. Each part's Edit opens the trip on that step.
  */
@@ -43,13 +38,6 @@ export function TripDetail({
 }) {
   const store = useStore()
   const toast = useToast()
-  const route = useMemo(() => routeOf(trip, data.places, { home: data.home, memory: legMemory(data) }), [trip, data])
-  const days = tripDays(trip.startDate, trip.endDate)
-  const distances = Object.entries(distancesByMode(route))
-    .filter(([mode, m]) => mode !== 'unknown' && m >= 1609)
-    .sort((a, b) => b[1] - a[1])
-    .map(([mode, m]) => `~${formatDistance(m)} ${MODE_WORDS[mode as LegMode]}`)
-  const summary = [formatDateRange(trip.startDate, trip.endDate, trip.approximate), days && (days === 1 ? '1 day' : `${days} days`), ...distances].filter(Boolean).join(' · ')
   const remove = () => {
     const undoId = store.apply((d, c) => deleteTrip(d, c, trip.id), `Deleted ${trip.title}`)
     if (undoId === null) return
@@ -227,9 +215,7 @@ export function TripDetail({
 
   return (
     <section aria-label={trip.title} className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-3 pb-4">
-        <h2 className="font-display text-2xl leading-tight font-semibold">{trip.title}</h2>
-        <p className="mb-4 text-sm text-muted">{summary}</p>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {body}
       </div>
       <div className="border-t border-line px-4 py-2">{actions}</div>
