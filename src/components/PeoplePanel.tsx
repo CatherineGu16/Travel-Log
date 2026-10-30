@@ -8,6 +8,8 @@ import {
   deleteGroup,
   deletePerson,
   live,
+  PROFILE_RECORD_ID,
+  setProfile,
   updateGroup,
   updatePerson,
 } from '../lib/travelActions.ts'
@@ -116,13 +118,17 @@ function PeopleList({ onPerson, onGroup }: { onPerson: (id: string | null) => vo
   )
 }
 
-function PersonEditor({ id, onDone }: { id: string | null; onDone: () => void }) {
+/**
+ * A person's name, avatar and groups. `profile`: your own name and avatar instead (You › Edit
+ * profile), with no groups and nothing to remove.
+ */
+export function PersonEditor({ id, onDone, profile = false }: { id: string | null; onDone: () => void; profile?: boolean }) {
   const store = useStore()
   const avatars = useAvatars()
   const toast = useToast()
   const { data } = useTravelState()
-  const existing: Person | undefined = id ? data.people.find((p) => p.id === id) : undefined
-  const [personId] = useState(() => id ?? newId())
+  const existing: Pick<Person, 'name' | 'avatar'> | undefined = profile ? (data.profile ?? undefined) : id ? data.people.find((p) => p.id === id) : undefined
+  const [personId] = useState(() => (profile ? PROFILE_RECORD_ID : (id ?? newId())))
   const [name, setName] = useState(existing?.name ?? '')
   const [avatar, setAvatar] = useState<AvatarData>(existing?.avatar ?? defaultAvatar(''))
   // A newly picked photo, kept here until Save.
@@ -164,7 +170,9 @@ function PersonEditor({ id, onDone }: { id: string | null; onDone: () => void })
       next = { ...avatar, kind: 'photo', photoUpdatedAt }
     }
     const input = { name, avatar: next, groupIds }
-    const ok = id
+    const ok = profile
+      ? store.apply((d, c) => setProfile(d, c, input), 'Edited your profile')
+      : id
       ? store.apply((d, c) => updatePerson(d, c, id, input), `Edited ${name.trim()}`)
       : store.apply((d, c) => addPerson(d, c, personId, input), `Added ${name.trim()}`)
     if (ok === null) return setError(store.getState().error)
@@ -193,10 +201,10 @@ function PersonEditor({ id, onDone }: { id: string | null; onDone: () => void })
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-4">
-        <Avatar person={{ id: id ?? undefined, name: name || '?', avatar }} size={72} photoUrl={photo?.url} />
+        <Avatar person={{ id: profile ? PROFILE_RECORD_ID : (id ?? undefined), name: name || '?', avatar }} size={72} photoUrl={photo?.url} />
         <label className="min-w-0 flex-1">
           <span className="mb-1 block text-sm font-bold">Name</span>
-          <input autoFocus={!id} value={name} onChange={(e) => setName(e.target.value)} className="h-11 w-full rounded-lg border border-line bg-bg px-3 text-base" />
+          <input autoFocus={!id && !profile} value={name} onChange={(e) => setName(e.target.value)} className="h-11 w-full rounded-lg border border-line bg-bg px-3 text-base" />
         </label>
       </div>
 
@@ -258,6 +266,7 @@ function PersonEditor({ id, onDone }: { id: string | null; onDone: () => void })
         </div>
       </fieldset>
 
+      {!profile && (
       <fieldset>
         <legend className="mb-1.5 text-sm font-bold">Groups</legend>
         <ul className="flex flex-col">
@@ -276,16 +285,17 @@ function PersonEditor({ id, onDone }: { id: string | null; onDone: () => void })
           ))}
         </ul>
       </fieldset>
+      )}
 
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       <div className="flex items-center gap-2">
-        {existing && (
+        {existing && !profile && (
           <button type="button" onClick={remove} className="min-h-11 rounded-lg px-3 text-sm text-muted hover:text-danger">
             Remove person
           </button>
         )}
         <button type="button" onClick={onDone} className="ml-auto min-h-11 rounded-lg px-4 font-bold text-muted hover:text-fg">
-          Back
+          {profile ? 'Cancel' : 'Back'}
         </button>
         <button type="button" onClick={() => void save()} className="min-h-11 rounded-lg bg-primary px-5 font-bold text-on-primary">
           Save

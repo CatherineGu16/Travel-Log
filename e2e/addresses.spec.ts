@@ -85,7 +85,7 @@ test('the You sections have their own addresses; Back moves between them', async
   await expect(page).toHaveURL(/#\/you\/settings$/)
   await page.goBack()
   await expect(settings).toBeHidden()
-  await expect(page.getByRole('region', { name: 'Profile' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Profile', exact: true })).toBeVisible()
   await expect(page).toHaveURL(/#\/you$/)
 
   await page.goto('./#/you/people')

@@ -155,10 +155,11 @@ export function createSyncEngine(
   // A new photo is a local change too, even before the person record is saved.
   avatars.subscribe(() => onLocalEdit?.())
 
-  /** Uploads photos picked on this device that are still current for their person. */
+  /** Uploads photos picked on this device that are still current for their person (or your profile). */
   async function uploadAvatars(config: SyncConfig, data: TravelData) {
+    const owners = [...data.people, ...(data.profile ? [data.profile] : [])]
     const queue = (await avatars.pending()).filter((r) => {
-      const person = data.people.find((p) => p.id === r.personId && !p.deleted)
+      const person = owners.find((p) => p.id === r.personId && !p.deleted)
       return person?.avatar.kind === 'photo' && person.avatar.photoUpdatedAt === r.photoUpdatedAt
     })
     set({ uploading: queue.length })

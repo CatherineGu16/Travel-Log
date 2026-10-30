@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
-import { achievementStatus, TIER_NAMES, type AchievementCategory, type AchievementStatus, type TierLevel } from '../lib/achievements.ts'
+import { useMemo } from 'react'
+import { TIER_NAMES, type AchievementCategory, type AchievementStatus, type TierLevel } from '../lib/achievements.ts'
 import { pinsOf } from '../lib/derive.ts'
-import { loadWorldCities } from '../lib/gazetteer.ts'
 import { formatPartialDate } from '../lib/partialDate.ts'
 import { travelTotals } from '../lib/stats.ts'
 import type { Place, TravelData } from '../lib/types.ts'
 import { youHref, type Page } from '../ui/route.ts'
 import { usePersistentState } from '../ui/usePersistentState.ts'
 import { PinGlyph } from './PlacePicker.tsx'
+import { useAchievements } from './useAchievements.ts'
 
 const CATEGORY_ICONS: Record<AchievementCategory, string> = {
   States: '🗺️',
@@ -22,15 +22,6 @@ const CATEGORIES = Object.keys(CATEGORY_ICONS) as AchievementCategory[]
 const TIER_COLORS: Record<TierLevel, string> = { bronze: '#b0703c', silver: '#8e98a3', gold: '#d6a531' }
 
 type Show = 'all' | 'earned' | 'progress'
-
-/** Every achievement's tier and progress, worked out from your trips (continents load in the background). */
-function useAchievements(data: TravelData) {
-  const [continents, setContinents] = useState<Record<string, string> | undefined>()
-  useEffect(() => {
-    void loadWorldCities().then((w) => setContinents(w.continents))
-  }, [])
-  return useMemo(() => achievementStatus(data, { continents }), [data, continents])
-}
 
 /** You › Profile: your travel in numbers, what you earned lately, and your most visited places. */
 export function ProfileSection({ data, onGoTo, onOpenPlace }: { data: TravelData; onGoTo: (page: Page | 'parks') => void; onOpenPlace: (place: Place) => void }) {
@@ -58,7 +49,6 @@ export function ProfileSection({ data, onGoTo, onOpenPlace }: { data: TravelData
 
   return (
     <section aria-label="Profile">
-      {totals.since && <p className="mb-3 text-sm text-muted">Traveling since {totals.since}</p>}
       <section aria-label="Your travel in numbers" className="grid grid-cols-4 gap-1.5 sm:gap-2">
         {stats.map((s) => {
           const body = (

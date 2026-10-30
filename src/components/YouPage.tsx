@@ -1,10 +1,16 @@
-import { useRef, type PointerEvent } from 'react'
+import { useMemo, useRef, useState, type PointerEvent } from 'react'
+import { parksVisited } from '../lib/derive.ts'
+import type { ParkInfo } from '../lib/placeSearch.ts'
+import { travelTotals } from '../lib/stats.ts'
+import { PROFILE_RECORD_ID } from '../lib/travelActions.ts'
 import type { Place, TravelData } from '../lib/types.ts'
 import { youHref, type Page, type YouSection } from '../ui/route.ts'
-import type { ParkInfo } from '../lib/placeSearch.ts'
+import { Avatar } from './Avatar.tsx'
 import { ParksSection } from './ParksSection.tsx'
-import { PeoplePanel } from './PeoplePanel.tsx'
+import { PeoplePanel, PersonEditor } from './PeoplePanel.tsx'
 import { Settings } from './Settings.tsx'
+import { Sheet } from './Sheet.tsx'
+import { useAchievements } from './useAchievements.ts'
 import { AchievementsSection, ProfileSection } from './YouSections.tsx'
 
 const SECTIONS: { id: YouSection; label: string; short?: string }[] = [
@@ -15,9 +21,25 @@ const SECTIONS: { id: YouSection; label: string; short?: string }[] = [
   { id: 'settings', label: 'Settings' },
 ]
 
+/** Your photo (or emoji, or initials), or a stand-in until you add one. */
+export function ProfileAvatar({ data, size }: { data: TravelData; size: number }) {
+  const profile = data.profile && !data.profile.deleted ? data.profile : null
+  if (profile) return <Avatar person={{ id: PROFILE_RECORD_ID, name: profile.name || '?', avatar: profile.avatar }} size={size} />
+  return (
+    <span className="grid shrink-0 place-items-center rounded-full bg-raised text-muted" style={{ width: size, height: size }} aria-hidden>
+      <svg viewBox="0 0 24 24" style={{ width: size * 0.55, height: size * 0.55 }}>
+        <circle cx="12" cy="8.5" r="3.8" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        <path d="M4.5 20.5c.9-4 3.8-6.2 7.5-6.2s6.6 2.2 7.5 6.2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    </span>
+  )
+}
+
 /**
- * You: Profile, Achievements, People & groups and Settings, each at its own address. A menu down
- * the left on wider screens; tabs across the top on phones, where a sideways swipe moves between them.
+ * You, laid out like a profile page: a card with your photo, name, Home and "Traveling since" beside
+ * the sections (Profile, Achievements, Parks, People & groups, Settings), each at its own address.
+ * Wider screens: the card and a menu down the left, the section filling the rest. Phones: the card
+ * on top, the sections as tabs under it, and a sideways swipe moves between them.
  */
 export function YouPage({
   data,
@@ -36,6 +58,17 @@ export function YouPage({
   onOpenPark: (parkId: string) => void
   onLogVisit: (park: ParkInfo) => void
 }) {
+  const [editing, setEditing] = useState(false)
+  const totals = useMemo(() => travelTotals(data), [data])
+  const statuses = useAchievements(data)
+  const counts: Partial<Record<YouSection, number>> = {
+    achievements: statuses.reduce((n, s) => n + s.earned.length, 0),
+    parks: parksVisited(data).size,
+    people: data.people.filter((p) => !p.deleted).length,
+  }
+  const profile = data.profile && !data.profile.deleted ? data.profile : null
+  const home = data.home && !data.home.deleted ? data.home : null
+
   // A sideways swipe on a phone: to the next section on the left, the previous on the right.
   const swipe = useRef<{ x: number; y: number } | null>(null)
   const startSwipe = (e: PointerEvent) => {
@@ -54,39 +87,84 @@ export function YouPage({
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-3 pt-6 pb-10 sm:px-6">
-      <h1 className="mb-3 font-display text-3xl font-semibold">You</h1>
-      <div className="sm:flex sm:items-start sm:gap-6">
-        <nav aria-label="You sections" className="-mx-3 mb-4 border-b border-line px-3 sm:sticky sm:top-24 sm:mx-0 sm:mb-0 sm:w-48 sm:shrink-0 sm:border-0 sm:px-0">
-          <ul className="flex sm:flex-col sm:gap-0.5">
+    <div className="mx-auto w-full max-w-6xl px-3 pt-5 pb-10 sm:px-6 md:grid md:grid-cols-[15rem_minmax(0,1fr)] md:gap-8 md:pt-8 lg:grid-cols-[17rem_minmax(0,1fr)]">
+      <aside className="md:sticky md:top-6 md:self-start">
+        <section aria-label="Your profile" className="flex items-center gap-4 md:flex-col md:items-start">
+          <span className="md:hidden">
+            <ProfileAvatar data={data} size={72} />
+          </span>
+          <span className="hidden md:block">
+            <ProfileAvatar data={data} size={168} />
+          </span>
+          <div className="min-w-0 flex-1 md:w-full">
+            <h1 className="truncate font-display text-3xl leading-tight font-semibold">{profile?.name || 'You'}</h1>
+            <ul className="mt-1 space-y-0.5 text-sm text-muted">
+              {home && (
+                <li className="flex items-center gap-1.5">
+                  <svg viewBox="0 0 20 20" className="size-4 shrink-0" aria-hidden>
+                    <path d="M3.5 9.5 10 4l6.5 5.5V16h-4v-4h-5v4h-4Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+                  </svg>
+                  <span className="truncate">{home.name}</span>
+                </li>
+              )}
+              {totals.since && (
+                <li className="flex items-center gap-1.5">
+                  <svg viewBox="0 0 20 20" className="size-4 shrink-0" aria-hidden>
+                    <path d="M4 5.5h12v11H4ZM4 9h12M7.5 3.5v3M12.5 3.5v3" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+                  </svg>
+                  Traveling since {totals.since}
+                </li>
+              )}
+            </ul>
+            <button
+              onClick={() => setEditing(true)}
+              className="mt-3 flex h-9 items-center justify-center rounded-lg border border-line bg-surface px-3 text-sm font-bold hover:bg-raised md:w-full"
+            >
+              {profile ? 'Edit profile' : 'Add your name and photo'}
+            </button>
+          </div>
+        </section>
+
+        <nav aria-label="You sections" className="-mx-3 mt-5 overflow-x-auto border-b border-line px-3 [scrollbar-width:none] md:mx-0 md:mt-6 md:border-0 md:px-0">
+          <ul className="flex md:flex-col md:gap-0.5">
             {SECTIONS.map((s) => {
               const current = s.id === section
               return (
-                <li key={s.id} className="flex-1 sm:flex-none">
+                <li key={s.id} className="shrink-0">
                   <a
                     href={youHref(s.id)}
                     aria-current={current ? 'page' : undefined}
                     aria-label={s.label}
-                    className={`flex min-h-11 items-center justify-center border-b-2 px-1 text-sm font-bold whitespace-nowrap sm:justify-start sm:rounded-lg sm:border-0 sm:px-3 ${
-                      current ? 'border-primary text-primary sm:bg-raised sm:text-fg' : 'border-transparent text-muted hover:text-fg sm:hover:bg-raised'
+                    className={`flex h-11 items-center gap-2 border-b-2 px-3 text-sm font-bold whitespace-nowrap md:h-10 md:rounded-lg md:border-0 ${
+                      current ? 'border-primary text-primary md:bg-raised md:text-fg' : 'border-transparent text-muted hover:text-fg md:hover:bg-raised'
                     }`}
                   >
-                    <span className="sm:hidden">{s.short ?? s.label}</span>
-                    <span className="hidden sm:inline">{s.label}</span>
+                    <span className="md:hidden">{s.short ?? s.label}</span>
+                    <span className="hidden md:inline">{s.label}</span>
+                    {counts[s.id] !== undefined && (
+                      <span aria-hidden className="ml-auto hidden rounded-full bg-bg px-2 py-0.5 text-xs text-muted tabular-nums md:inline">
+                        {counts[s.id]}
+                      </span>
+                    )}
                   </a>
                 </li>
               )
             })}
           </ul>
         </nav>
-        <div className="min-w-0 flex-1 touch-pan-y" onPointerDown={startSwipe} onPointerUp={endSwipe} onPointerCancel={() => (swipe.current = null)}>
-          {section === 'profile' && <ProfileSection data={data} onGoTo={onGoTo} onOpenPlace={onOpenPlace} />}
-          {section === 'achievements' && <AchievementsSection data={data} />}
-          {section === 'parks' && <ParksSection data={data} onOpenPark={onOpenPark} onLogVisit={onLogVisit} />}
-          {section === 'people' && <PeoplePanel />}
-          {section === 'settings' && <Settings />}
-        </div>
+      </aside>
+
+      <div className="mt-5 min-w-0 touch-pan-y md:mt-0" onPointerDown={startSwipe} onPointerUp={endSwipe} onPointerCancel={() => (swipe.current = null)}>
+        {section === 'profile' && <ProfileSection data={data} onGoTo={onGoTo} onOpenPlace={onOpenPlace} />}
+        {section === 'achievements' && <AchievementsSection data={data} />}
+        {section === 'parks' && <ParksSection data={data} onOpenPark={onOpenPark} onLogVisit={onLogVisit} />}
+        {section === 'people' && <PeoplePanel />}
+        {section === 'settings' && <Settings />}
       </div>
+
+      <Sheet open={editing} onOpenChange={setEditing} title="Edit profile" swipeToClose>
+        {editing && <PersonEditor id={null} profile onDone={() => setEditing(false)} />}
+      </Sheet>
     </div>
   )
 }

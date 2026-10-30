@@ -11,7 +11,7 @@ import { TripDetail, type TripStep } from './components/TripDetail.tsx'
 import { TripForm, type RequestShape, type RouteEnd } from './components/TripForm.tsx'
 import { TripList } from './components/TripList.tsx'
 import { PEEK_PX, ShowTripsButton, TripsPanel, TripsSheet, type Crumb, type SheetSize } from './components/TripsPanel.tsx'
-import { YouPage } from './components/YouPage.tsx'
+import { ProfileAvatar, YouPage } from './components/YouPage.tsx'
 import parks from './data/national-parks.json'
 import { mainPlaceIds, parksVisited, pinsOf, tripsPerRegion } from './lib/derive.ts'
 import { filterData, NO_FILTER, reviveFilter, type TripFilter } from './lib/filters.ts'
@@ -241,15 +241,8 @@ function Shell() {
         onAdd={addTrip}
         sync={<SyncChip onSettings={() => navigate(youHref('settings'))} />}
         you={
-          <a
-            href={youHref('profile')}
-            aria-label="Your profile"
-            className="hidden size-9 place-items-center rounded-full border border-line text-muted hover:bg-raised hover:text-fg sm:grid"
-          >
-            <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
-              <circle cx="12" cy="8.5" r="3.8" fill="none" stroke="currentColor" strokeWidth="1.8" />
-              <path d="M4.5 20.5c.9-4 3.8-6.2 7.5-6.2s6.6 2.2 7.5 6.2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
+          <a href={youHref('profile')} aria-label="Your profile" className="hidden rounded-full hover:ring-2 hover:ring-line sm:block">
+            <ProfileAvatar data={data} size={36} />
           </a>
         }
       />

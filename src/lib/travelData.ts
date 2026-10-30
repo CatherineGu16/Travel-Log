@@ -2,7 +2,7 @@ import { isPartialDate } from './partialDate.ts'
 import { insertCheapest } from './route.ts'
 import { isLegMode } from './legs.ts'
 import { asList, builtInGroups } from './travelActions.ts'
-import { FAMILY_GROUP_ID, FRIENDS_GROUP_ID, type Avatar, type Destination, type Group, type HikeEdit, type Home, type LegMode, type LngLat, type Person, type Place, type Synced, type TravelData, type Trip, type TripStart } from './types.ts'
+import { FAMILY_GROUP_ID, FRIENDS_GROUP_ID, type Avatar, type Destination, type Group, type HikeEdit, type Home, type LegMode, type LngLat, type Person, type Place, type Profile, type Synced, type TravelData, type Trip, type TripStart } from './types.ts'
 
 /**
  * Combines two copies of your data record by record: the newer updatedAt wins, and deletes travel
@@ -18,6 +18,7 @@ export function mergeData(a: TravelData, b: TravelData): TravelData {
     groups: newestById(a.groups, b.groups),
     hikeEdits: newestById(a.hikeEdits, b.hikeEdits),
     home: newestById(asList(a.home), asList(b.home))[0] ?? null,
+    profile: newestById(asList(a.profile), asList(b.profile))[0] ?? null,
   }
 }
 
@@ -45,7 +46,7 @@ const stable = (v: unknown): string =>
 
 /** Content equality, ignoring record order, key order and the top-level timestamp. */
 export function sameContent(a: TravelData, b: TravelData): boolean {
-  const canon = (d: TravelData) => stable([d.trips, d.places, d.people, d.groups, d.hikeEdits, asList(d.home)].map((records) => [...records].sort((x, y) => x.id.localeCompare(y.id))))
+  const canon = (d: TravelData) => stable([d.trips, d.places, d.people, d.groups, d.hikeEdits, asList(d.home), asList(d.profile)].map((records) => [...records].sort((x, y) => x.id.localeCompare(y.id))))
   return canon(a) === canon(b)
 }
 
@@ -248,5 +249,10 @@ export function parseTravelData(input: unknown): TravelData {
       ? { ...homeBase, name: str(h.name, 'Home'), lat: h.lat, lng: h.lng }
       : null
 
-  return { schemaVersion: 1, updatedAt: str(o.updatedAt, new Date(0).toISOString()), trips, places, people, groups, hikeEdits, home }
+  // Added later: older files have none.
+  const pr = isObject(o.profile) ? o.profile : null
+  const profileBase = pr && synced(pr)
+  const profile: Profile | null = pr && profileBase ? { ...profileBase, name: str(pr.name), avatar: parseAvatar(pr.avatar) } : null
+
+  return { schemaVersion: 1, updatedAt: str(o.updatedAt, new Date(0).toISOString()), trips, places, people, groups, hikeEdits, home, profile }
 }

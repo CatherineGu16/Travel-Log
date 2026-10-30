@@ -12,6 +12,7 @@ import {
   type Place,
   type Destination,
   type Home,
+  type Profile,
   type TripStart,
   type LegMode,
   type Synced,
@@ -45,6 +46,7 @@ export function emptyData(now: string): TravelData {
     groups: builtInGroups(),
     hikeEdits: [],
     home: null,
+    profile: null,
   }
 }
 
@@ -368,6 +370,21 @@ export function setHome(data: TravelData, ctx: EditContext, home: { name: string
   return { ...data, updatedAt: ctx.now, trips, home: record }
 }
 
+/** Your name and avatar on the You page. */
+export const PROFILE_RECORD_ID = 'profile'
+
+/** Sets your name and avatar (an empty name is fine: the page then asks for one). */
+export function setProfile(data: TravelData, ctx: EditContext, profile: { name: string; avatar: Avatar }): TravelData {
+  const record: Profile = {
+    id: PROFILE_RECORD_ID,
+    name: profile.name.trim(),
+    avatar: profile.avatar,
+    createdAt: data.profile?.createdAt ?? ctx.now,
+    updatedAt: ctx.now,
+  }
+  return { ...data, updatedAt: ctx.now, profile: record }
+}
+
 // ---------- Undo ----------
 
 /**
@@ -384,6 +401,7 @@ export function revertTo(current: TravelData, snapshot: TravelData, ctx: EditCon
     groups: revertRecords(current.groups, snapshot.groups, ctx.now),
     hikeEdits: revertRecords(current.hikeEdits, snapshot.hikeEdits, ctx.now),
     home: revertRecords(asList(current.home), asList(snapshot.home), ctx.now)[0] ?? null,
+    profile: revertRecords(asList(current.profile), asList(snapshot.profile), ctx.now)[0] ?? null,
   }
 }
 

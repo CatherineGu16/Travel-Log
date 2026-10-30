@@ -129,7 +129,10 @@ units (monuments, seashores, historic sites — 400+ total) could be added later
               isFamily,                      // only the built-in "Family" group; "Friends" is also built in
               createdAt, updatedAt, deleted? } ],
   home: { id: "home", name, lat, lng,        // Settings → Home; legs to and from it are optional per trip
-          createdAt, updatedAt, deleted? } | null
+          createdAt, updatedAt, deleted? } | null,
+  profile: { id: "profile", name,             // You → Edit profile; older files have none (null)
+             avatar: { kind, color, emoji, photoUpdatedAt },   // like a person's; photo at avatars/profile.webp
+             createdAt, updatedAt } | null
 }
 ```
 

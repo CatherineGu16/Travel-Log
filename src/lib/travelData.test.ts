@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addPerson, deleteTrip, emptyData, saveTrip, type TripInput } from './travelActions.ts'
+import { addPerson, deleteTrip, emptyData, saveTrip, setProfile, type TripInput } from './travelActions.ts'
 import { mergeData, parseTravelData, sameContent } from './travelData.ts'
 import { FAMILY_GROUP_ID, type EditContext } from './types.ts'
 import { tripInput } from '../test/tripInput.ts'
@@ -137,5 +137,24 @@ describe('route bends', () => {
       ],
     })
     expect(parsed.trips[0].destinations.map((d) => d.via)).toEqual([[], [[-112, 37]]])
+  })
+})
+
+describe('profile', () => {
+  it('is set like Home, survives a round trip and merges newest-first; older files have none', () => {
+    const a = setProfile(emptyData('2024-01-01T00:00:00Z'), at('2024-01-02T00:00:00Z'), {
+      name: ' Cat ',
+      avatar: { kind: 'emoji', color: '#123456', emoji: '🥾', photoUpdatedAt: null },
+    })
+    expect(a.profile).toMatchObject({ id: 'profile', name: 'Cat', avatar: { kind: 'emoji', emoji: '🥾' } })
+    expect(sameContent(parseTravelData(JSON.parse(JSON.stringify(a))), a)).toBe(true)
+
+    const b = setProfile(a, at('2024-01-03T00:00:00Z'), { name: 'Catherine', avatar: a.profile!.avatar })
+    expect(mergeData(a, b).profile?.name).toBe('Catherine')
+    expect(mergeData(b, a).profile?.name).toBe('Catherine')
+
+    const old = JSON.parse(JSON.stringify(emptyData('2024-01-01T00:00:00Z')))
+    delete old.profile
+    expect(parseTravelData(old).profile).toBeNull()
   })
 })

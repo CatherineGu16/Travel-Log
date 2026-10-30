@@ -122,6 +122,14 @@ export interface TravelData {
   hikeEdits: HikeEdit[]
   /** Where trips start and end (Settings → Home). One record, so it syncs like the others. */
   home: Home | null
+  /** Your name and photo on the You page. One record (id "profile"), like Home. */
+  profile: Profile | null
+}
+
+/** You, on the You page: a name and the same kind of avatar as people (a photo lives at avatars/profile.webp). */
+export interface Profile extends Synced {
+  name: string
+  avatar: Avatar
 }
 
 export interface Home extends Synced {
