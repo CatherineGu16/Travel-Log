@@ -119,6 +119,8 @@ function Shell() {
   const [legRequest, setLegRequest] = useState<{ at: number; token: number } | null>(null)
   // Wider screens: the trip form sits in the Trips panel beside the map.
   const formInPanel = form !== null && !phone
+  // A breadcrumb link tapped while the form is open: the form goes there, or asks to discard changes.
+  const [leaveTo, setLeaveTo] = useState<{ href: string; token: number } | null>(null)
 
   /** Moves the map to a trip: a trip with several places is fitted to its route, otherwise centered on its pin. */
   const focusTrip = (tripId: string) => {
@@ -229,7 +231,15 @@ function Shell() {
         ? undefined
         : `${tripCount} ${tripCount === 1 ? 'trip' : 'trips'}`
   // The form in the panel: Trips › Add trip, or Trips › Utah 2023 › Edit trip (no links while it's open).
-  const formCrumbs: Crumb[] = form ? [{ label: 'Trips' }, ...(form.trip ? [{ label: form.trip.title }] : []), { label: form.trip ? 'Edit trip' : 'Add trip' }] : []
+  // Its links leave the form (asking first if you've changed anything).
+  const leave = (href: string) => setLeaveTo({ href, token: Date.now() })
+  const formCrumbs: Crumb[] = form
+    ? [
+        { label: 'Trips', href: pageHref('trips'), onClick: () => leave(pageHref('trips')) },
+        ...(form.trip ? [{ label: form.trip.title, href: tripHref(form.trip.id), onClick: () => leave(tripHref(form.trip!.id)) }] : []),
+        { label: form.trip ? 'Edit trip' : 'Add trip' },
+      ]
+    : []
   // The list shows the Filter by its search; the map shows it only when the list isn't in view.
   const listInView = !routePlaceId && !detailTrip && (phone ? sheetSize !== 'peek' : panelOpen && !formInPanel)
 
@@ -244,13 +254,22 @@ function Shell() {
       hidden={phone && shape !== null}
       onDraftRoute={setDraft}
       shapeLegAt={legRequest}
+      leaveTo={leaveTo}
+      onLeave={(href) => {
+        finishShape(null)
+        setForm(null)
+        setLeaveTo(null)
+        navigate(href)
+      }}
       requestShape={requestShape}
       onClose={() => {
         finishShape(null)
         setForm(null)
+        setLeaveTo(null)
       }}
       onSaved={(mainPlaceId, tripId) => {
         setForm(null)
+        setLeaveTo(null)
         setSelectedTripId(tripId)
         // The trip stays open if it was; otherwise its place's trips open, with it on the map.
         if (detailTripId !== tripId) navigate(placeHref(mainPlaceId))
@@ -337,7 +356,7 @@ function Shell() {
             onDetailedFailed={() => toast("The detailed map couldn't load (offline?). Showing the outline map.")}
             focus={focus}
             onPickLeg={formInPanel && editingRoute && !shape ? (at) => setLegRequest({ at, token: Date.now() }) : undefined}
-            leftInset={!phone && onMap && panelOpen ? 428 : 0}
+            leftInset={!phone && (panelOpen || formInPanel) ? 428 : 0}
           />
         </Suspense>
         </div>

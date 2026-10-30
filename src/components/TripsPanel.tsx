@@ -1,7 +1,7 @@
 import { useRef, useState, type PointerEvent, type ReactNode } from 'react'
 
-/** One step of the breadcrumb: a link back, or (the last) where you are. */
-export type Crumb = { label: string; href?: string }
+/** One step of the breadcrumb: a link back, or (the last) where you are. `onClick` handles the link itself (the trip form asks before leaving). */
+export type Crumb = { label: string; href?: string; onClick?: () => void }
 
 /** How tall the phone's Trips sheet is: just its title, half the map, or nearly all of it. */
 export type SheetSize = 'peek' | 'half' | 'full'
@@ -29,7 +29,17 @@ function PanelHeading({ crumbs, subtitle, stacked }: { crumbs: Crumb[]; subtitle
           {back.map((c, i) => (
             <li key={i} className="flex shrink-0 items-baseline text-sm">
               {c.href ? (
-                <a href={c.href} className="-mx-1 max-w-40 truncate rounded px-1 font-bold text-primary hover:bg-raised">
+                <a
+                  href={c.href}
+                  onClick={
+                    c.onClick &&
+                    ((e) => {
+                      e.preventDefault()
+                      c.onClick!()
+                    })
+                  }
+                  className="-mx-1 max-w-40 truncate rounded px-1 font-bold text-primary hover:bg-raised"
+                >
                   {c.label}
                 </a>
               ) : (

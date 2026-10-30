@@ -35,17 +35,18 @@ export type ParksMode = 'off' | 'all' | 'visited' | 'not-visited'
 const PARK_LAYERS = ['park-areas', 'park-outlines', 'park-icons', 'park-labels']
 
 /**
- * Room around a fitted route for the Trips panel on the left (wider screens) or the Trips sheet
- * below (phones), and while you shape a leg, for the instructions across the top too.
+ * Room around a fitted route, inside the part of the map beside the Trips panel (the map's own
+ * padding keeps clear of the panel): for labels, the phone's Trips sheet below, and while you shape
+ * a leg, the instructions across the top.
  */
 const routePadding = (shaping: boolean) =>
   shaping
     ? window.innerWidth < 640
       ? { top: 160, bottom: 120, left: 50, right: 150 }
-      : { top: 160, bottom: 80, left: 470, right: 170 }
+      : { top: 160, bottom: 80, left: 60, right: 170 }
     : window.innerWidth < 640
       ? { top: 70, bottom: Math.round(window.innerHeight * 0.5), left: 40, right: 40 }
-      : { top: 70, bottom: 60, left: 470, right: 170 }
+      : { top: 70, bottom: 60, left: 60, right: 170 }
 
 export interface MapViewProps {
   pins: Pin[]
@@ -77,7 +78,10 @@ export interface MapViewProps {
   focus: { lng: number; lat: number; token: number } | null
   /** While you edit a trip's route: a ground leg tapped on the map, by the route point it arrives at. */
   onPickLeg?: (at: number) => void
-  /** Room on the left the Trips panel covers, kept clear when fitting the US. */
+  /**
+   * Room on the left the Trips panel covers. The map centers everything in the rest (its own
+   * padding): the US when it opens, the US button, routes, places, and the globe zoomed out.
+   */
   leftInset?: number
 }
 
@@ -93,6 +97,7 @@ export function MapView(props: MapViewProps) {
   // Flat map or globe; the map reads the one in place from the ref.
   const [projection, setMapProjection] = usePersistentState<MapProjection>('travel.mapProjection', 'flat', (v) => (v === 'globe' ? 'globe' : 'flat'))
   const shownProjection = useRef(projection)
+  const appliedInset = useRef(0)
 
   useEffect(() => {
     let cancelled = false
@@ -112,6 +117,13 @@ export function MapView(props: MapViewProps) {
           pitchWithRotate: false,
           touchPitch: false,
         })
+        // Opens on the US in the part of the map beside the Trips panel, when it's open.
+        const inset = latest.current.leftInset ?? 0
+        if (inset) {
+          created.setPadding({ left: inset, top: 0, right: 0, bottom: 0 })
+          created.fitBounds(VIEWS.us.bounds, { padding: fitPadding(), duration: 0 })
+        }
+        appliedInset.current = inset
         const limitZoom = () => created.setMinZoom(minZoomFor(created, shownProjection.current))
         limitZoom()
         created.on('move', limitZoom)
@@ -139,6 +151,14 @@ export function MapView(props: MapViewProps) {
       instance?.remove()
     }
   }, [])
+
+  // The Trips panel opening or closing: the view slides so its center stays in the free part.
+  const { leftInset = 0 } = props
+  useEffect(() => {
+    if (!map || appliedInset.current === leftInset) return
+    appliedInset.current = leftInset
+    map.easeTo({ padding: { left: leftInset, top: 0, right: 0, bottom: 0 }, duration: 400 })
+  }, [map, leftInset])
 
   // Switching between the flat map and the globe. Turning the globe on zooms out to see all of it;
   // back to flat, the view stays unless it was zoomed out past the flat map's limit.
@@ -233,9 +253,7 @@ export function MapView(props: MapViewProps) {
   // Fly to a place on request.
   const { focus } = props
   useEffect(() => {
-    // Wider screens: centered in the part of the map the Trips panel leaves free.
-    const offset: [number, number] = window.innerWidth < 640 ? [0, 0] : [214, 0]
-    if (map && focus) map.easeTo({ center: [focus.lng, focus.lat], zoom: Math.max(map.getZoom(), 5), offset, duration: 800 })
+    if (map && focus) map.easeTo({ center: [focus.lng, focus.lat], zoom: Math.max(map.getZoom(), 5), duration: 800 })
   }, [map, focus])
 
   useEffect(() => {
@@ -291,11 +309,7 @@ export function MapView(props: MapViewProps) {
         <MapControls
           onZoomIn={() => map.zoomIn()}
           onZoomOut={() => map.zoomOut()}
-          onReset={() => {
-            // Fits the US into the part of the map beside the Trips panel when it's open.
-            const pad = fitPadding()
-            map.fitBounds(VIEWS.us.bounds, { padding: { top: pad, bottom: pad, right: pad, left: pad + (latest.current.leftInset ?? 0) }, duration: 900 })
-          }}
+          onReset={() => map.fitBounds(VIEWS.us.bounds, { padding: fitPadding(), duration: 900 })}
           globe={projection === 'globe'}
           onToggleGlobe={() => setMapProjection(projection === 'globe' ? 'flat' : 'globe')}
         />
@@ -311,12 +325,12 @@ const projectionType = (p: MapProjection) => (p === 'globe' ? 'globe' : 'mercato
 const minZoomFor = (map: MapLibreMap, p: MapProjection) => (p === 'globe' ? worldZoom(map) : FLAT_MIN_ZOOM)
 
 /**
- * The zoom that shows the whole globe at 75% of the map's shorter side. The globe's size at a
- * given zoom depends on the latitude in view, so this follows the map as it moves.
+ * The zoom that shows the whole globe at 75% of the shorter side of the map beside the Trips panel.
+ * The globe's size at a given zoom depends on the latitude in view, so this follows the map as it moves.
  */
 const worldZoom = (map: MapLibreMap) => {
   const { clientWidth, clientHeight } = map.getContainer()
-  const zoom = globeZoom(clientWidth, clientHeight, map.getCenter().lat, map.getVerticalFieldOfView())
+  const zoom = globeZoom(clientWidth - (map.getPadding().left ?? 0), clientHeight, map.getCenter().lat, map.getVerticalFieldOfView())
   // Before the map has a size there's nothing to fit.
   return Number.isFinite(zoom) ? Math.min(Math.max(zoom, -2), map.getMaxZoom()) : 0
 }

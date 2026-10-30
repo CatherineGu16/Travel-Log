@@ -90,6 +90,8 @@ export function TripForm({
   inline = false,
   onDraftRoute,
   shapeLegAt,
+  leaveTo,
+  onLeave,
 }: {
   trip: Trip | null
   initialMain: PlaceInput | null
@@ -104,6 +106,9 @@ export function TripForm({
   onDraftRoute?: (route: RoutePoint[] | null) => void
   /** A leg tapped on the map: shape the leg arriving at this point of the draft route. */
   shapeLegAt?: { at: number; token: number } | null
+  /** A link tapped elsewhere (the breadcrumb): go there, first asking to discard changes if there are any. */
+  leaveTo?: { href: string; token: number } | null
+  onLeave?: (href: string) => void
 }) {
   const store = useStore()
   const { data } = useTravelState()
@@ -508,7 +513,30 @@ export function TripForm({
   useEffect(() => {
     if (inline && !panel.current?.contains(document.activeElement)) panel.current?.focus({ preventScroll: true })
   }, [inline])
-  const footer = (
+  // Leaving by a link (the breadcrumb) with changes asks first; without any, it just goes.
+  const snapshot = () =>
+    JSON.stringify([title, startDate, endDate, destinations.map(({ key: _k, open: _o, ...d }) => d), start, startMode, endMode, startVia, endVia, companions, description, highlights, rating, tags, hikes])
+  const [unchanged] = useState(snapshot)
+  const [leaving, setLeaving] = useState<string | null>(null)
+  const leaveRef = useRef<(href: string) => void>(() => {})
+  useLayoutEffect(() => {
+    leaveRef.current = (href) => (snapshot() === unchanged ? onLeave?.(href) : setLeaving(href))
+  })
+  useEffect(() => {
+    if (leaveTo) leaveRef.current(leaveTo.href)
+  }, [leaveTo])
+
+  const footer = leaving ? (
+    <div role="group" aria-label="Discard changes" className="flex flex-wrap items-center gap-2">
+      <p className="mr-auto text-sm font-bold">Discard {trip ? 'your changes' : 'this trip'}?</p>
+      <button type="button" onClick={() => setLeaving(null)} className={secondary}>
+        Keep editing
+      </button>
+      <button type="button" onClick={() => onLeave?.(leaving)} className="min-h-11 rounded-lg bg-danger px-4 font-bold text-white">
+        Discard
+      </button>
+    </div>
+  ) : (
     <div className="flex flex-wrap items-center gap-2">
       {error && (
         <p role="alert" className="mr-auto text-sm text-danger">

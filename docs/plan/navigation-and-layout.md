@@ -68,8 +68,9 @@ Where it sits (`TripsPanel.tsx`):
 
 - **Wider screens:** a panel on the left over the map. A tab on its right edge (‹) hides it for
   the full map; the same tab on the map's left edge ("Trips ›") brings it back, and so does opening
-  a place or trip. Moving the map to a trip centers it
-  in the space beside the panel.
+  a place or trip. While it's open, the map's own padding keeps its
+  width clear, so everything centers in the space beside it: the US when the app opens, the US
+  button, routes, places, and the globe zoomed out. Hiding or showing it slides the view over.
 - **Phones:** a sheet over the map, peeking (just the breadcrumb), half, or nearly full height.
   Drag the top (a quick flick goes one size; a slow drag settles on the nearest), or tap it to go
   peeking → half → full → peeking. Opening a place or trip raises it to half; tapping the bare map

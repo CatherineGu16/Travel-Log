@@ -44,3 +44,29 @@ test('Add trip from the You page opens the form over the map', async ({ page }) 
   const form = await openAddTrip(page)
   await expect(form).toBeVisible()
 })
+
+test('wider screens: the breadcrumb leaves the trip form, asking first if you changed anything', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'Phones keep the full-screen form')
+  await page.goto('./')
+  const panel = page.getByRole('complementary', { name: 'Trips panel' })
+  const crumbs = panel.getByRole('navigation', { name: 'Breadcrumb' })
+
+  // Nothing typed yet: Trips goes straight back to the list.
+  let form = await openAddTrip(page)
+  await crumbs.getByRole('link', { name: 'Trips' }).click()
+  await expect(form).toBeHidden()
+  await expect(panel.getByRole('searchbox', { name: 'Search trips' })).toBeVisible()
+
+  // With a change, it asks: keep editing, or discard and go.
+  form = await openAddTrip(page)
+  await form.getByRole('textbox', { name: 'Title' }).fill('Somewhere')
+  await crumbs.getByRole('link', { name: 'Trips' }).click()
+  const ask = form.getByRole('group', { name: 'Discard changes' })
+  await expect(ask).toContainText('Discard this trip?')
+  await ask.getByRole('button', { name: 'Keep editing' }).click()
+  await expect(form.getByRole('textbox', { name: 'Title' })).toHaveValue('Somewhere')
+  await crumbs.getByRole('link', { name: 'Trips' }).click()
+  await ask.getByRole('button', { name: 'Discard' }).click()
+  await expect(form).toBeHidden()
+  await expect(page).toHaveURL(/#\/trips$/)
+})
