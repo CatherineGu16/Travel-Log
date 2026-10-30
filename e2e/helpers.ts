@@ -52,8 +52,14 @@ export const openTrips = (page: Page) => page.goto('./#/trips')
 export const tripDetails = (page: Page, name: string | RegExp) =>
   page.getByRole('dialog', { name }).or(page.getByRole('complementary', { name: 'Trips panel' }).getByRole('region', { name, exact: true }))
 
-/** Goes to the You page (its Profile). */
-export const openYou = (page: Page) => page.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: 'You' }).filter({ visible: true }).click()
+/** Goes to the You page (its Profile): the You tab on phones, your photo in the toolbar on wider screens. */
+export const openYou = (page: Page) =>
+  page
+    .getByRole('navigation', { name: 'Pages' })
+    .getByRole('link', { name: 'You' })
+    .or(page.getByRole('link', { name: 'Your profile' }))
+    .filter({ visible: true })
+    .click()
 
 /** Goes to a section of the You page by its menu (tabs on phones), and returns the section. */
 export async function openYouSection(page: Page, name: 'Profile' | 'Achievements' | 'Parks' | 'People & groups' | 'Settings') {

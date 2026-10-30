@@ -111,7 +111,7 @@ export function YouPage({
           <span className="md:hidden">
             <ProfileAvatar data={data} size={72} />
           </span>
-          <span className="hidden md:block">
+          <span className="hidden md:flex md:w-full md:justify-center">
             <ProfileAvatar data={data} size={168} />
           </span>
           <div className="min-w-0 flex-1 md:w-full">
@@ -185,11 +185,11 @@ export function YouPage({
       </Sheet>
       <Sheet
         open={achievement !== undefined}
-        onOpenChange={(open) => !open && onClose(youHref('achievements'))}
+        onOpenChange={(open) => !open && onClose(youHref(section))}
         title={achievement?.achievement.name ?? ''}
         swipeToClose
       >
-        {achievement && <AchievementDetail status={achievement} onOpenTrip={onOpenTrip} />}
+        {achievement && <AchievementDetail status={achievement} data={data} onOpenTrip={onOpenTrip} onOpenPark={onOpenPark} />}
       </Sheet>
       <Sheet open={editing} onOpenChange={setEditing} title="Edit profile" swipeToClose>
         {editing && <PersonEditor id={null} profile onDone={() => setEditing(false)} />}

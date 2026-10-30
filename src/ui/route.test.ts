@@ -35,6 +35,7 @@ describe('parseHash', () => {
     expect(parseHash('#/you/stats/nope').stat).toBeNull()
     expect(parseHash(achievementHref('parks-64'))).toMatchObject({ section: 'achievements', achievementId: 'parks-64' })
     expect(parseHash('#/you/achievements').achievementId).toBeNull()
+    expect(parseHash(achievementHref('parks-64', 'profile'))).toMatchObject({ section: 'profile', achievementId: 'parks-64' })
   })
 
   it('round-trips the addresses it makes', () => {

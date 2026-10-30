@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { TIER_NAMES, type AchievementCategory, type AchievementStatus, type TierLevel } from '../lib/achievements.ts'
-import { pinsOf } from '../lib/derive.ts'
+import { parksVisited, pinsOf } from '../lib/derive.ts'
 import { PARKS } from '../lib/gazetteer.ts'
 import { formatDateRange, formatPartialDate } from '../lib/partialDate.ts'
 import { hikesLogged, travelTotals, tripsBy, tripsByArea } from '../lib/stats.ts'
@@ -83,7 +83,7 @@ export function ProfileSection({ data, onOpenPlace }: { data: TravelData; onOpen
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 xl:grid-cols-4">
             {recent.map(({ status, tier }) => (
               <li key={`${status.achievement.id}:${tier.level}`}>
-                <a href={achievementHref(status.achievement.id)} className={`${PRESSABLE_CARD} flex items-center gap-3 p-3`}>
+                <a href={achievementHref(status.achievement.id, 'profile')} className={`${PRESSABLE_CARD} flex items-center gap-3 p-3`}>
                   <Badge category={status.achievement.category} level={tier.level} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-bold">{status.achievement.name}</span>
@@ -245,9 +245,24 @@ function AchievementCard({ status }: { status: AchievementStatus }) {
   )
 }
 
-/** An achievement's details: the badge, what it's for, progress, and each tier with when and on which trip you earned it. */
-export function AchievementDetail({ status, onOpenTrip }: { status: AchievementStatus; onOpenTrip: (trip: Trip) => void }) {
+/**
+ * An achievement's details: the badge, what it's for, progress, each tier with when and on which
+ * trip you earned it, and for parks achievements the parks that count, checked off once visited.
+ */
+export function AchievementDetail({
+  status,
+  data,
+  onOpenTrip,
+  onOpenPark,
+}: {
+  status: AchievementStatus
+  data: TravelData
+  onOpenTrip: (trip: Trip) => void
+  onOpenPark: (parkId: string) => void
+}) {
   const { achievement: a, reached, next, progress } = status
+  const parks = a.parks === 'all' ? [...PARKS].sort((x, y) => x.name.localeCompare(y.name)) : (a.parks ?? []).flatMap((id) => PARKS.filter((p) => p.id === id))
+  const visited = parks.length ? parksVisited(data) : null
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col items-center gap-2 text-center">
@@ -286,6 +301,33 @@ export function AchievementDetail({ status, onOpenTrip }: { status: AchievementS
           })}
         </ol>
       </section>
+      {visited && (
+        <section aria-label="Parks">
+          <h3 className="mb-2 text-sm font-bold text-muted">
+            Parks · {parks.filter((p) => visited.has(p.id)).length} of {parks.length} visited
+          </h3>
+          <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+            {parks.map((park) => {
+              const been = visited.has(park.id)
+              return (
+                <li key={park.id} aria-label={park.name}>
+                  <button onClick={() => onOpenPark(park.id)} className={`${PRESSABLE_ROW} min-h-12`}>
+                    <span
+                      aria-label={been ? 'Visited' : 'Not visited'}
+                      className={`grid size-6 shrink-0 place-items-center rounded-full border-2 text-xs font-bold ${been ? 'border-park bg-park text-white' : 'border-line text-transparent'}`}
+                    >
+                      ✓
+                    </span>
+                    <span className={`min-w-0 flex-1 truncate ${been ? 'font-bold' : 'text-muted'}`}>{park.name}</span>
+                    <span className="shrink-0 text-xs text-muted">{park.states.map((st) => st.replace(/^US-/, '')).join(', ')}</span>
+                    <Chevron />
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
     </div>
   )
 }

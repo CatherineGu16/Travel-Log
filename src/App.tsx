@@ -241,7 +241,12 @@ function Shell() {
         onAdd={addTrip}
         sync={<SyncChip onSettings={() => navigate(youHref('settings'))} />}
         you={
-          <a href={youHref('profile')} aria-label="Your profile" className="hidden rounded-full hover:ring-2 hover:ring-line sm:block">
+          <a
+            href={youHref('profile')}
+            aria-label="Your profile"
+            aria-current={page === 'you' ? 'page' : undefined}
+            className={`hidden rounded-full ring-offset-2 ring-offset-surface sm:block ${page === 'you' ? 'ring-2 ring-primary' : 'hover:ring-2 hover:ring-line'}`}
+          >
             <ProfileAvatar data={data} size={36} />
           </a>
         }

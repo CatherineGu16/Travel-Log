@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { openTrips, setTripYear, toStep, tripDetails } from './helpers.ts'
+import { openTrips, openYou, setTripYear, toStep, tripDetails } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -38,7 +38,6 @@ async function addTrip(page: Page, opts: { main: [string, RegExp]; year: string;
   if (await card.count()) await card.getByRole('button', { name: 'Close' }).click()
 }
 
-const nav = (page: Page, name: string) => page.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name }).filter({ visible: true }).click()
 
 test('trips list: search, group, filter by who went, and open a trip on the map', async ({ page }) => {
   await page.goto('./')
@@ -81,7 +80,7 @@ test('the You page: numbers, achievements, and most visited places that open on 
 
   // There's no Places tab any more.
   await expect(page.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: 'Places' })).toHaveCount(0)
-  await nav(page, 'You')
+  await openYou(page)
   const numbers = page.getByRole('region', { name: 'Your travel in numbers' })
   await expect(numbers).toContainText('3Trips')
   await expect(numbers).toContainText('1 / 64National parks')

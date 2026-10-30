@@ -107,6 +107,9 @@ Modeled on GitHub's profile: a card with who you are beside wide content.
   (trips by length), Miles driven / flown (trips by distance), Hikes (each hike, its park and
   date). National parks opens the Parks section. Trips in a list open on the map; hikes open
   their park. The lists come from `stats.ts` (`tripsByArea`, `tripsBy`, `hikesLogged`).
-- **Achievement details** (same panel/sheet, `#/you/achievements/<id>`): the badge, what it's
-  for, progress to the next tier, each tier's goal and when and on which trip you earned it (the
-  trip opens on the map).
+- **Achievement details** (same panel/sheet, `#/you/achievements/<id>`, or `#/you/earned/<id>`
+  over the profile from Recently earned): the badge, what it's for, progress to the next tier,
+  each tier's goal and when and on which trip you earned it (the trip opens on the map). Parks
+  achievements (National parks, Utah's Mighty 5, California's 9, Off the Grid) also list the parks
+  that count (`Achievement.parks`), checked off once visited; each opens its park. Park Hopper
+  counts parks on any one trip, so it has no list.

@@ -28,7 +28,7 @@ const STATS: StatKind[] = ['states', 'countries', 'days', 'drive', 'flight', 'hi
 
 /**
  * The page lives in the hash ("#/trips", "#/trips/<trip>", "#/trips/at/<place>/<trip>",
- * "#/you/settings", "#/you/stats/states", "#/you/achievements/<id>") so GitHub Pages needs no
+ * "#/you/settings", "#/you/stats/states", "#/you/achievements/<id>", "#/you/earned/<id>") so GitHub Pages needs no
  * server rules, the installed app opens on the map, and Back moves between pages and views.
  * Anything unknown falls back to the nearest page it names, else the map.
  */
@@ -45,7 +45,8 @@ export function parseHash(hash: string): Route {
     tripId: page !== 'trips' ? null : atPlace ? fourth || null : second || null,
     section: you && (SECTIONS as string[]).includes(second) ? (second as YouSection) : 'profile',
     stat: you && second === 'stats' && (STATS as string[]).includes(third) ? (third as StatKind) : null,
-    achievementId: you && second === 'achievements' && third ? third : null,
+    // An achievement over Achievements, or (one you earned lately) over the profile.
+    achievementId: you && (second === 'achievements' || second === 'earned') && third ? third : null,
   }
 }
 
@@ -59,8 +60,9 @@ export const placeHref = (placeId: string, tripId?: string | null) =>
 export const youHref = (section: YouSection) => (section === 'profile' ? '#/you' : `#/you/${section}`)
 /** A stat's list, over the profile. */
 export const statHref = (stat: StatKind) => `#/you/stats/${stat}`
-/** An achievement's details, over Achievements. */
-export const achievementHref = (id: string) => `#/you/achievements/${encodeURIComponent(id)}`
+/** An achievement's details, over Achievements or (from Recently earned) over the profile. */
+export const achievementHref = (id: string, over: 'achievements' | 'profile' = 'achievements') =>
+  `#/you/${over === 'profile' ? 'earned' : 'achievements'}/${encodeURIComponent(id)}`
 
 function subscribe(listener: () => void) {
   window.addEventListener('hashchange', listener)

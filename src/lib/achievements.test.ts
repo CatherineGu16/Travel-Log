@@ -86,3 +86,13 @@ describe('achievements', () => {
     expect(earned[0]).toMatch(/:gold$/)
   })
 })
+
+describe('parks listed in achievements', () => {
+  it('are real national parks', async () => {
+    const { ACHIEVEMENTS } = await import('./achievements.ts')
+    const { PARKS } = await import('./gazetteer.ts')
+    const ids = new Set(PARKS.map((p) => p.id))
+    for (const a of ACHIEVEMENTS) if (Array.isArray(a.parks)) for (const id of a.parks) expect(ids, `${a.name}: ${id}`).toContain(id)
+    expect(ACHIEVEMENTS.find((a) => a.id === 'parks-mighty-5')?.parks).toHaveLength(5)
+  })
+})

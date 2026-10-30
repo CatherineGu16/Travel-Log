@@ -29,8 +29,9 @@ const PlusIcon = ({ className }: { className: string }) => (
 const current = (page: Page): Page => (page === 'trips' ? 'map' : page)
 
 /**
- * The toolbar across the top, the same on every page: the title, then (wider screens) the pages as
- * tabs, and on the right Add trip, the sync status and your photo. Every control is 36 px tall.
+ * The toolbar across the top, the same on every page: the title, then (wider screens) the Map tab,
+ * and on the right Add trip, the sync status and your photo (which opens You, so You needs no tab
+ * here). Every control is 36 px tall.
  */
 export function TopBar({ page: shown, onAdd, sync, you }: { page: Page; onAdd: () => void; sync: ReactNode; you: ReactNode }) {
   const page = current(shown)
@@ -39,7 +40,7 @@ export function TopBar({ page: shown, onAdd, sync, you }: { page: Page; onAdd: (
       <div className="flex h-14 items-center gap-2 px-3 sm:gap-3 sm:px-4">
         <h1 className="font-display text-xl font-semibold tracking-wide whitespace-nowrap sm:text-2xl">Travel Log</h1>
         <nav aria-label="Pages" className="ml-3 hidden items-center gap-1 sm:flex">
-          {PAGES.map((p) => (
+          {PAGES.filter((p) => p.id !== 'you').map((p) => (
             <a
               key={p.id}
               href={pageHref(p.id)}

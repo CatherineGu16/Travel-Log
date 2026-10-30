@@ -24,6 +24,8 @@ export interface Achievement {
   /** What the number counts ("states", "mi"), for "41 / 64 parks". */
   unit: string
   tiers: Tier[]
+  /** The parks that count toward it (park ids, or every national park), listed in its details. */
+  parks?: string[] | 'all'
   /** How far you've got, from these trips (a prefix of your trips when finding when a tier was earned). */
   progress: (trips: Trip[], ctx: Context) => number
 }
@@ -122,6 +124,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: 'Visit US national parks.',
     unit: 'parks',
     tiers: three(10, 30, 64),
+    parks: 'all',
     progress: (trips, ctx) => countParks(trips, ctx).size,
   },
   {
@@ -141,6 +144,7 @@ export const ACHIEVEMENTS: Achievement[] = [
       description: `Every park in ${set.name}.`,
       unit: 'parks',
       tiers: once(set.parks.length),
+      parks: set.parks,
       progress: (trips, ctx) => {
         const seen = countParks(trips, ctx)
         return set.parks.filter((p) => seen.has(p)).length
@@ -154,6 +158,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: 'Remote parks: no roads in, or a long boat or plane ride away.',
     unit: 'parks',
     tiers: three(1, 3, 5),
+    parks: REMOTE_PARKS,
     progress: (trips, ctx) => {
       const seen = countParks(trips, ctx)
       return REMOTE_PARKS.filter((p) => seen.has(p)).length

@@ -3,8 +3,9 @@
 
 ## Pages and addresses
 
-- **Pages**: Map · **+** · You, as bottom tabs on phones; on wider screens the toolbar has Map
-  and You as tabs and **+ Add trip** on the right. There's no Trips tab (trips live on the map,
+- **Pages**: Map · **+** · You, as bottom tabs on phones; on wider screens the toolbar has a Map
+  tab, **+ Add trip** on the right, and your photo, which opens You (ringed while you're there), so
+  there's no You tab. There's no Trips tab (trips live on the map,
   below) and no Parks tab (the checklist is You › Parks). The toolbar spans the top, above the map
   and pages: the title, the pages, Add trip, the sync status and your photo (opens You); every
   control is 36 px tall.
@@ -16,7 +17,8 @@
   - `#/you`, `#/you/achievements`, `#/you/parks`, `#/you/people`, `#/you/settings`. The sync chip
     opens `#/you/settings` when something needs fixing.
   - `#/you/stats/<states|countries|days|drive|flight|hikes>` a stat's list over the profile;
-    `#/you/achievements/<id>` an achievement's details.
+    `#/you/achievements/<id>` an achievement's details over Achievements, `#/you/earned/<id>` the
+    same over the profile (from Recently earned, so the page doesn't switch).
   - Old links still work: `#/places` opens the map, `#/parks` opens You › Parks.
 - **Closing goes up**: Back when the app opened the view, otherwise (a link opened straight to it)
   the view above it (`useRoute().close`).
@@ -31,7 +33,7 @@
 | **People & groups** | The people and groups editor, in the page; an editor opens in place with a back arrow |
 | **Settings** | Sync, **Home**, Map detail, Backup, Appearance |
 
-- **Desktop:** your profile card (photo, name, Home, "Traveling since", Edit profile) and the
+- **Desktop:** your profile card (photo centered, name, Home, "Traveling since", Edit profile) and the
   section menu (with counts) down the left; the section fills the rest, up to 72 rem.
 - **Phones:** the card on top, section tabs under it ("People" for short); tap them, or swipe
   sideways on the section.
