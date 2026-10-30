@@ -5,9 +5,8 @@ import { loadWorldCities } from '../lib/gazetteer.ts'
 import { formatPartialDate } from '../lib/partialDate.ts'
 import { travelTotals } from '../lib/stats.ts'
 import type { Place, TravelData } from '../lib/types.ts'
-import type { Page } from '../ui/route.ts'
+import { youHref, type Page } from '../ui/route.ts'
 import { usePersistentState } from '../ui/usePersistentState.ts'
-import { HomePanel } from './HomePanel.tsx'
 import { PinGlyph } from './PlacePicker.tsx'
 
 const CATEGORY_ICONS: Record<AchievementCategory, string> = {
@@ -24,31 +23,19 @@ const TIER_COLORS: Record<TierLevel, string> = { bronze: '#b0703c', silver: '#8e
 
 type Show = 'all' | 'earned' | 'progress'
 
-/**
- * You: your travel in numbers, achievements (recently earned first, then every one by category with
- * its tier and progress to the next), your most visited places, and the way to People & groups,
- * Home and Settings.
- */
-export function ProfilePage({
-  data,
-  onGoTo,
-  onOpenPlace,
-  onOpenPeople,
-  onOpenSettings,
-}: {
-  data: TravelData
-  onGoTo: (page: Page) => void
-  onOpenPlace: (place: Place) => void
-  onOpenPeople: () => void
-  onOpenSettings: () => void
-}) {
+/** Every achievement's tier and progress, worked out from your trips (continents load in the background). */
+function useAchievements(data: TravelData) {
   const [continents, setContinents] = useState<Record<string, string> | undefined>()
   useEffect(() => {
     void loadWorldCities().then((w) => setContinents(w.continents))
   }, [])
-  const statuses = useMemo(() => achievementStatus(data, { continents }), [data, continents])
+  return useMemo(() => achievementStatus(data, { continents }), [data, continents])
+}
+
+/** You › Profile: your travel in numbers, what you earned lately, and your most visited places. */
+export function ProfileSection({ data, onGoTo, onOpenPlace }: { data: TravelData; onGoTo: (page: Page) => void; onOpenPlace: (place: Place) => void }) {
+  const statuses = useAchievements(data)
   const totals = useMemo(() => travelTotals(data), [data])
-  const [show, setShow] = usePersistentState<Show>('travel.achievements.show', 'all', (v) => (v === 'earned' || v === 'progress' ? v : 'all'))
 
   const recent = statuses
     .flatMap((s) => s.earned.map((tier) => ({ status: s, tier })))
@@ -57,9 +44,6 @@ export function ProfilePage({
   const mostVisited = pinsOf(data)
     .sort((a, b) => b.trips.length - a.trips.length || a.place.name.localeCompare(b.place.name))
     .slice(0, 5)
-  const earnedCount = statuses.reduce((n, s) => n + s.earned.length, 0)
-  const tierCount = statuses.reduce((n, s) => n + s.achievement.tiers.length, 0)
-  const shown = (s: AchievementStatus) => (show === 'earned' ? !!s.reached : show === 'progress' ? !!s.next : true)
 
   const stats: { label: string; value: string; go?: Page }[] = [
     { label: 'States', value: `${totals.states} / 50`, go: 'map' },
@@ -73,20 +57,8 @@ export function ProfilePage({
   ]
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-3 pt-[calc(max(0.75rem,env(safe-area-inset-top))+4.5rem)] pb-10 sm:px-6">
-      <header className="mb-5 flex items-end gap-3">
-        <div className="min-w-0 flex-1">
-          <h1 className="font-display text-3xl font-semibold">You</h1>
-          {totals.since && <p className="text-sm text-muted">Traveling since {totals.since}</p>}
-        </div>
-        <button onClick={onOpenPeople} className="min-h-10 rounded-lg border border-line bg-surface px-3 text-sm font-bold hover:bg-raised">
-          People &amp; groups
-        </button>
-        <button onClick={onOpenSettings} className="min-h-10 rounded-lg border border-line bg-surface px-3 text-sm font-bold hover:bg-raised">
-          Settings
-        </button>
-      </header>
-
+    <section aria-label="Profile">
+      {totals.since && <p className="mb-3 text-sm text-muted">Traveling since {totals.since}</p>}
       <section aria-label="Your travel in numbers" className="grid grid-cols-4 gap-1.5 sm:gap-2">
         {stats.map((s) => {
           const body = (
@@ -107,10 +79,16 @@ export function ProfilePage({
         })}
       </section>
 
-      {recent.length > 0 && (
-        <section aria-label="Recently earned" className="mt-6">
-          <h2 className="mb-2 font-display text-xl font-semibold">Recently earned</h2>
-          <ul className="flex gap-2 overflow-x-auto pb-1">
+      <section aria-label="Recently earned" className="mt-6">
+        <div className="mb-2 flex items-baseline gap-3">
+          <h2 className="font-display text-xl font-semibold">Recently earned</h2>
+          <a href={youHref('achievements')} className="ml-auto flex min-h-10 items-center rounded-lg px-2 text-sm font-bold text-primary hover:bg-raised">
+            See all achievements →
+          </a>
+        </div>
+        {recent.length > 0 ? (
+          // Scrolls sideways, so a swipe here doesn't change the section.
+          <ul data-noswipe className="flex gap-2 overflow-x-auto pb-1">
             {recent.map(({ status, tier }) => (
               <li key={`${status.achievement.id}:${tier.level}`} className="flex w-44 shrink-0 items-center gap-2 rounded-xl border border-line bg-surface p-2.5">
                 <Badge category={status.achievement.category} level={tier.level} />
@@ -124,51 +102,9 @@ export function ProfilePage({
               </li>
             ))}
           </ul>
-        </section>
-      )}
-
-      <section aria-label="Achievements" className="mt-6">
-        <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-2">
-          <h2 className="font-display text-xl font-semibold">Achievements</h2>
-          <span className="text-sm text-muted">
-            {earnedCount} of {tierCount} earned
-          </span>
-          <div role="radiogroup" aria-label="Show achievements" className="ml-auto flex rounded-lg bg-bg p-0.5">
-            {(
-              [
-                ['all', 'All'],
-                ['earned', 'Earned'],
-                ['progress', 'In progress'],
-              ] as const
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                role="radio"
-                aria-checked={show === id}
-                onClick={() => setShow(id)}
-                className={`min-h-9 rounded-md px-3 text-sm ${show === id ? 'bg-raised font-bold text-fg' : 'text-muted hover:text-fg'}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-        {CATEGORIES.map((category) => {
-          const items = statuses.filter((s) => s.achievement.category === category && shown(s))
-          if (!items.length) return null
-          return (
-            <section key={category} aria-label={category} className="mt-4">
-              <h3 className="mb-2 text-sm font-bold text-muted">
-                <span aria-hidden>{CATEGORY_ICONS[category]}</span> {category}
-              </h3>
-              <ul className="grid gap-2 sm:grid-cols-2">
-                {items.map((s) => (
-                  <AchievementCard key={s.achievement.id} status={s} />
-                ))}
-              </ul>
-            </section>
-          )
-        })}
+        ) : (
+          <p className="text-sm text-muted">Nothing yet. Log a trip to earn your first.</p>
+        )}
       </section>
 
       {mostVisited.length > 0 && (
@@ -187,11 +123,62 @@ export function ProfilePage({
           </ul>
         </section>
       )}
+    </section>
+  )
+}
 
-      <div className="mt-6">
-        <HomePanel />
+/** You › Achievements: every achievement by category with its tier and progress to the next. */
+export function AchievementsSection({ data }: { data: TravelData }) {
+  const statuses = useAchievements(data)
+  const [show, setShow] = usePersistentState<Show>('travel.achievements.show', 'all', (v) => (v === 'earned' || v === 'progress' ? v : 'all'))
+  const earnedCount = statuses.reduce((n, s) => n + s.earned.length, 0)
+  const tierCount = statuses.reduce((n, s) => n + s.achievement.tiers.length, 0)
+  const shown = (s: AchievementStatus) => (show === 'earned' ? !!s.reached : show === 'progress' ? !!s.next : true)
+
+  return (
+    <section aria-label="Achievements">
+      <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-2">
+        <h2 className="font-display text-xl font-semibold">Achievements</h2>
+        <span className="text-sm text-muted">
+          {earnedCount} of {tierCount} earned
+        </span>
+        <div role="radiogroup" aria-label="Show achievements" className="ml-auto flex rounded-lg bg-bg p-0.5">
+          {(
+            [
+              ['all', 'All'],
+              ['earned', 'Earned'],
+              ['progress', 'In progress'],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              role="radio"
+              aria-checked={show === id}
+              onClick={() => setShow(id)}
+              className={`min-h-9 rounded-md px-3 text-sm ${show === id ? 'bg-raised font-bold text-fg' : 'text-muted hover:text-fg'}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
-    </div>
+      {CATEGORIES.map((category) => {
+        const items = statuses.filter((s) => s.achievement.category === category && shown(s))
+        if (!items.length) return null
+        return (
+          <section key={category} aria-label={category} className="mt-4">
+            <h3 className="mb-2 text-sm font-bold text-muted">
+              <span aria-hidden>{CATEGORY_ICONS[category]}</span> {category}
+            </h3>
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {items.map((s) => (
+                <AchievementCard key={s.achievement.id} status={s} />
+              ))}
+            </ul>
+          </section>
+        )
+      })}
+    </section>
   )
 }
 

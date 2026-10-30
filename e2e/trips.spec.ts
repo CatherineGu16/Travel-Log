@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { dateRange, openDates, openPeople, openYou, pickDays, setTripYear, toStep } from './helpers.ts'
+import { dateRange, openDates, openPeople, openSettings, openYou, pickDays, setTripYear, toStep } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -46,7 +46,7 @@ test('log a multi-stop family trip, see it on the map, and it survives a reload'
   await expect(numbers).toContainText('2 / 50States')
   await expect(numbers).toContainText('1 / 64National parks')
   await openPeople(page)
-  await expect(page.getByRole('dialog').getByText('Mom')).toHaveCount(2) // in People and in the Family group
+  await expect(page.getByRole('region', { name: 'People & groups' }).getByText('Mom')).toHaveCount(2) // in People and in the Family group
 })
 
 test('a second trip to the same place stacks on its pin', async ({ page }) => {
@@ -170,7 +170,7 @@ test('trip dates are a range picker: tap the first day, then the last', async ({
 test('who went: groups are on or off, anyone else is searched for and added', async ({ page }) => {
   await page.goto('./')
   await openPeople(page)
-  const people = page.getByRole('dialog', { name: 'People & groups' })
+  const people = page.getByRole('region', { name: 'People & groups' })
   for (const [name, group] of [
     ['Mom', 'Family'],
     ['Dad', 'Family'],
@@ -179,12 +179,11 @@ test('who went: groups are on or off, anyone else is searched for and added', as
     ['Jordan', null],
   ] as const) {
     await people.getByRole('button', { name: '+ Add person' }).click()
-    const editor = page.getByRole('dialog', { name: 'Add person' })
+    const editor = page.getByRole('region', { name: 'Add person' })
     await editor.getByRole('textbox', { name: 'Name' }).fill(name)
     if (group) await editor.getByRole('checkbox', { name: group }).check()
     await editor.getByRole('button', { name: 'Save' }).click()
   }
-  await page.getByRole('dialog', { name: 'People & groups' }).getByRole('button', { name: 'Close' }).click()
 
   await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
@@ -354,8 +353,8 @@ test('legs between stops: guessed from distance, changed with a tap, and filtera
 
 test('a road trip from home with two main pins; changing home leaves it alone', async ({ page }) => {
   await page.goto('./')
-  // Home is on the You page.
-  await openYou(page)
+  // Home is in Settings.
+  await openSettings(page)
   const settings = page.getByRole('region', { name: 'Home' })
   await settings.getByRole('combobox', { name: 'Set home' }).fill('Pasadena')
   await settings.getByRole('option', { name: /^Pasadena\s*CA$/ }).first().click()
@@ -407,7 +406,7 @@ test('a road trip from home with two main pins; changing home leaves it alone', 
   await expect(page.getByRole('button', { name: /Las Vegas & Zion/ })).toHaveCount(1)
 
   // Moving home doesn't move this trip; new trips start at the new home.
-  await openYou(page)
+  await openSettings(page)
   await settings.getByRole('combobox', { name: 'Change home' }).fill('Denver')
   await settings.getByRole('option', { name: /^Denver\s*CO$/ }).first().click()
   await expect(settings).toContainText('Trips can start and end at Denver')
@@ -555,15 +554,14 @@ test('shaping a leg can follow the way you came, then take more taps', async ({ 
 test('tags you have used before are chips to add; who went in the details is just people', async ({ page }) => {
   await page.goto('./')
   await openPeople(page)
-  const people = page.getByRole('dialog', { name: 'People & groups' })
+  const people = page.getByRole('region', { name: 'People & groups' })
   for (const name of ['Mom', 'Dad']) {
     await people.getByRole('button', { name: '+ Add person' }).click()
-    const editor = page.getByRole('dialog', { name: 'Add person' })
+    const editor = page.getByRole('region', { name: 'Add person' })
     await editor.getByRole('textbox', { name: 'Name' }).fill(name)
     await editor.getByRole('checkbox', { name: 'Family' }).check()
     await editor.getByRole('button', { name: 'Save' }).click()
   }
-  await page.getByRole('dialog', { name: 'People & groups' }).getByRole('button', { name: 'Close' }).click()
 
   for (const [query, option, title] of [
     ['moab', /^Moab/, 'First'],

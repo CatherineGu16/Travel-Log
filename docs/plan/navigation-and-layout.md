@@ -44,8 +44,8 @@
    opens the trip details sheet (and selects its pin), `#/you/people` and `#/you/settings` open those
    panels, and `#/you/achievements` shows the You page. Closing goes Back when the app opened the
    view, else to the page under it (`ui/route.ts`: `useRoute`, `close`).
-2. You sections: layout (left menu / top tabs), Profile overview, Achievements, People & groups
-   and Settings in the page, Home into Settings.
+2. ✅ You sections: layout (left menu / top tabs, swipe on phones), Profile overview, Achievements,
+   People & groups and Settings in the page, Home into Settings (`YouPage.tsx`).
 3. Desktop Trips panel with breadcrumb; map pins open it.
 4. Phone Trips sheet (drag between heights) with the same list, breadcrumb and details.
 5. Remove the Trips tab and header link and the old Trips page; `#/trips` opens the map with the

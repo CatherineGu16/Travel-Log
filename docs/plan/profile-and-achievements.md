@@ -27,7 +27,7 @@ game. Badge artwork comes later; this fixes the format first.
 ## Achievement format
 
 Defined in code (`src/lib/achievements.ts`; totals in `src/lib/stats.ts`; the page is
-`src/components/ProfilePage.tsx`); nothing new is stored or synced. Continents come from
+`src/components/YouSections.tsx`); nothing new is stored or synced. Continents come from
 `world-cities.json` (`continents`, GeoNames).
 
 ```

@@ -45,17 +45,18 @@ export async function setTripYear(dialog: Locator, year: string) {
   await button.click()
 }
 
-/** Goes to the You page, where People & groups, Settings and Home live. */
+/** Goes to the You page (its Profile). */
 export const openYou = (page: Page) => page.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: 'You' }).filter({ visible: true }).click()
 
-/** Opens People & groups (from the You page). */
-export async function openPeople(page: Page) {
+/** Goes to a section of the You page by its menu (tabs on phones), and returns the section. */
+export async function openYouSection(page: Page, name: 'Profile' | 'Achievements' | 'People & groups' | 'Settings') {
   await openYou(page)
-  await page.getByRole('button', { name: 'People & groups' }).click()
+  await page.getByRole('navigation', { name: 'You sections' }).getByRole('link', { name, exact: true }).click()
+  return page.getByRole('region', { name, exact: true })
 }
 
-/** Opens Settings (from the You page). */
-export async function openSettings(page: Page) {
-  await openYou(page)
-  await page.getByRole('button', { name: 'Settings' }).click()
-}
+/** Opens People & groups (on the You page). */
+export const openPeople = (page: Page) => openYouSection(page, 'People & groups')
+
+/** Opens Settings (on the You page), where sync, Home, map detail and backups live. */
+export const openSettings = (page: Page) => openYouSection(page, 'Settings')

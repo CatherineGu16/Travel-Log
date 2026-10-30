@@ -4,16 +4,14 @@ import { PageLinks, TabBar } from './components/Navigation.tsx'
 import { ParkSheet } from './components/ParkSheet.tsx'
 import { ParksLayerControl } from './components/ParksLayerControl.tsx'
 import { ParksPage } from './components/ParksPage.tsx'
-import { PeopleSheet } from './components/PeopleSheet.tsx'
-import { Settings } from './components/Settings.tsx'
 import { SyncChip } from './components/SyncChip.tsx'
 import { PinCard } from './components/PinCard.tsx'
-import { ProfilePage } from './components/ProfilePage.tsx'
 import { ToastProvider } from './components/Toast.tsx'
 import { useToast } from './components/toastContext.ts'
 import { TripDetail, type TripStep } from './components/TripDetail.tsx'
 import { TripForm, type RequestShape, type RouteEnd } from './components/TripForm.tsx'
 import { TripsPage } from './components/TripsPage.tsx'
+import { YouPage } from './components/YouPage.tsx'
 import parks from './data/national-parks.json'
 import { mainPlaceIds, parksVisited, pinsOf, tripsPerRegion } from './lib/derive.ts'
 import { filterData, NO_FILTER, reviveFilter, type TripFilter } from './lib/filters.ts'
@@ -222,7 +220,7 @@ function Shell() {
         )}
         {page === 'you' && (
           <div className="absolute inset-0 z-10 overflow-y-auto bg-bg">
-            <ProfilePage data={data} onGoTo={goTo} onOpenPlace={openPlace} onOpenPeople={() => navigate(youHref('people'))} onOpenSettings={() => navigate(youHref('settings'))} />
+            <YouPage data={data} section={section} onGoTo={goTo} onOpenPlace={openPlace} onSection={(s) => navigate(youHref(s))} />
           </div>
         )}
 
@@ -392,8 +390,6 @@ function Shell() {
         onChange={setFilter}
         resultCount={live(shown.trips).length}
       />
-      <PeopleSheet open={page === 'you' && section === 'people'} onClose={() => close(youHref('profile'))} />
-      <Settings open={page === 'you' && section === 'settings'} onClose={() => close(youHref('profile'))} />
     </div>
   )
 }

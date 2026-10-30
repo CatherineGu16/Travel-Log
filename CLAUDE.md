@@ -60,14 +60,15 @@ formats are documented in `docs/plan/data.md` and the loaders in `src/lib/gazett
   strip), `LegRow.tsx` + `timeline.ts`, `PeoplePicker.tsx` (who went), `TagsField.tsx`,
   `PlacePicker.tsx`, `DateRangeField.tsx`.
 - `PinCard.tsx` (map preview: swipe cards / stacked cards), `TripDetail.tsx`, `TripsPage.tsx`,
-  `ParksPage.tsx`, `ParkSheet.tsx`, `ProfilePage.tsx` (You: stats, achievements, most visited,
-  Home, links to People & Settings), `PeopleSheet.tsx`, `Settings.tsx` (+ panels), `FilterSheet.tsx`.
+  `ParksPage.tsx`, `ParkSheet.tsx`, `YouPage.tsx` (You: section menu/tabs, swipe) with its sections
+  `YouSections.tsx` (Profile, Achievements), `PeoplePanel.tsx`, `Settings.tsx` (+ panels, Home),
+  `FilterSheet.tsx`.
 - `Sheet.tsx`: every panel (props `tall`, `full`, `swipeToClose`, `toolbar`, `footer`).
 - `src/ui/`: page routing (`route.ts`), theme, persistent state, keyboard inset.
 
 **Tests**: unit `src/**/*.test.ts` (helper `src/test/tripInput.ts`); e2e `e2e/*.spec.ts` (helpers
 `e2e/helpers.ts`: `toStep`, `pickDays`, `openDates`, `setTripYear`, `openYou`, `openPeople`,
-`openSettings`). E2E finds things by role and
+`openSettings`, `openYouSection`). E2E finds things by role and
 accessible name, so keep those names stable or update the tests.
 
 ## Conventions

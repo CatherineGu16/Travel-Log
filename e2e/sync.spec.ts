@@ -46,13 +46,12 @@ const PHOTO = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQ
 
 async function connect(page: Page, device: string) {
   await openSettings(page)
-  const settings = page.getByRole('dialog', { name: 'Settings' })
+  const settings = page.getByRole('region', { name: 'Settings', exact: true })
   await settings.getByRole('textbox', { name: 'GitHub username' }).fill('me')
   await settings.getByLabel('Access key').fill('github_pat_test')
   await settings.getByRole('textbox', { name: 'This device', exact: true }).fill(device)
   await settings.getByRole('button', { name: 'Connect' }).click()
   await expect(settings.getByText('Last synced just now.')).toBeVisible()
-  await settings.getByRole('button', { name: 'Close' }).click()
 }
 
 async function addTrip(page: Page, main: [string, RegExp], who?: string) {
@@ -81,15 +80,14 @@ test('a trip and a photo avatar added on the phone appear on the PC, and edits f
 
   // Phone: a person with a photo avatar, then a trip with them.
   await openPeople(phone)
-  const people = phone.getByRole('dialog', { name: 'People & groups' })
+  const people = phone.getByRole('region', { name: 'People & groups' })
   await people.getByRole('button', { name: '+ Add person' }).click()
-  const editor = phone.getByRole('dialog', { name: 'Add person' })
+  const editor = phone.getByRole('region', { name: 'Add person' })
   await editor.getByRole('textbox', { name: 'Name' }).fill('Mom')
   await editor.getByRole('radio', { name: 'Photo' }).click()
   await editor.getByLabel('Photo', { exact: true }).setInputFiles({ name: 'mom.png', mimeType: 'image/png', buffer: PHOTO })
   await expect(editor.locator('img')).toHaveCount(1) // the cropped preview
   await editor.getByRole('button', { name: 'Save' }).click()
-  await phone.getByRole('dialog', { name: 'People & groups' }).getByRole('button', { name: 'Close' }).click()
   await addTrip(phone, ['moab', /^Moab/], 'Mom')
   await synced(phone)
 
@@ -107,8 +105,7 @@ test('a trip and a photo avatar added on the phone appear on the PC, and edits f
   await pc.goto('./#/trips')
   await expect(pc.getByRole('button', { name: /Moab/ })).toBeVisible()
   await openPeople(pc)
-  await expect(pc.getByRole('dialog', { name: 'People & groups' }).locator('img')).toHaveCount(1)
-  await pc.getByRole('dialog', { name: 'People & groups' }).getByRole('button', { name: 'Close' }).click()
+  await expect(pc.getByRole('region', { name: 'People & groups' }).locator('img')).toHaveCount(1)
 
   // Both devices add a trip; after syncing, both have both.
   await addTrip(phone, ['chicago', /^Chicago/])

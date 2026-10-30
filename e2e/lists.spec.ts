@@ -88,13 +88,16 @@ test('the You page: numbers, achievements, and most visited places that open on 
   const numbers = page.getByRole('region', { name: 'Your travel in numbers' })
   await expect(numbers).toContainText('3Trips')
   await expect(numbers).toContainText('1 / 64National parks')
-  // Achievements show progress to the next tier.
+  // Achievements show progress to the next tier, on their own section of You.
+  await page.getByRole('region', { name: 'Recently earned' }).getByRole('link', { name: 'See all achievements →' }).click()
+  await expect(page).toHaveURL(/#\/you\/achievements$/)
   const achievements = page.getByRole('region', { name: 'Achievements' })
   await expect(achievements.getByRole('listitem', { name: 'Trips logged' })).toContainText('3 / 10 trips · Bronze at 10')
   await page.getByRole('radiogroup', { name: 'Show achievements' }).getByRole('radio', { name: 'Earned' }).click()
   await expect(achievements.getByRole('listitem', { name: 'Trips logged' })).toHaveCount(0)
+  await page.goBack()
 
-  // Most visited: main destinations (not stops like Green River), each opening on the map.
+  // Most visited (back on the Profile): main destinations (not stops like Green River), each opening on the map.
   const most = page.getByRole('region', { name: 'Most visited' }).getByRole('listitem')
   await expect(most).toHaveText([/Moab\s*2 visits/, /Arches National Park\s*1 visit/])
   await page.getByRole('region', { name: 'Most visited' }).getByRole('button', { name: /^Moab/ }).click()

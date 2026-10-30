@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { openSettings, openYou, toStep } from './helpers.ts'
+import { openSettings, toStep } from './helpers.ts'
 
 test('a trip’s details have their own address: reload keeps them open, Back closes them', async ({ page }) => {
   await page.goto('./')
@@ -41,26 +41,20 @@ test('a trip’s details have their own address: reload keeps them open, Back cl
   await expect(card).toBeVisible()
 })
 
-test('Settings and People & groups have their own addresses', async ({ page }) => {
+test('the You sections have their own addresses; Back moves between them', async ({ page }) => {
   await page.goto('./')
-  await openSettings(page)
-  const settings = page.getByRole('dialog', { name: 'Settings' })
-  await expect(settings).toBeVisible()
+  const settings = await openSettings(page)
+  await expect(settings.getByRole('region', { name: 'Home' })).toBeVisible()
   await expect(page).toHaveURL(/#\/you\/settings$/)
   await page.goBack()
   await expect(settings).toBeHidden()
+  await expect(page.getByRole('region', { name: 'Profile' })).toBeVisible()
   await expect(page).toHaveURL(/#\/you$/)
 
   await page.goto('./#/you/people')
-  const people = page.getByRole('dialog', { name: 'People & groups' })
-  await expect(people).toBeVisible()
-  await people.getByRole('button', { name: 'Close' }).click()
-  await expect(people).toBeHidden()
-  await expect(page).toHaveURL(/#\/you$/)
+  await expect(page.getByRole('region', { name: 'People & groups' })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'You sections' }).getByRole('link', { name: 'People & groups' })).toHaveAttribute('aria-current', 'page')
 
-  await openYou(page)
-  await page.getByRole('button', { name: 'Settings' }).click()
-  await settings.getByRole('button', { name: 'Close' }).click()
-  await expect(settings).toBeHidden()
-  await expect(page).toHaveURL(/#\/you$/)
+  await page.goto('./#/you/achievements')
+  await expect(page.getByRole('radiogroup', { name: 'Show achievements' })).toBeVisible()
 })

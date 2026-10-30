@@ -16,7 +16,7 @@ async function addTrip(page: Page, query: string, option: RegExp) {
 
 const openSettings = async (page: Page) => {
   await openSettingsSheet(page)
-  return page.getByRole('dialog', { name: 'Settings' })
+  return page.getByRole('region', { name: 'Settings', exact: true })
 }
 
 test('export a backup and import it on another device', async ({ page, browser }) => {
@@ -36,7 +36,6 @@ test('export a backup and import it on another device', async ({ page, browser }
   await expect(otherSettings.getByRole('group', { name: 'Confirm import' })).toContainText('has 2 trips')
   await otherSettings.getByRole('button', { name: 'Merge (keep both)' }).click()
   await expect(otherSettings.getByRole('status')).toContainText('Imported 2 trips')
-  await otherSettings.getByRole('button', { name: 'Close' }).click()
   await other.reload()
   await other.goto('./#/trips')
   await expect(other.getByRole('button', { name: /Moab/ })).toBeVisible()
@@ -100,7 +99,6 @@ test('the detailed map setting adds OpenFreeMap tiles and Photon search; outline
   const settings = await openSettings(page)
   await settings.getByRole('radio', { name: 'Detailed' }).click()
   await expect(settings).toContainText('OpenFreeMap')
-  await settings.getByRole('button', { name: 'Close' }).click()
   await expect.poll(() => outside.includes('tiles.openfreemap.org')).toBe(true)
 
   // Place search now also finds landmarks online.

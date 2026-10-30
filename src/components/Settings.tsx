@@ -1,18 +1,21 @@
 import { BackupPanel } from './BackupPanel.tsx'
+import { HomePanel } from './HomePanel.tsx'
 import { MapDetailPanel } from './MapDetailPanel.tsx'
-import { Sheet } from './Sheet.tsx'
 import { SyncPanel } from './SyncPanel.tsx'
 import { ThemePicker } from './ThemePicker.tsx'
 
-export function Settings({ open, onClose }: { open: boolean; onClose: () => void }) {
+/** You › Settings: sync, where trips start and end, map detail, backups and appearance. */
+export function Settings() {
   return (
-    <Sheet open={open} swipeToClose onOpenChange={(o) => !o && onClose()} title="Settings">
-      <div className="mt-2 space-y-4">
+    <section aria-label="Settings">
+      <h2 className="sr-only">Settings</h2>
+      <div className="space-y-4">
         <SyncPanel />
+        <HomePanel />
         <MapDetailPanel />
         <BackupPanel />
         <ThemePicker />
       </div>
-    </Sheet>
+    </section>
   )
 }

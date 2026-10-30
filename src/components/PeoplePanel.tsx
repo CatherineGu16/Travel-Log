@@ -15,29 +15,39 @@ import type { Avatar as AvatarData, Group, Person } from '../lib/types.ts'
 import { photoToAvatar } from '../lib/avatarImage.ts'
 import { newId, useAvatars, useStore, useTravelState } from '../store/useTravel.ts'
 import { Avatar } from './Avatar.tsx'
-import { Sheet } from './Sheet.tsx'
 import { useToast } from './toastContext.ts'
 
 type View = { kind: 'list' } | { kind: 'person'; id: string | null } | { kind: 'group'; id: string | null }
 
 const EMOJIS = ['😀', '😎', '🥾', '🏔️', '🌲', '🏕️', '🚗', '✈️', '🐶', '🐱', '🌊', '☀️', '🌵', '🦋', '🎒', '❤️']
 
-/** People & groups: everyone you travel with, their avatars, and the groups used as shortcuts. */
-export function PeopleSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+/** You › People & groups: everyone you travel with, their avatars, and the groups used as shortcuts. */
+export function PeoplePanel() {
   const [view, setView] = useState<View>({ kind: 'list' })
-  const close = () => {
-    setView({ kind: 'list' })
-    onClose()
-  }
   const back = () => setView({ kind: 'list' })
+  // Opening an editor or going back to the list starts at its top.
+  const top = useRef<HTMLElement>(null)
+  useEffect(() => {
+    top.current?.scrollIntoView({ block: 'nearest' })
+  }, [view])
 
   const title = view.kind === 'person' ? (view.id ? 'Edit person' : 'Add person') : view.kind === 'group' ? (view.id ? 'Edit group' : 'New group') : 'People & groups'
   return (
-    <Sheet open={open} onOpenChange={(o) => !o && close()} title={title}>
+    <section ref={top} aria-label={title} className="scroll-mt-24">
+      <div className="mb-3 flex items-center gap-1">
+        {view.kind !== 'list' && (
+          <button onClick={back} aria-label="Back to People & groups" className="-ml-2 grid size-11 place-items-center rounded-lg text-muted hover:bg-raised hover:text-fg">
+            <svg viewBox="0 0 20 20" className="size-5" aria-hidden>
+              <path d="M12 4 6 10l6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        )}
+        <h2 className="font-display text-2xl font-semibold">{title}</h2>
+      </div>
       {view.kind === 'list' && <PeopleList onPerson={(id) => setView({ kind: 'person', id })} onGroup={(id) => setView({ kind: 'group', id })} />}
       {view.kind === 'person' && <PersonEditor id={view.id} onDone={back} />}
       {view.kind === 'group' && <GroupEditor id={view.id} onDone={back} />}
-    </Sheet>
+    </section>
   )
 }
 

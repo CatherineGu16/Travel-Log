@@ -37,13 +37,12 @@ function fakeGitHub(owner: string) {
 
 async function connect(page: Page, username: string) {
   await openSettings(page)
-  const settings = page.getByRole('dialog', { name: 'Settings' })
+  const settings = page.getByRole('region', { name: 'Settings', exact: true })
   await settings.getByRole('textbox', { name: 'GitHub username' }).fill(username)
   await settings.getByLabel('Access key').fill('github_pat_test')
   await settings.getByRole('textbox', { name: 'This device', exact: true }).fill('laptop')
   await settings.getByRole('button', { name: 'Connect' }).click()
   await expect(settings.getByText('Last synced just now.')).toBeVisible()
-  await settings.getByRole('button', { name: 'Close' }).click()
 }
 
 const openZion = async (page: Page) => {
