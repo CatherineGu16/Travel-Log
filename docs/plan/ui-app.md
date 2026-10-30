@@ -2,12 +2,13 @@
 # UI: header, navigation, settings, people, layout
 
 ## Header, navigation, settings
-- **Navigation**: Map · **+** · Parks · **You** (trips are on the map), kept in the URL hash so
-  Back works; see navigation-and-layout.md for the addresses. **Add trip** is a large colored
-  circle after Map: raised above the bottom tab bar on phones, among the header's page links on
-  wider screens.
-- **Header**: the title, the page links (on wider screens) and the sync chip (which opens Settings); your numbers are on the You page. People &
-  groups and Settings are sections of the You page (see navigation-and-layout.md).
+- **Navigation**: Map · **+** · **You** (trips are on the map, parks on You), kept in the URL hash
+  so Back works; see navigation-and-layout.md for the addresses. On phones **Add trip** is a large
+  colored circle raised between the bottom tabs.
+- **Toolbar**: full width across the top: the title, Map and You as tabs (wider screens), then
+  **+ Add trip**, the sync chip (which opens Settings when there's a problem) and your photo. All
+  36 px tall. Anything you can press shows the hand cursor. People & groups, Parks and Settings
+  are sections of the You page.
 - **Settings** (You › Settings, or the sync chip): Sync across devices (same as Watchlist), **Map detail** (Outline · Detailed, with a
   note that Detailed contacts OpenFreeMap and Photon), People & groups (see below),
   Export/Import, theme. **Home** (pick your town from the bundled place search; synced in

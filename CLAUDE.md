@@ -30,9 +30,9 @@ formats are documented in `docs/plan/data.md` and the loaders in `src/lib/gazett
 ## Code map
 
 **Data and rules (`src/lib/`, pure, unit-tested)**
-- `types.ts`: the saved format (`TravelData`, `Trip`, `Destination`, `Place`, `Person`, `Group`, `Home`).
+- `types.ts`: the saved format (`TravelData`, `Trip`, `Destination`, `Place`, `Person`, `Group`, `Home`, `Profile`).
 - `travelActions.ts`: every edit as `(data, ctx) => data` (saveTrip, setHome, people/groups, hikes,
-  undo via `revertTo`). Applied through the store.
+  undo via `revertTo`, `setProfile`). Applied through the store.
 - `travelData.ts`: `parseTravelData` (validates and **migrates older saves on every load**),
   `mergeData` (newest `updatedAt` per record wins; tombstones), `sameContent`.
 - `legs.ts`: legs between stops and to/from the start; mode guesses (250 mi, or 500 mi after a
@@ -41,7 +41,7 @@ formats are documented in `docs/plan/data.md` and the loaders in `src/lib/gazett
   `followTraveledBends`, `distancesByMode`, bend helpers.
 - `derive.ts`: pins, visits, parks/states visited, shading. `filters.ts`: filter, search, grouping.
 - `achievements.ts`: tiered achievements (`ACHIEVEMENTS`, `achievementStatus`, `newlyEarned`),
-  worked out from trips, never stored. `stats.ts`: totals for the You page.
+  worked out from trips, never stored. `stats.ts`: totals and the stat lists for the You page.
 - `placeSearch.ts` (offline search ranking, country narrowing), `gazetteer.ts` (lazy data loaders,
   naming a dropped pin), `onlineSearch.ts` (Photon, Detailed map only), `partialDate.ts`
   (YYYY / YYYY-MM / YYYY-MM-DD, day numbers), `geo.ts`, `states.ts`.
@@ -62,15 +62,18 @@ formats are documented in `docs/plan/data.md` and the loaders in `src/lib/gazett
 - `TripsPanel.tsx` (Trips over the map: `TripsPanel` on wider screens, `TripsSheet` on phones,
   breadcrumb), `TripList.tsx` (the list), `PinCard.tsx` (a place's trips, stacked),
   `TripDetail.tsx` (a trip),
-  `ParksPage.tsx`, `ParkSheet.tsx`, `YouPage.tsx` (You: section menu/tabs, swipe) with its sections
-  `YouSections.tsx` (Profile, Achievements), `PeoplePanel.tsx`, `Settings.tsx` (+ panels, Home),
-  `FilterSheet.tsx`.
+  `ParkSheet.tsx`, `YouPage.tsx` (You: profile card, section menu/tabs, swipe, stat and
+  achievement panels) with its sections `YouSections.tsx` (Profile, Achievements, `StatList`,
+  `AchievementDetail`), `ParksSection.tsx` (the 64-park checklist), `PeoplePanel.tsx`
+  (`PersonEditor` also edits your profile), `Settings.tsx` (+ panels, Home), `FilterSheet.tsx`.
+- `Navigation.tsx` (`TopBar`, phone `TabBar`), `cards.ts` (pressable vs flat card classes),
+  `useAchievements.ts`.
 - `Sheet.tsx`: every panel (props `tall`, `full`, `swipeToClose`, `toolbar`, `footer`).
 - `src/ui/`: page routing (`route.ts`), `usePhone`, theme, persistent state, keyboard inset.
 
 **Tests**: unit `src/**/*.test.ts` (helper `src/test/tripInput.ts`); e2e `e2e/*.spec.ts` (helpers
 `e2e/helpers.ts`: `toStep`, `pickDays`, `openDates`, `setTripYear`, `openYou`, `openPeople`,
-`openSettings`, `openYouSection`, `tripDetails`). E2E finds things by role and
+`openSettings`, `openYouSection`, `openParks`, `openTrips`, `tripDetails`). E2E finds things by role and
 accessible name, so keep those names stable or update the tests.
 
 ## Conventions

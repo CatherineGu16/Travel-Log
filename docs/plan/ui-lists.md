@@ -16,7 +16,7 @@
 ## Places (dropped)
 - There's no Places tab: map pins and the You page's **Most visited** cover it.
 
-## National parks checklist
+## National parks checklist (You › Parks)
 - All 64 national parks as a checklist, A–Z or by state, with Visited / Not visited / All and a
   "14 / 64" progress bar.
 - Visited parks show every visit date stacked (newest first) with links to the trips.
