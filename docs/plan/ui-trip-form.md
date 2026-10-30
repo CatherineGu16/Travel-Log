@@ -1,6 +1,16 @@
 <!-- Part of the Travel Log plan; index: docs/plan/README.md -->
 # UI: add / edit trip
 
+**Where it opens**: on wider screens, in the **Trips panel** beside the map (Trips › Add trip, or
+Trips › Utah 2023 › Edit trip), from the panel's **+ Add trip** or a trip's Edit; from You (Log a
+visit, or the phone's +) it goes to the map first. It stays in the panel (hidden, keeping what you
+typed) if you go to another page, and the panel can't be hidden while it's open; Escape or Cancel
+closes it. Phones: a full-screen sheet, as before. On the **Route step** the trip so far is drawn
+on the big map as you add places (places not saved yet get a ★) and the map fits it beside the
+panel. **Shaping a leg** keeps the form in the panel while the map shows that leg with the shaping
+bar (Undo, Straighten, Cancel, Done); you can also **tap a leg's line on the map** to shape it. On
+phones the sheet steps aside while you shape.
+
 **Route step layout**: one vertical **timeline**. A line runs down a narrow left column, styled like
 each leg on the map (solid for ground, dashed for a flight, dotted when not sure), with each stop's
 marker on it: home, a pin for a main place, a number for a stop, and a dashed "+" node for adding a

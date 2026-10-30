@@ -5,8 +5,9 @@
 - **Navigation**: Map · **+** · **You** (trips are on the map, parks on You), kept in the URL hash
   so Back works; see navigation-and-layout.md for the addresses. On phones **Add trip** is a large
   colored circle raised between the bottom tabs.
-- **Toolbar**: full width across the top: the title, a Map tab (wider screens), then **+ Add
-  trip**, the sync chip (which opens Settings when there's a problem) and your photo (opens You). All
+- **Toolbar**: full width across the top: the title, a Map tab (wider screens), then the sync
+  chip (which opens Settings when there's a problem) and your photo (opens You). **+ Add trip** is
+  in the Trips panel on wider screens and the tab bar on phones. All
   36 px tall. Anything you can press shows the hand cursor. People & groups, Parks and Settings
   are sections of the You page.
 - **Settings** (You › Settings, or the sync chip): Sync across devices (same as Watchlist), **Map detail** (Outline · Detailed, with a

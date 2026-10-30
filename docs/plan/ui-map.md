@@ -3,8 +3,9 @@
 
 ## Map view (home)
 - Full-screen **outline map** (states, park boundaries, lakes, major-city labels) that opens fitted
-  to the continental US, with zoom +/-, "Reset to US", and a 🌐 toggle between the flat map and a
-  globe (see roadmap.md).
+  to the continental US, with zoom +/-, "Reset to US" (fits the US beside the Trips panel when
+  it's open, the whole map when it's hidden), and a 🌐 toggle between the flat map and a globe
+  (see roadmap.md).
 - **Visited states shaded darker by number of trips** (1 · 2–3 · 4–6 · 7+), with a small legend.
   Hover (desktop) or tap (mobile) shows the state name and trip count.
 - **Location pins**, one per major location (×N badge when visited more than once), clustered

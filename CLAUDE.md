@@ -56,7 +56,8 @@ formats are documented in `docs/plan/data.md` and the loaders in `src/lib/gazett
 
 **UI (`src/components/`, `src/ui/`)**
 - `App.tsx`: shell, pages, selection, shaping banner and state.
-- `TripForm.tsx`: Add/Edit trip stepper (Details → Route timeline → Notes); `StopDates.tsx` (day
+- `TripForm.tsx`: Add/Edit trip stepper (Details → Route timeline → Notes; `inline` in the Trips
+  panel on wider screens, drawing its draft route on the map); `StopDates.tsx` (day
   strip), `LegRow.tsx` + `timeline.ts`, `PeoplePicker.tsx` (who went), `TagsField.tsx`,
   `PlacePicker.tsx`, `DateRangeField.tsx`.
 - `TripsPanel.tsx` (Trips over the map: `TripsPanel` on wider screens, `TripsSheet` on phones,
@@ -73,7 +74,7 @@ formats are documented in `docs/plan/data.md` and the loaders in `src/lib/gazett
 
 **Tests**: unit `src/**/*.test.ts` (helper `src/test/tripInput.ts`); e2e `e2e/*.spec.ts` (helpers
 `e2e/helpers.ts`: `toStep`, `pickDays`, `openDates`, `setTripYear`, `openYou`, `openPeople`,
-`openSettings`, `openYouSection`, `openParks`, `openTrips`, `tripDetails`). E2E finds things by role and
+`openSettings`, `openYouSection`, `openParks`, `openTrips`, `tripDetails`, `tripForm`, `openAddTrip`). E2E finds things by role and
 accessible name, so keep those names stable or update the tests.
 
 ## Conventions
