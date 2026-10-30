@@ -36,8 +36,10 @@ test('export a backup and import it on another device', async ({ page, browser }
   await expect(otherSettings.getByRole('group', { name: 'Confirm import' })).toContainText('has 2 trips')
   await otherSettings.getByRole('button', { name: 'Merge (keep both)' }).click()
   await expect(otherSettings.getByRole('status')).toContainText('Imported 2 trips')
-  await other.reload()
   await other.goto('./#/trips')
+  await expect(other.getByRole('button', { name: /Moab/ })).toBeVisible()
+  // Still there after a reload (saving on the device takes a moment, so this comes after the check above).
+  await other.reload()
   await expect(other.getByRole('button', { name: /Moab/ })).toBeVisible()
   await expect(other.getByRole('button', { name: /Zion/ })).toBeVisible()
   await other.context().close()

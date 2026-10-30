@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { dateRange, openDates, openPeople, openSettings, openYou, pickDays, setTripYear, toStep } from './helpers.ts'
+import { dateRange, openDates, openPeople, openSettings, openYou, pickDays, setTripYear, toStep, tripDetails } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -98,10 +98,10 @@ test('picking a stacked date shows that trip’s route, and details show other v
   await expect(card.getByRole('list', { name: 'Route of Moab 2019' })).not.toContainText('Blanding')
 
   await card.getByRole('button', { name: 'Details of Moab 2019' }).click()
-  const detail = page.getByRole('dialog', { name: 'Moab 2019' })
+  const detail = tripDetails(page, 'Moab 2019')
   await expect(detail.getByText('Main destination')).toBeVisible()
   await detail.getByRole('button', { name: '2024' }).click()
-  await expect(page.getByRole('dialog', { name: 'Moab 2024' })).toBeVisible()
+  await expect(tripDetails(page, 'Moab 2024')).toBeVisible()
 })
 
 test('a trip with two main destinations, each with its own dates', async ({ page }) => {
@@ -286,7 +286,7 @@ test('notes, rating and tags are their own step and show on the trip', async ({ 
   await expect(dialog).toBeHidden()
 
   await page.getByRole('region', { name: 'Zion National Park trips' }).getByRole('button', { name: /Details/ }).click()
-  const detail = page.getByRole('dialog', { name: /Zion/ })
+  const detail = tripDetails(page, /Zion/)
   await expect(detail).toContainText('Sunrise at Canyon Overlook')
   await expect(detail).toContainText('camping')
   await expect(detail).toContainText('Day 5: home.')
@@ -412,17 +412,18 @@ test('a road trip from home with two main pins; changing home leaves it alone', 
   await expect(settings).toContainText('Trips can start and end at Denver')
   await page.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: 'Trips' }).filter({ visible: true }).click()
   await page.getByRole('button', { name: /Las Vegas & Zion/ }).click()
-  const card = page.getByRole('region', { name: 'Las Vegas trips' })
+  // Phones: the pin card on the map; wider: the trip in the Trips panel.
+  const card = page.getByRole('region', { name: 'Las Vegas trips' }).or(tripDetails(page, /Las Vegas & Zion/))
 
   // Editing: the trip shows its own start, not the new home, and can switch to it.
-  await card.getByRole('button', { name: /^Edit/ }).click()
+  await card.getByRole('button', { name: /^Edit (trip|Las Vegas)/ }).click()
   const edit = page.getByRole('dialog', { name: 'Edit trip' })
   await toStep(edit, 'Route')
   await expect(edit.getByLabel(/^Drive from Pasadena to Las Vegas/)).toBeVisible()
   await edit.getByRole('button', { name: 'Change where the trip started (Pasadena)' }).click()
   await edit.getByRole('button', { name: 'Use home (Denver)' }).click()
   await edit.getByRole('button', { name: 'Save' }).click()
-  await card.getByRole('button', { name: /^Edit/ }).click()
+  await card.getByRole('button', { name: /^Edit (trip|Las Vegas)/ }).click()
   await toStep(page.getByRole('dialog', { name: 'Edit trip' }), 'Route')
   await expect(page.getByRole('dialog', { name: 'Edit trip' }).getByRole('button', { name: 'Change where the trip started (Denver)' })).toBeVisible()
 })
@@ -467,7 +468,7 @@ test('cities abroad: biggest first, narrowed by country, and grouped by country'
   await expect(page.getByRole('heading', { name: /^Portugal/ })).toBeVisible()
 })
 
-test('stop dates from a strip of the trip days, shown as day numbers; details link to each step', async ({ page }) => {
+test('stop dates from a strip of the trip days, shown as day numbers; details link to each step', async ({ page, isMobile }) => {
   await page.goto('./')
   await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
@@ -504,9 +505,10 @@ test('stop dates from a strip of the trip days, shown as day numbers; details li
 
   // Details: how long, a map, each stop's days, and Edit on each part.
   await page.getByRole('region', { name: /trips$/ }).getByRole('button', { name: 'Details' }).click()
-  const detail = page.getByRole('dialog', { name: /Zion/ })
+  const detail = tripDetails(page, /Zion/)
   await expect(detail).toContainText('6 days')
-  await expect(detail.getByRole('img', { name: /^Map of the route/ })).toBeVisible()
+  // A small map of the route on a phone; wider, the big map beside the panel shows it.
+  if (isMobile) await expect(detail.getByRole('img', { name: /^Map of the route/ })).toBeVisible()
   await expect(detail).toContainText('Days 1–3 · May 1 – 3, 2024')
   await detail.getByRole('button', { name: 'Edit the stops' }).click()
   const edit = page.getByRole('dialog', { name: 'Edit trip' })
@@ -514,13 +516,14 @@ test('stop dates from a strip of the trip days, shown as day numbers; details li
   await page.keyboard.press('Escape')
   await expect(edit).toBeHidden()
 
-  // A tag shows your trips with that tag; Delete removes the trip, with Undo.
-  await page.getByRole('region', { name: /trips$/ }).getByRole('button', { name: 'Details' }).click()
-  await page.getByRole('dialog', { name: /Zion/ }).getByRole('button', { name: 'Show trips tagged canyons' }).click()
+  // A tag shows your trips with that tag; Delete removes the trip, with Undo. (Phones went back to
+  // the pin card when the form opened; wider screens still show the trip in the Trips panel.)
+  if (isMobile) await page.getByRole('region', { name: /trips$/ }).getByRole('button', { name: 'Details' }).click()
+  await tripDetails(page, /Zion/).getByRole('button', { name: 'Show trips tagged canyons' }).click()
   await expect(page.getByRole('button', { name: 'Filter, 1 on' }).first()).toBeVisible()
   await page.getByRole('button', { name: /Zion 2024/ }).click()
-  await page.getByRole('region', { name: /trips$/ }).getByRole('button', { name: 'Details' }).click()
-  await page.getByRole('dialog', { name: /Zion/ }).getByRole('button', { name: 'Delete' }).click()
+  if (isMobile) await page.getByRole('region', { name: /trips$/ }).getByRole('button', { name: 'Details' }).click()
+  await tripDetails(page, /Zion/).getByRole('button', { name: 'Delete' }).click()
   await expect(page.getByRole('status')).toContainText('Deleted')
 })
 
@@ -588,7 +591,7 @@ test('tags you have used before are chips to add; who went in the details is jus
   }
 
   await page.getByRole('region', { name: 'Chicago trips' }).getByRole('button', { name: /^Details/ }).click()
-  const detail = page.getByRole('dialog', { name: 'Second' })
+  const detail = tripDetails(page, 'Second')
   await expect(detail.getByRole('list', { name: 'Tags' })).toHaveText(/road food/)
   // Who went lists the people, not the group they're in.
   const who = detail.getByRole('heading', { name: 'Who went' }).locator('xpath=../following-sibling::ul')

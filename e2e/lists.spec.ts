@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { setTripYear, toStep } from './helpers.ts'
+import { setTripYear, toStep, tripDetails } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -40,14 +40,14 @@ async function addTrip(page: Page, opts: { main: [string, RegExp]; year: string;
 
 const nav = (page: Page, name: string) => page.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name }).filter({ visible: true }).click()
 
-test('trips list: search, group, filter by who went, and open a trip on the map', async ({ page }) => {
+test('trips list: search, group, filter by who went, and open a trip on the map', async ({ page, isMobile }) => {
   await page.goto('./')
   await addTrip(page, { main: ['moab', /^Moab/], year: '2019', family: 'Mom' })
   await addTrip(page, { main: ['chicago', /^Chicago/], year: '2022' })
   await addTrip(page, { main: ['moab', /^Moab/], year: '2024', stops: [['Green River, UT', /^Green River\s*UT$/]], friend: 'Sam' })
 
   await nav(page, 'Trips')
-  await expect(page.getByRole('heading', { name: 'Trips', level: 1 })).toBeVisible()
+  await expect(page.getByRole('searchbox', { name: 'Search trips' })).toBeVisible()
   await expect(page.getByRole('region', { name: '2024' }).getByRole('button')).toHaveText([/Moab 2024/])
   await expect(page.getByRole('region', { name: '2019' }).getByRole('button')).toHaveText([/Moab 2019/])
 
@@ -67,8 +67,14 @@ test('trips list: search, group, filter by who went, and open a trip on the map'
   await page.reload()
   await expect(page.getByRole('button', { name: 'Filter, 1 on' }).first()).toBeVisible()
 
-  // Opening a trip goes to the map with its pin selected and route drawn.
   await page.getByRole('button', { name: /Moab 2024/ }).click()
+  if (!isMobile) {
+    // Wider screens: the trip opens in the panel over the map, under Trips.
+    await expect(tripDetails(page, 'Moab 2024')).toContainText('Green River')
+    await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toHaveText(/Trips\s*›\s*Moab 2024/)
+    return
+  }
+  // Phones: opening a trip goes to the map with its pin selected and route drawn.
   const card = page.getByRole('region', { name: 'Moab trips' })
   await expect(card).toBeVisible()
   await expect(card.getByRole('list', { name: 'Route' })).toContainText('Green River')

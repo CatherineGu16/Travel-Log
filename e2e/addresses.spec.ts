@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
-import { openSettings, toStep } from './helpers.ts'
+import { openSettings, toStep, tripDetails } from './helpers.ts'
 
-test('a trip’s details have their own address: reload keeps them open, Back closes them', async ({ page }) => {
+test('a trip’s details have their own address: reload keeps them open, Back closes them', async ({ page, isMobile }) => {
   await page.goto('./')
   await page.getByRole('button', { name: 'Add trip' }).filter({ visible: true }).first().click()
   const dialog = page.getByRole('dialog', { name: 'Add trip' })
@@ -11,34 +11,46 @@ test('a trip’s details have their own address: reload keeps them open, Back cl
   await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(dialog).toBeHidden()
 
+  // The pin card on a phone; wider, the place's trips in the Trips panel (Trips › Moab).
   const card = page.getByRole('region', { name: 'Moab trips' })
   await card.getByRole('button', { name: /^Details of Moab/ }).click()
-  const detail = page.getByRole('dialog', { name: /^Moab/ })
+  const detail = tripDetails(page, /^Moab( \d{4})?$/)
   await expect(detail).toBeVisible()
-  await expect(page).toHaveURL(/#\/trips\/[^/]+$/)
+  await expect(page).toHaveURL(isMobile ? /#\/trips\/[^/]+$/ : /#\/trips\/at\/[^/]+\/[^/]+$/)
+  if (!isMobile) await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toHaveText(/^Trips\s*›\s*Moab\s*›\s*Moab/)
 
   const address = page.url()
   await page.reload()
   await expect(detail).toBeVisible()
-  // Opened from the map, closing it goes Back to the map.
-  await detail.getByRole('button', { name: 'Close' }).click()
-  await expect(detail).toBeHidden()
-  await expect(card).toBeVisible()
-
-  // Opened straight from its address, closing it leaves you on Trips.
-  await page.goto(address)
-  await expect(detail).toBeVisible()
-  await detail.getByRole('button', { name: 'Close' }).click()
-  await expect(page).toHaveURL(/#\/trips$/)
-  await expect(detail).toBeHidden()
-
-  await page.goto('./#/trips')
-  await page.getByRole('button', { name: /Moab/ }).first().click()
-  await card.getByRole('button', { name: /^Details of Moab/ }).click()
-  await expect(detail).toBeVisible()
   await page.goBack()
   await expect(detail).toBeHidden()
   await expect(card).toBeVisible()
+
+  // Opened straight from its address, closing it goes up a level.
+  await page.goto(address)
+  await expect(detail).toBeVisible()
+  if (isMobile) {
+    await detail.getByRole('button', { name: 'Close' }).click()
+    await expect(page).toHaveURL(/#\/trips$/)
+  } else {
+    await page.getByRole('navigation', { name: 'Breadcrumb' }).getByRole('link', { name: 'Moab' }).click()
+    await expect(page).toHaveURL(/#\/trips\/at\/[^/]+$/)
+    await expect(card).toBeVisible()
+  }
+  await expect(detail).toBeHidden()
+})
+
+test('wider screens: Trips is a panel over the map that hides for the full map', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'Phones get the Trips sheet in a later step')
+  await page.goto('./#/trips')
+  const panel = page.getByRole('complementary', { name: 'Trips panel' })
+  await expect(panel.getByRole('searchbox', { name: 'Search trips' })).toBeVisible()
+  await expect(page.locator('[data-testid="map"] canvas')).toBeVisible()
+  await panel.getByRole('button', { name: 'Hide trips' }).click()
+  await expect(panel).toBeHidden()
+  await expect(page).toHaveURL(/#\/$/)
+  await page.getByRole('link', { name: 'Show trips' }).click()
+  await expect(panel).toBeVisible()
 })
 
 test('the You sections have their own addresses; Back moves between them', async ({ page }) => {

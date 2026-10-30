@@ -45,6 +45,10 @@ export async function setTripYear(dialog: Locator, year: string) {
   await button.click()
 }
 
+/** A trip's details: a full-screen sheet on phones, in the Trips panel over the map on wider screens. */
+export const tripDetails = (page: Page, name: string | RegExp) =>
+  page.getByRole('dialog', { name }).or(page.getByRole('complementary', { name: 'Trips panel' }).getByRole('region', { name, exact: true }))
+
 /** Goes to the You page (its Profile). */
 export const openYou = (page: Page) => page.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: 'You' }).filter({ visible: true }).click()
 

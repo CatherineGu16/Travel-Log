@@ -9,7 +9,8 @@
   map, the Trips tab and header link go away.
 - **Addresses** (hash, so Back works and links can be shared to a page):
   `#/trips` (the map with the Trips panel/sheet open on the list), `#/trips/<tripId>` (the map with
-  that trip open), `#/you`, `#/you/achievements`, `#/you/people`, `#/you/settings`.
+  that trip open), `#/trips/at/<placeId>` (a pin's trips) and `#/trips/at/<placeId>/<tripId>` (one
+  of them, so the breadcrumb keeps the place), `#/you`, `#/you/achievements`, `#/you/people`, `#/you/settings`.
   The sync chip opens `#/you/settings`.
 
 ## You: sections
@@ -46,7 +47,10 @@
    view, else to the page under it (`ui/route.ts`: `useRoute`, `close`).
 2. ✅ You sections: layout (left menu / top tabs, swipe on phones), Profile overview, Achievements,
    People & groups and Settings in the page, Home into Settings (`YouPage.tsx`).
-3. Desktop Trips panel with breadcrumb; map pins open it.
+3. ✅ Desktop Trips panel with breadcrumb; map pins open it (`TripsPanel.tsx`; the place view is the
+   pin card's stack, `PinCard embedded`; trip details `TripDetail inline`, without the small map).
+   After saving, the trip stays open if it was, else its place opens with it on the map. Phones
+   are unchanged until step 4.
 4. Phone Trips sheet (drag between heights) with the same list, breadcrumb and details.
 5. Remove the Trips tab and header link and the old Trips page; `#/trips` opens the map with the
    panel/sheet on the list.

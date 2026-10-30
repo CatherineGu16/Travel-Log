@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import type { Pin } from '../lib/derive.ts'
 import { legMemory } from '../lib/legs.ts'
 import { formatDateRange } from '../lib/partialDate.ts'
@@ -7,6 +7,7 @@ import { regionName } from '../lib/states.ts'
 import { deleteTrip } from '../lib/travelActions.ts'
 import type { TravelData, Trip } from '../lib/types.ts'
 import { useStore } from '../store/useTravel.ts'
+import { usePhone } from '../ui/usePhone.ts'
 import { PinGlyph } from './PlacePicker.tsx'
 import { useToast } from './toastContext.ts'
 import { WhoWent } from './WhoWent.tsx'
@@ -14,7 +15,8 @@ import { WhoWent } from './WhoWent.tsx'
 /**
  * The preview card for a selected pin. A place visited more than once has a card per trip: swipe
  * between them on a phone, or pick from the list on a wider screen. The trip shown is the one whose
- * route the map draws. A floating card, not a modal, so the map stays usable.
+ * route the map draws. A floating card, not a modal, so the map stays usable. `embedded`: filling
+ * the Trips panel on wider screens (Trips › Moab) instead of floating.
  */
 export function PinCard({
   pin,
@@ -24,6 +26,7 @@ export function PinCard({
   onDetails,
   onEdit,
   onClose,
+  embedded = false,
 }: {
   pin: Pin
   trip: Trip
@@ -32,6 +35,7 @@ export function PinCard({
   onDetails: (trip: Trip) => void
   onEdit: (trip: Trip) => void
   onClose: () => void
+  embedded?: boolean
 }) {
   const store = useStore()
   const toast = useToast()
@@ -68,7 +72,11 @@ export function PinCard({
   return (
     <section
       aria-label={`${pin.place.name} trips`}
-      className="pointer-events-auto flex max-h-[min(55dvh,34rem)] w-full flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_8px_30px_rgb(0_0_0/0.25)] sm:max-h-[calc(100dvh-7rem)] sm:w-96"
+      className={
+        embedded
+          ? 'flex min-h-0 flex-1 flex-col'
+          : 'pointer-events-auto flex max-h-[min(55dvh,34rem)] w-full flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_8px_30px_rgb(0_0_0/0.25)] sm:max-h-[calc(100dvh-7rem)] sm:w-96'
+      }
     >
       <header className="flex items-start gap-2 border-b border-line px-4 py-3">
         <PinGlyph park={pin.isPark} className="mt-1 size-5" />
@@ -101,15 +109,6 @@ export function PinCard({
     </section>
   )
 }
-
-const PHONE = '(max-width: 639px)'
-const subscribe = (onChange: () => void) => {
-  const media = window.matchMedia(PHONE)
-  media.addEventListener('change', onChange)
-  return () => media.removeEventListener('change', onChange)
-}
-/** Whether the screen is phone-sized (Tailwind's below-`sm`), following rotation and resizing. */
-const usePhone = () => useSyncExternalStore(subscribe, () => window.matchMedia(PHONE).matches)
 
 /**
  * Trips side by side, one per screen width, snapping into place. Settling on a card picks its trip

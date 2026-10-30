@@ -227,7 +227,9 @@ export function MapView(props: MapViewProps) {
   // Fly to a place on request.
   const { focus } = props
   useEffect(() => {
-    if (map && focus) map.easeTo({ center: [focus.lng, focus.lat], zoom: Math.max(map.getZoom(), 5), duration: 800 })
+    // Wider screens: centered in the part of the map the Trips panel leaves free.
+    const offset: [number, number] = window.innerWidth < 640 ? [0, 0] : [214, 0]
+    if (map && focus) map.easeTo({ center: [focus.lng, focus.lat], zoom: Math.max(map.getZoom(), 5), offset, duration: 800 })
   }, [map, focus])
 
   useEffect(() => {

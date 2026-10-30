@@ -19,8 +19,18 @@ const SORTS: { id: TripSort; label: string }[] = [
   { id: 'rating', label: 'Rating' },
 ]
 
-/** Every trip in a plain list: search, group, sort. Uses the same filters as the map. */
+/** Phones: the Trips page, every trip in a plain list. */
 export function TripsPage({ data, toolbar, onOpenTrip }: { data: TravelData; toolbar: React.ReactNode; onOpenTrip: (trip: Trip) => void }) {
+  const count = live(data.trips).length
+  return (
+    <ListPage title="Trips" count={`${count} ${count === 1 ? 'trip' : 'trips'}`}>
+      <TripList data={data} toolbar={toolbar} onOpenTrip={onOpenTrip} />
+    </ListPage>
+  )
+}
+
+/** Every trip in a plain list: search, group, sort. Uses the same filters as the map. */
+export function TripList({ data, toolbar, onOpenTrip }: { data: TravelData; toolbar?: React.ReactNode; onOpenTrip: (trip: Trip) => void }) {
   const [query, setQuery] = useState('')
   const q = useDeferredValue(query)
   const [grouping, setGrouping] = usePersistentState<TripGrouping>('travel.trips.group', 'year', (v) =>
@@ -32,7 +42,7 @@ export function TripsPage({ data, toolbar, onOpenTrip }: { data: TravelData; too
   const groups = useMemo(() => groupTrips(trips, data, grouping, sort), [trips, data, grouping, sort])
 
   return (
-    <ListPage title="Trips" count={`${trips.length} ${trips.length === 1 ? 'trip' : 'trips'}`}>
+    <>
       <div className="flex flex-wrap items-center gap-2">
         <input
           type="search"
@@ -64,7 +74,7 @@ export function TripsPage({ data, toolbar, onOpenTrip }: { data: TravelData; too
           </section>
         ))
       )}
-    </ListPage>
+    </>
   )
 }
 

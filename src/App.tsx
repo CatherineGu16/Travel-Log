@@ -10,7 +10,8 @@ import { ToastProvider } from './components/Toast.tsx'
 import { useToast } from './components/toastContext.ts'
 import { TripDetail, type TripStep } from './components/TripDetail.tsx'
 import { TripForm, type RequestShape, type RouteEnd } from './components/TripForm.tsx'
-import { TripsPage } from './components/TripsPage.tsx'
+import { TripList, TripsPage } from './components/TripsPage.tsx'
+import { ShowTripsButton, TripsPanel, type Crumb } from './components/TripsPanel.tsx'
 import { YouPage } from './components/YouPage.tsx'
 import parks from './data/national-parks.json'
 import { mainPlaceIds, parksVisited, pinsOf, tripsPerRegion } from './lib/derive.ts'
@@ -24,8 +25,9 @@ import type { LngLat, Place, Trip } from './lib/types.ts'
 import { loadServices, ServicesContext, useStore, useTravelState, type AppServices } from './store/useTravel.ts'
 import type { ParksMode } from './map/MapView.tsx'
 import { useMapDetail } from './ui/mapDetail.ts'
-import { pageHref, tripHref, useRoute, youHref } from './ui/route.ts'
+import { pageHref, placeHref, tripHref, useRoute, youHref } from './ui/route.ts'
 import { usePersistentState } from './ui/usePersistentState.ts'
+import { usePhone } from './ui/usePhone.ts'
 
 // MapLibre is most of the app's code, so it loads as its own chunk after the shell.
 const MapView = lazy(() => import('./map/MapView.tsx').then((m) => ({ default: m.MapView })))
@@ -61,7 +63,8 @@ type ShapeRequest = {
 function Shell() {
   const store = useStore()
   const { data, error } = useTravelState()
-  const { page, tripId: detailTripId, section, goTo, navigate, close } = useRoute()
+  const { page, placeId: routePlaceId, tripId: detailTripId, section, goTo, navigate, close } = useRoute()
+  const phone = usePhone()
   const toast = useToast()
   const detailed = useMapDetail() === 'detailed'
 
@@ -86,11 +89,16 @@ function Shell() {
   const [focus, setFocus] = useState<{ lng: number; lat: number; token: number } | null>(null)
   const focusToken = useRef(0)
 
-  const onMap = page === 'map'
+  // Wider screens show Trips as a panel over the map (phones: a page of its own, for now).
+  const panel = !phone && page === 'trips'
+  const onMap = page === 'map' || panel
+  const detailTrip = data.trips.find((t) => t.id === detailTripId && !t.deleted) ?? null
   const selectedPin = pins.find((p) => p.place.id === selectedPlaceId) ?? null
   // The visit shown on the pin card: the one you picked, else the newest.
   const selectedTrip = selectedPin ? (selectedPin.trips.find((t) => t.id === selectedTripId) ?? selectedPin.trips[0]) : null
-  const tripRoute = useMemo(() => (selectedTrip ? routeOf(selectedTrip, data.places, { home: data.home, memory: legMemory(data) }) : []), [selectedTrip, data])
+  // The trip whose route the map draws: the one open in the Trips panel, else the pin's.
+  const drawnTrip = panel && detailTrip ? detailTrip : selectedTrip
+  const tripRoute = useMemo(() => (drawnTrip ? routeOf(drawnTrip, data.places, { home: data.home, memory: legMemory(data) }) : []), [drawnTrip, data])
   // While you shape a leg, the map shows just that leg, from A to B.
   const shapeRoute = useMemo<RoutePoint[]>(() => {
     if (!shape) return []
@@ -101,7 +109,6 @@ function Shell() {
     ]
   }, [shape])
   const route = shape ? shapeRoute : tripRoute
-  const detailTrip = data.trips.find((t) => t.id === detailTripId && !t.deleted) ?? null
 
   const selectPin = (placeId: string | null, tripId: string | null = null) => {
     setSelectedPlaceId(placeId)
@@ -114,24 +121,44 @@ function Shell() {
     const place = latest.places.find((p) => p.id === trip?.destinations[0]?.placeId)
     if (place && trip && trip.destinations.length === 1) setFocus({ lng: place.lng, lat: place.lat, token: ++focusToken.current })
   }
-  /** Shows a trip on the map: the pin of its (first) main destination selected, and the map moved to it. */
+  // The selected pin follows the address: a trip's (from a link, Back or a reload) selects its pin.
+  // On wider screens a place's does too (Trips › Moab), and anywhere off Trips nothing is selected.
+  const routeKey = `${phone}|${page}|${routePlaceId}|${detailTrip?.id}`
+  const [seenRoute, setSeenRoute] = useState<string | null>(null)
+  if (routeKey !== seenRoute) {
+    setSeenRoute(routeKey)
+    if (detailTrip) {
+      setSelectedPlaceId(routePlaceId ?? mainPlaceIds(detailTrip)[0] ?? null)
+      setSelectedTripId(detailTrip.id)
+    } else if (!phone && page === 'trips' && routePlaceId) {
+      // Keeps the visit you picked (or just saved); otherwise the newest is shown.
+      setSelectedPlaceId(routePlaceId)
+    } else if (!phone) {
+      setSelectedPlaceId(null)
+      setSelectedTripId(null)
+    }
+  }
+
+  /** Shows a trip on the map: on a phone its (first) main destination's pin selected; wider, open in the Trips panel. */
   const showOnMap = (trip: Trip, placeId = mainPlaceIds(trip)[0]) => {
-    goTo('map')
-    selectPin(placeId, trip.id)
+    if (phone) {
+      goTo('map')
+      selectPin(placeId, trip.id)
+    } else navigate(tripHref(trip.id))
     focusTrip(trip.id)
   }
-  /** A place from the Places list: its pin selected on the map, newest visit first, and the map moved there. */
-  // A trip opened by its address (a link, Back, a reload) selects its pin, so the map behind shows it.
-  const [selectedFor, setSelectedFor] = useState<string | null>(null)
-  if (detailTrip && selectedFor !== detailTrip.id) {
-    setSelectedFor(detailTrip.id)
-    setSelectedPlaceId(mainPlaceIds(detailTrip)[0] ?? null)
-    setSelectedTripId(detailTrip.id)
-  } else if (!detailTrip && selectedFor) setSelectedFor(null)
+  /** A place from Most visited: its pin selected on the map, newest visit first, and the map moved there. */
   const openPlace = (place: Place) => {
-    goTo('map')
-    selectPin(place.id)
+    if (phone) {
+      goTo('map')
+      selectPin(place.id)
+    } else navigate(placeHref(place.id))
     setFocus({ lng: place.lng, lat: place.lat, token: ++focusToken.current })
+  }
+  /** A map pin: the pin card on a phone; wider, the place's trips in the Trips panel. */
+  const choosePin = (placeId: string | null) => {
+    if (phone) selectPin(placeId)
+    else if (placeId) navigate(placeHref(placeId))
   }
 
   /** A trip's details, at its own address. */
@@ -139,7 +166,8 @@ function Shell() {
     selectPin(mainPlaceIds(trip)[0], trip.id)
     navigate(tripHref(trip.id))
   }
-  const closeTrip = () => close(pageHref('trips'))
+  // Closing a trip goes back up: to its place when you came from a pin, else to the list.
+  const closeTrip = () => close(routePlaceId ? placeHref(routePlaceId) : pageHref('trips'))
   const addTrip = () => {
     finishShape(null)
     selectPin(null)
@@ -175,6 +203,29 @@ function Shell() {
     setShape((s) => s && { ...s, via: s.via.map((v, k) => (k === index ? point : v)), history: done ? [...s.history, before] : s.history })
   }
 
+  // What you can do from a trip's details, on a phone's sheet or in the Trips panel.
+  const detailActions = {
+    onOpenTrip: openTrip,
+    onEdit: (trip: Trip, step?: TripStep) => {
+      if (phone) closeTrip()
+      setForm({ trip, initialMain: null, step })
+    },
+    onTag: (tag: string) => {
+      setFilter({ ...filter, tag })
+      navigate(pageHref('trips'), { replace: true })
+    },
+    onOpenPark: (parkId: string) => {
+      if (phone) closeTrip()
+      setParkSheetId(parkId)
+    },
+    onClose: closeTrip,
+  }
+  // Where you are in the Trips panel: Trips › Moab › Moab 2021.
+  const crumbPlace = routePlaceId ? data.places.find((p) => p.id === routePlaceId) : undefined
+  const crumbs: Crumb[] = [{ label: 'Trips', href: routePlaceId || detailTrip ? pageHref('trips') : undefined }]
+  if (crumbPlace) crumbs.push({ label: crumbPlace.name, href: detailTrip ? placeHref(crumbPlace.id) : undefined })
+  if (detailTrip) crumbs.push({ label: detailTrip.title })
+
   const filterButton = <FilterButton filter={filter} onClick={() => setFilterOpen(true)} />
 
   return (
@@ -186,11 +237,11 @@ function Shell() {
             tripsPerRegion={perRegion}
             selectedPlaceId={selectedPin ? selectedPlaceId : null}
             route={route}
-            routeTripId={shape ? 'shaping' : (selectedTrip?.id ?? null)}
+            routeTripId={shape ? 'shaping' : (drawnTrip?.id ?? null)}
             showBends={shape !== null}
             onDragBend={dragBend}
             contextLines={shape?.context}
-            onSelectPin={(placeId) => selectPin(placeId)}
+            onSelectPin={choosePin}
             onAddAt={(lng, lat) => {
               void placeAt(lng, lat).then((initialMain) => {
                 selectPin(null)
@@ -208,7 +259,7 @@ function Shell() {
           />
         </Suspense>
 
-        {page === 'trips' && (
+        {page === 'trips' && phone && (
           <div className="absolute inset-0 z-10 overflow-y-auto bg-bg">
             <TripsPage data={shown} toolbar={filterButton} onOpenTrip={showOnMap} />
           </div>
@@ -309,7 +360,41 @@ function Shell() {
           </>
         )}
 
-        {onMap && selectedPin && selectedTrip && !form && !shape && (
+        {panel && !shape && (
+          <TripsPanel crumbs={crumbs} onCollapse={() => goTo('map')}>
+            {detailTrip ? (
+              <TripDetail inline trip={detailTrip} data={data} {...detailActions} />
+            ) : routePlaceId ? (
+              selectedPin && selectedTrip ? (
+                <PinCard
+                  embedded
+                  pin={selectedPin}
+                  trip={selectedTrip}
+                  data={data}
+                  onSelectTrip={setSelectedTripId}
+                  onDetails={(trip) => navigate(placeHref(selectedPin.place.id, trip.id))}
+                  onEdit={(trip) => setForm({ trip, initialMain: null })}
+                  onClose={() => navigate(pageHref('trips'))}
+                />
+              ) : (
+                <p className="p-4 text-sm text-muted">No trips here match the filter.</p>
+              )
+            ) : (
+              <div className="min-h-0 flex-1 overflow-y-auto p-3">
+                <TripList
+                  data={shown}
+                  onOpenTrip={(trip) => {
+                    navigate(tripHref(trip.id))
+                    focusTrip(trip.id)
+                  }}
+                />
+              </div>
+            )}
+          </TripsPanel>
+        )}
+        {!phone && page === 'map' && !shape && <ShowTripsButton />}
+
+        {phone && page === 'map' && selectedPin && selectedTrip && !form && !shape && (
           <div className="pointer-events-none absolute inset-x-3 bottom-[0.75rem] z-20 flex sm:inset-x-auto sm:top-20 sm:bottom-auto sm:left-3">
             <PinCard
               pin={selectedPin}
@@ -339,26 +424,7 @@ function Shell() {
         />
       )}
 
-      {detailTrip && !form && (
-        <TripDetail
-          trip={detailTrip}
-          data={data}
-          onOpenTrip={openTrip}
-          onEdit={(trip, step) => {
-            closeTrip()
-            setForm({ trip, initialMain: null, step })
-          }}
-          onTag={(tag) => {
-            setFilter({ ...filter, tag })
-            navigate(pageHref('trips'), { replace: true })
-          }}
-          onOpenPark={(parkId) => {
-            closeTrip()
-            setParkSheetId(parkId)
-          }}
-          onClose={closeTrip}
-        />
-      )}
+      {detailTrip && phone && !form && <TripDetail trip={detailTrip} data={data} {...detailActions} />}
 
       {form && (
         <TripForm
@@ -374,9 +440,12 @@ function Shell() {
           }}
           onSaved={(mainPlaceId, tripId) => {
             setForm(null)
-            goTo('map')
-            setSelectedPlaceId(mainPlaceId)
             setSelectedTripId(tripId)
+            // Wider screens: the trip stays open if it was; otherwise its place's trips, with it on the map.
+            if (phone) {
+              goTo('map')
+              setSelectedPlaceId(mainPlaceId)
+            } else if (detailTripId !== tripId) navigate(placeHref(mainPlaceId))
             focusTrip(tripId)
           }}
         />

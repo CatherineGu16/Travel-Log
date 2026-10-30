@@ -20,7 +20,8 @@ test('the outline map loads with only bundled data, and the globe toggle and US 
   await globe.click()
   await expect(globe).toHaveAttribute('aria-pressed', 'true')
   await page.reload()
-  await expect(globe).toHaveAttribute('aria-pressed', 'true')
+  // The map's buttons show once it has loaded, which can take a while with every test running at once.
+  await expect(globe).toHaveAttribute('aria-pressed', 'true', { timeout: 15_000 })
   await globe.click()
   await expect(globe).toHaveAttribute('aria-pressed', 'false')
   await page.getByRole('button', { name: 'Reset to US' }).click()
