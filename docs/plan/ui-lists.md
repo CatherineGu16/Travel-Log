@@ -30,12 +30,10 @@
   destination.
 
 ## Trip detail
-- **The whole screen on a phone**; pull the top (the handle) down to close it. (The park page,
-  filters and Settings close the same way.) A message showing when it opens is cleared, since it
-  would sit on the title.
+- **In the Trips panel or sheet over the map** (see navigation-and-layout.md), under the
+  breadcrumb; the big map draws the route.
 - Title, then dates, **how many days** and **roughly how far by each way of traveling** ("8 days ·
-  ~194 mi driven · ~1,200 mi flown", from the drawn lines). A **small map of the route** (still,
-  on the outline map). Who went, then **the stops** in order (each with its **day of the trip**
+  ~194 mi driven · ~1,200 mi flown", from the drawn lines). Who went, then **the stops** in order (each with its **day of the trip**
   ("Days 2–3") and own dates, its note, and "Also
   here" chips for every other visit to that place, which open those trips). How you traveled
   between them isn't listed here (it's on the map and in Edit). Below the stops, the trip's

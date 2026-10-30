@@ -1,17 +1,21 @@
 <!-- Part of the Travel Log plan; index: docs/plan/README.md -->
-# Navigation and layout (planned, M10)
+# Navigation and layout (M10, built)
 
 ## Pages and addresses
 
-- **Bottom tabs on phones**: Map · **+** · Parks · You. Page links in the header on wider screens.
-  The header holds only the title, the page links and the sync chip. Until the Trips panel and
-  sheet are built, Trips keeps its tab (Map · Trips · **+** · Parks · You); once trips live on the
-  map, the Trips tab and header link go away.
-- **Addresses** (hash, so Back works and links can be shared to a page):
-  `#/trips` (the map with the Trips panel/sheet open on the list), `#/trips/<tripId>` (the map with
-  that trip open), `#/trips/at/<placeId>` (a pin's trips) and `#/trips/at/<placeId>/<tripId>` (one
-  of them, so the breadcrumb keeps the place), `#/you`, `#/you/achievements`, `#/you/people`, `#/you/settings`.
-  The sync chip opens `#/you/settings`.
+- **Pages**: Map · **+** · Parks · You, as bottom tabs on phones and header links on wider
+  screens. There's no Trips tab: trips live on the map (below). The header holds only the title,
+  the page links and the sync chip.
+- **Addresses** (hash, so Back works and links can be shared; `src/ui/route.ts`):
+  - `#/` the map, with the Trips list (phones: the sheet peeking).
+  - `#/trips` the map with the Trips list showing (phones: the sheet raised).
+  - `#/trips/<tripId>` a trip; `#/trips/at/<placeId>` a pin's trips; `#/trips/at/<placeId>/<tripId>`
+    one of them, so the breadcrumb keeps the place.
+  - `#/parks`; `#/you`, `#/you/achievements`, `#/you/people`, `#/you/settings`. The sync chip
+    opens `#/you/settings` when something needs fixing.
+  - Old links still work: `#/places` opens the map.
+- **Closing goes up**: Back when the app opened the view, otherwise (a link opened straight to it)
+  the view above it (`useRoute().close`).
 
 ## You: sections
 
@@ -19,39 +23,43 @@
 |---|---|
 | **Profile** | Your numbers, **Recently earned** with "See all achievements →", Most visited |
 | **Achievements** | Every achievement by category, with the All / Earned / In progress filter |
-| **People & groups** | The people and groups editor, in the page instead of a pop-up |
-| **Settings** | Sync, **Home** (moved here from the profile), Map detail, Backup, Appearance |
+| **People & groups** | The people and groups editor, in the page; an editor opens in place with a back arrow |
+| **Settings** | Sync, **Home**, Map detail, Backup, Appearance |
 
 - **Desktop:** a menu down the left, the section on the right.
-- **Phones:** section tabs across the top, under the title; tap or swipe between them.
+- **Phones:** section tabs across the top, under the title ("People" for short); tap them, or swipe
+  sideways on the section (not on the Recently earned row, which scrolls sideways itself).
+- `YouPage.tsx` (layout), `YouSections.tsx` (Profile, Achievements), `PeoplePanel.tsx`, `Settings.tsx`.
 
-## Trips: a panel over the map
+## Trips: on the map
 
-- **Desktop:** the Trips page becomes a **collapsible panel on the left over the map** (the map
-  stays visible). It holds the list (search, group, sort, filter). Selecting a trip shows it in the
-  panel with a **breadcrumb**, `Trips › Utah 2023` ("Trips" goes back), and draws its route.
-  « collapses the panel to a full map. Clicking a map pin opens the panel on that place:
-  `Trips › Moab` (its trips, stacked) then `› Moab 2021`. This replaces the floating pin card and
-  the full-screen trip details on desktop.
-- **Phones:** the same, as a **sheet over the map** you drag between peeking, half and full height:
-  the list, then a trip with the breadcrumb, with its route on the map above. Replaces the Trips
-  page, the pin card's swipe cards and the trip details sheet on phones.
-- **Map and Trips are one page:** once the panel (desktop) and sheet (phones) are built, the
-  Trips tab is removed. The map always has the Trips panel/sheet; on phones it rests peeking.
+The map page always has Trips over it, showing one of three views, with a **breadcrumb** on top
+(`Trips › Moab › Moab 2021`; each step back is a link):
 
-## Build order
+- **The list** (`TripList.tsx`): search, group, sort. The map's Filter applies to it.
+- **A place** (a map pin, or Most visited): `Trips › Moab`, its trips as stacked cards
+  (`PinCard.tsx`). The highlighted card's route is on the map; click another to switch, Details to
+  open it. Close goes back to the list.
+- **A trip** (`TripDetail.tsx`): the details, with its route drawn on the big map (no small map).
+  Edit opens the trip form over it; after saving, the trip stays open. Saving from anywhere else
+  opens the trip's place with it on the map. Delete goes back up a level.
 
-1. ✅ Addresses with sub-paths (`#/you/<section>`, `#/trips/<tripId>`). For now `#/trips/<tripId>`
-   opens the trip details sheet (and selects its pin), `#/you/people` and `#/you/settings` open those
-   panels, and `#/you/achievements` shows the You page. Closing goes Back when the app opened the
-   view, else to the page under it (`ui/route.ts`: `useRoute`, `close`).
-2. ✅ You sections: layout (left menu / top tabs, swipe on phones), Profile overview, Achievements,
-   People & groups and Settings in the page, Home into Settings (`YouPage.tsx`).
-3. ✅ Desktop Trips panel with breadcrumb; map pins open it (`TripsPanel.tsx`; the place view is the
-   pin card's stack, `PinCard embedded`; trip details `TripDetail inline`, without the small map).
-   After saving, the trip stays open if it was, else its place opens with it on the map. Phones
-   are unchanged until step 4.
-4. Phone Trips sheet (drag between heights) with the same list, breadcrumb and details.
-5. Remove the Trips tab and header link and the old Trips page; `#/trips` opens the map with the
-   panel/sheet on the list.
-6. Tests and docs.
+Where it sits (`TripsPanel.tsx`):
+
+- **Wider screens:** a panel on the left over the map. « hides it for the full map ("Show trips"
+  brings it back); opening a place or trip brings it back too. Moving the map to a trip centers it
+  in the space beside the panel.
+- **Phones:** a sheet over the map, peeking (just the breadcrumb), half, or nearly full height.
+  Drag the top (a quick flick goes one size; a slow drag settles on the nearest), or tap it to go
+  peeking → half → full → peeking. Opening a place or trip raises it to half; tapping the bare map
+  or going to `#/` lowers it to peeking. At the list, peeking is `#/` and taller is `#/trips`. The
+  map ends where the peeking sheet starts, so its buttons stay in reach.
+
+## Build order (done)
+
+1. ✅ Addresses with sub-paths.
+2. ✅ You sections; People & groups and Settings in the page; Home into Settings.
+3. ✅ Desktop Trips panel with breadcrumb; map pins open it.
+4. ✅ Phone Trips sheet (drag between heights) with the same list, breadcrumb and details.
+5. ✅ Trips tab, Trips page, floating pin card, swipe cards and the details sheet removed.
+6. ✅ Tests (`e2e/addresses.spec.ts` for addresses, the panel and the sheet) and docs.

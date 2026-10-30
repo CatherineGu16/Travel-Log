@@ -2,16 +2,17 @@
 # UI: header, navigation, settings, people, layout
 
 ## Header, navigation, settings
-- **Navigation**: Map · Trips · **+** · Parks · **You**, kept in the URL hash so Back works (old
-  `#/places` links open the map). **Add trip** is a large colored circle in the center: raised above
-  the bottom tab bar on phones, in the middle of the header's page links on wider screens.
+- **Navigation**: Map · **+** · Parks · **You** (trips are on the map), kept in the URL hash so
+  Back works; see navigation-and-layout.md for the addresses. **Add trip** is a large colored
+  circle after Map: raised above the bottom tab bar on phones, among the header's page links on
+  wider screens.
 - **Header**: the title, the page links (on wider screens) and the sync chip (which opens Settings); your numbers are on the You page. People &
-  groups, Settings and Home are on the You page (see profile-and-achievements.md).
-- **Settings** (from the You page or the sync chip): Sync across devices (same as Watchlist), **Map detail** (Outline · Detailed, with a
+  groups and Settings are sections of the You page (see navigation-and-layout.md).
+- **Settings** (You › Settings, or the sync chip): Sync across devices (same as Watchlist), **Map detail** (Outline · Detailed, with a
   note that Detailed contacts OpenFreeMap and Photon), People & groups (see below),
   Export/Import, theme. **Home** (pick your town from the bundled place search; synced in
-  `travel.json`; new trips start from it; earlier trips keep the start they were made with) is on
-  the You page.
+  `travel.json`; new trips start from it; earlier trips keep the start they were made with) is in
+  Settings too.
 
 ## People & groups
 - **People**: a grid of avatar cards. Tap one to edit their name and avatar, see their groups, and
@@ -24,9 +25,10 @@
   (see ui-trip-form.md).
 
 ## Responsive
-- **Phone (≤640px)**: full-screen map, bottom tab bar, and bottom sheets for previews, details and
-  forms. Pinch to zoom, drag to pan, double-tap to zoom.
-- **iPad / desktop**: the detail panel slides in from the right over the map. Lists use a single
+- **Phone (≤640px)**: full-screen map with the Trips sheet over it, bottom tab bar, and bottom
+  sheets for forms, filters and parks. Pinch to zoom, drag to pan, double-tap to zoom.
+- **iPad / desktop**: the Trips panel on the left over the map; forms and other panels slide in
+  from the right. Lists use a single
   centered column, as in Watchlist. Wheel to zoom, drag to pan, double-click to zoom.
 - Tap targets ≥44px, no horizontal scroll at 360px, iOS safe areas respected.
 - **Theme**: follows the system setting, with light and dark map styles to match (for both the

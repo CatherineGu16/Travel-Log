@@ -1,8 +1,8 @@
 # Travel Log — notes for Claude
 
 A personal PWA for logging trips on a map: pins per main destination, routes made of legs (drive,
-flight, …) from where the trip started and back, stacked repeat visits, a 64-park checklist with
-hikes. Offline-first (IndexedDB), syncs `travel.json` to the user's private GitHub repo. React 19 +
+flight, …) from where the trip started and back, stacked repeat visits, trips in a panel/sheet over
+the map, a 64-park checklist with hikes. Offline-first (IndexedDB), syncs `travel.json` to the user's private GitHub repo. React 19 +
 TypeScript + Vite + Tailwind 4 + MapLibre 6. Live: https://catherinegu16.github.io/Travel-Log/
 
 **Design docs:** `docs/plan/README.md` indexes small topic files. Read only the one you need, and
@@ -52,16 +52,16 @@ formats are documented in `docs/plan/data.md` and the loaders in `src/lib/gazett
 
 **Map (`src/map/`)**: `MapView.tsx` (lazy chunk; pins, route, parks, globe toggle, shaping drags),
 `outlineStyle.ts` (style + layers + palettes), `routeData.ts` (route GeoJSON + fit bounds, shared),
-`RouteMap.tsx` (small still map on trip details), `views.ts` (US view, globe zoom), `detailedTiles.ts`.
+`views.ts` (US view, globe zoom), `detailedTiles.ts`.
 
 **UI (`src/components/`, `src/ui/`)**
 - `App.tsx`: shell, pages, selection, shaping banner and state.
 - `TripForm.tsx`: Add/Edit trip stepper (Details → Route timeline → Notes); `StopDates.tsx` (day
   strip), `LegRow.tsx` + `timeline.ts`, `PeoplePicker.tsx` (who went), `TagsField.tsx`,
   `PlacePicker.tsx`, `DateRangeField.tsx`.
-- `TripsPanel.tsx` (wider screens: Trips over the map, breadcrumb), `PinCard.tsx` (map preview:
-  swipe cards / stacked cards; `embedded` in the panel), `TripDetail.tsx` (`inline` in the panel),
-  `TripsPage.tsx` (+ `TripList`),
+- `TripsPanel.tsx` (Trips over the map: `TripsPanel` on wider screens, `TripsSheet` on phones,
+  breadcrumb), `TripList.tsx` (the list), `PinCard.tsx` (a place's trips, stacked),
+  `TripDetail.tsx` (a trip),
   `ParksPage.tsx`, `ParkSheet.tsx`, `YouPage.tsx` (You: section menu/tabs, swipe) with its sections
   `YouSections.tsx` (Profile, Achievements), `PeoplePanel.tsx`, `Settings.tsx` (+ panels, Home),
   `FilterSheet.tsx`.

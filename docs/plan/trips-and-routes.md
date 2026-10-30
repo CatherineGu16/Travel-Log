@@ -25,7 +25,8 @@
   pins use the standard accent color.
 - **Dotted route**: selecting a pin shows the trip's route through all its destinations in the
   order you entered them: main destinations as pins, stops as numbered dots, joined by a dashed
-  line. Other pins fade back while one is selected, and the map fits the route around the pin card.
+  line. Other pins fade back while one is selected, and the map fits the route beside the Trips
+  panel (or above the phone's Trips sheet).
 - **Reusing the way you came**: a ground leg you haven't shaped uses roads already traveled on the
   trip where that's the better way: straight onto the nearest traveled stretch, along it in either
   direction, and straight off it to where it's going. An unmapped stretch counts as 3× its straight
