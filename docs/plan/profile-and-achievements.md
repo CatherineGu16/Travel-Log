@@ -1,5 +1,5 @@
 <!-- Part of the Travel Log plan; index: docs/plan/README.md -->
-# Profile & achievements (M9: built except badge artwork)
+# Profile & achievements (M9: built except badge artwork; M11 redesign planned below)
 
 A **You** page with your stats and tiered achievements, to make logging trips a little bit of a
 game. Badge artwork comes later; this fixes the format first.
@@ -79,3 +79,32 @@ Defined in code (`src/lib/achievements.ts`; totals in `src/lib/stats.ts`; the pa
 4. ✅ Celebration on the save message.
 5. Badge design pass (next).
 - Not built from the list: **Strenuous hikes** (needs the NPS hike data loaded alongside).
+
+## Redesign (M11, planned)
+
+Modeled on GitHub's profile: a card with who you are beside wide content.
+
+- **Toolbar**: one full-width bar above the map and pages (not floating), every control the same
+  height (36 px) and shape. Desktop: title on the left, then **Map · You** as tabs with icons; on
+  the right **+ Add trip** (a labeled primary button), the sync status and your photo (opens You).
+  Phones: the same bar with the title, sync status and photo; the bottom tabs are **Map · + ·
+  You**. Every button shows the hand cursor (Tailwind 4 resets it; set once in `index.css`).
+- **No Parks tab**: the 64-park checklist becomes the **Parks** section of You (`#/you/parks`;
+  old `#/parks` links go there). The Parks layer stays on the map.
+- **Profile**: a synced `profile` record (`types.ts` `Profile`: name and avatar, one record like
+  Home; the photo uploads like a person's, at `avatars/profile.webp`). **Edit profile** sets the
+  name and the same initials / emoji / photo avatar as people.
+- **Layout**: wide (up to 72 rem). Desktop: a left column with the profile card (photo, name, Home,
+  "Traveling since", Edit profile) and the section menu (Profile, Achievements, Parks, People &
+  groups, Settings); the section fills the rest. Phones: the card on top (photo beside name), the
+  sections as tabs under it.
+- **Cards you can click look clickable**: a border, a chevron or "View", lift and border color on
+  hover, the hand cursor, a focus ring. Cards that only show something are flat (no border, no
+  chevron).
+- **Stats open lists** (a panel from the right on desktop, a sheet on phones; `#/you/stats/<kind>`):
+  States (each with its trips), Countries, Trips (opens the Trips list on the map), Days traveled
+  (trips by length), Miles driven / flown (trips by distance), Hikes (each hike, its park and
+  date). National parks opens the Parks section. Trips in a list open on the map.
+- **Achievement details** (same panel/sheet, `#/you/achievements/<id>`): the badge, what it's
+  for, progress to the next tier, each tier's goal and when and on which trip you earned it (the
+  trip opens on the map).
