@@ -5,7 +5,8 @@
 - **Navigation**: Map · **+** · **You** (trips are on the map, parks on You), kept in the URL hash
   so Back works; see navigation-and-layout.md for the addresses. On phones **Add trip** is a large
   colored circle raised between the bottom tabs.
-- **Toolbar**: full width across the top: the title, a Map tab (wider screens), then **+ Add
+- **Toolbar** (wider screens; phones have none, so the map reaches the top and the sync chip sits
+  by the Parks button): full width across the top: the title, a Map tab (wider screens), then **+ Add
   trip** (opens the form in the Trips panel), the sync chip (which opens Settings when there's a
   problem) and your photo (opens You). Phones add trips from the tab bar's +. All
   36 px tall. Anything you can press shows the hand cursor. People & groups, Parks and Settings
@@ -27,8 +28,10 @@
   (see ui-trip-form.md).
 
 ## Responsive
-- **Phone (≤640px)**: full-screen map with the Trips sheet over it, bottom tab bar, and bottom
-  sheets for forms, filters and parks. Pinch to zoom, drag to pan, double-tap to zoom.
+- **Phone (≤640px)**: full-screen map (no toolbar) with the Trips sheet over it (which also holds
+  the trip form), bottom tab bar, and bottom sheets for parks, people and the You panels. Sheets
+  go up to just under the status bar, always show their drag handle, and keep their buttons at the
+  bottom of what you can see while the keyboard is open. Pinch to zoom, drag to pan, double-tap to zoom.
 - **iPad / desktop**: the Trips panel on the left over the map; forms and other panels slide in
   from the right. Lists use a single
   centered column, as in Watchlist. Wheel to zoom, drag to pan, double-click to zoom.

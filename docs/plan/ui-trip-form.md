@@ -6,11 +6,12 @@ Trips › Utah 2023 › Edit trip, with the steps under the heading), from the t
 trip** or a trip's Edit; from You (Log a visit, or Add trip) it goes to the map first. It stays in the panel (hidden, keeping what you
 typed) if you go to another page, and the panel can't be hidden while it's open; Escape or Cancel
 closes it. The breadcrumb's links (Trips, or the trip you're editing) leave it too: straight away
-if nothing changed, otherwise after "Discard this trip?" (Keep editing / Discard). Phones: a full-screen sheet, as before. On the **Route step** the trip so far is drawn
+if nothing changed, otherwise after "Discard this trip?" (Keep editing / Discard). Phones: the same form fills the **Trips sheet** (raised all the way), with the steps
+under its heading and Back / Next / Save always at the bottom; it drops to peeking while you shape
+a leg. On the **Route step** the trip so far is drawn
 on the big map as you add places (places not saved yet get a ★) and the map fits it beside the
 panel. **Shaping a leg** keeps the form in the panel while the map shows that leg with the shaping
-bar (Undo, Straighten, Cancel, Done); you can also **tap a leg's line on the map** to shape it. On
-phones the sheet steps aside while you shape.
+bar (Undo, Straighten, Cancel, Done); you can also **tap a leg's line on the map** to shape it.
 
 **Route step layout**: one vertical **timeline**. A line runs down a narrow left column, styled like
 each leg on the map (solid for ground, dashed for a flight, dotted when not sure), with each stop's

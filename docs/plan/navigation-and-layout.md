@@ -3,7 +3,8 @@
 
 ## Pages and addresses
 
-- **Pages**: Map · **+** · You, as bottom tabs on phones; on wider screens the toolbar has a Map
+- **Pages**: Map · **+** · You, as bottom tabs on phones (which have no toolbar: the sync chip sits
+  by the Parks button on the map); on wider screens the toolbar has a Map
   tab, **+ Add trip** (which opens the trip form in the Trips panel; see ui-trip-form.md) and your
   photo, which opens You (ringed while you're there), so there's no You tab. There's no Trips tab (trips live on the map,
   below) and no Parks tab (the checklist is You › Parks). The toolbar spans the top, above the map

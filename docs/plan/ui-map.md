@@ -5,7 +5,8 @@
 - Full-screen **outline map** (states, park boundaries, lakes, major-city labels) that opens fitted
   to the continental US (beside the Trips panel, which is usually open), with zoom +/-, "Reset to
   US" (beside the panel when it's open, the whole map when it's hidden), and a 🌐 toggle between the flat map and a globe
-  (see roadmap.md).
+  (see roadmap.md). The map credits (Natural Earth, US Census Bureau, NPS, GeoNames) start folded
+  into an ⓘ button; GeoNames' CC BY licence is met by the credit being one tap away.
 - **Visited states shaded darker by number of trips** (1 · 2–3 · 4–6 · 7+), with a small legend.
   Hover (desktop) or tap (mobile) shows the state name and trip count.
 - **Location pins**, one per major location (×N badge when visited more than once), clustered
