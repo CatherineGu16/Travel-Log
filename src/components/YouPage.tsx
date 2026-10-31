@@ -105,7 +105,7 @@ export function YouPage({
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-3 pt-5 pb-10 sm:px-6 md:grid md:grid-cols-[15rem_minmax(0,1fr)] md:gap-8 md:pt-8 lg:grid-cols-[17rem_minmax(0,1fr)]">
+    <div className="mx-auto w-full max-w-6xl px-3 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-10 sm:px-6 sm:pt-5 md:grid md:grid-cols-[15rem_minmax(0,1fr)] md:gap-8 md:pt-8 lg:grid-cols-[17rem_minmax(0,1fr)]">
       <aside className="md:sticky md:top-6 md:self-start">
         <section aria-label="Your profile" className="flex items-center gap-4 md:flex-col md:items-start">
           <span className="md:hidden">

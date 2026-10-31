@@ -14,7 +14,7 @@ export function Sheet({
   toolbar,
   tall = false,
   full = false,
-  swipeToClose = false,
+  swipeToClose = true,
   children,
 }: {
   open: boolean
@@ -30,13 +30,13 @@ export function Sheet({
   tall?: boolean
   /** On phones, the whole screen. */
   full?: boolean
-  /** On phones, a handle at the top: drag the top of the sheet down to close it. */
+  /** On phones, a handle at the top: drag the top of the sheet down to close it (on unless turned off). */
   swipeToClose?: boolean
   children: ReactNode
 }) {
   // Phones only: while the on-screen keyboard is open, the sheet fills exactly the part of the
   // screen you can still see and scrolls on its own, so its first field is never stranded above
-  // the screen. Its buttons hide until the keyboard closes.
+  // the screen; its buttons stay at the bottom of that area.
   const phone = typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches
   const keyboard = useKeyboardArea(open && phone)
   // A full-screen panel covers the top strip messages use, so a message showing now would sit on its title.
@@ -76,11 +76,12 @@ export function Sheet({
               ...(pulled ? { transform: `translateY(${pulled}px)`, transition: 'none' } : swipe ? { transition: 'transform 200ms ease-out' } : {}),
             } as unknown as CSSProperties
           }
-          className={`fixed inset-x-0 bottom-0 z-50 flex overflow-x-hidden flex-col ${full ? 'h-dvh max-h-dvh pt-[env(safe-area-inset-top)] sm:h-auto sm:max-h-none sm:pt-0' : `max-h-[85dvh] ${tall ? 'h-[85dvh] sm:h-auto' : ''}`} rounded-t-2xl border-t-4 border-[var(--accent)] bg-surface [animation:sheet-up_220ms_cubic-bezier(.2,.8,.2,1)] sm:inset-y-0 sm:right-0 sm:left-auto sm:max-h-none sm:w-[28rem] sm:rounded-none sm:border-t-0 sm:border-l-4 sm:[animation:sheet-left_220ms_cubic-bezier(.2,.8,.2,1)]`}
+          // Phones: up to the top of the screen (under the status bar), as tall as it needs or (tall) all of it.
+          className={`fixed inset-x-0 bottom-0 z-50 flex overflow-x-hidden flex-col ${full ? 'h-dvh max-h-dvh pt-[env(safe-area-inset-top)] sm:h-auto sm:max-h-none sm:pt-0' : `max-h-[calc(100dvh-env(safe-area-inset-top)-0.5rem)] ${tall ? 'h-[calc(100dvh-env(safe-area-inset-top)-0.5rem)] sm:h-auto' : ''}`} rounded-t-2xl border-t-4 border-[var(--accent)] bg-surface [animation:sheet-up_220ms_cubic-bezier(.2,.8,.2,1)] sm:inset-y-0 sm:right-0 sm:left-auto sm:max-h-none sm:w-[28rem] sm:rounded-none sm:border-t-0 sm:border-l-4 sm:[animation:sheet-left_220ms_cubic-bezier(.2,.8,.2,1)]`}
         >
           {swipe && (
-            <div {...pull} aria-hidden className="flex h-5 shrink-0 touch-none items-end justify-center">
-              <span className="h-1.5 w-10 rounded-full bg-line" />
+            <div {...pull} aria-hidden className="flex h-6 shrink-0 touch-none items-end justify-center">
+              <span className="h-1.5 w-12 rounded-full bg-muted/50" />
             </div>
           )}
           <div
@@ -106,13 +107,12 @@ export function Sheet({
           {toolbar && <div className="border-b border-line px-4 pb-2">{toolbar}</div>}
           <div
             data-sheet-body
-            className={`min-h-0 flex-1 touch-pan-y overflow-x-hidden overflow-y-auto overscroll-contain px-4 ${toolbar ? 'pt-4' : ''} ${footer && !keyboard ? 'pb-4' : 'pb-[max(1.5rem,env(safe-area-inset-bottom))]'}`}
+            className={`min-h-0 flex-1 touch-pan-y overflow-x-hidden overflow-y-auto overscroll-contain px-4 ${toolbar ? 'pt-4' : ''} ${footer ? 'pb-4' : 'pb-[max(1.5rem,env(safe-area-inset-bottom))]'}`}
           >
             {children}
           </div>
-          {footer && !keyboard && (
-            <div className="border-t border-line bg-surface px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">{footer}</div>
-          )}
+          {/* Stays while the keyboard is open (at the bottom of what you can see), so you can always go on or save. */}
+          {footer && <div className={`border-t border-line bg-surface px-4 pt-3 ${keyboard ? 'pb-3' : 'pb-[max(0.75rem,env(safe-area-inset-bottom))]'}`}>{footer}</div>}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

@@ -142,6 +142,14 @@ export function MapView(props: MapViewProps) {
           setPinImages(created, { accent: palette.pin, park: palette.pinPark, center: palette.pinCenter })
           setParkImages(created, { park: palette.park, muted: palette.parkMuted, surface: palette.surface })
           bindInteractions(created, latest)
+          // The map credits start folded into their ⓘ button (MapLibre opens them until you first drag the map).
+          const fold = () => {
+            const credits = created.getContainer().querySelector('.maplibregl-ctrl-attrib.maplibregl-compact')
+            credits?.classList.remove('maplibregl-compact-show')
+            credits?.removeAttribute('open')
+          }
+          fold()
+          created.once('idle', fold)
           setMap(created)
         })
       })

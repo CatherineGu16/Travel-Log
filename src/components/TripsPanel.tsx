@@ -11,7 +11,8 @@ export const PEEK_PX = 84
 /** Room left above the full sheet, so a bit of map shows. */
 const FULL_GAP_PX = 16
 const SIZES: SheetSize[] = ['peek', 'half', 'full']
-const HEIGHTS: Record<SheetSize, string> = { peek: `${PEEK_PX}px`, half: '50%', full: `calc(100% - ${FULL_GAP_PX}px)` }
+// Full: up to just under the status bar (there's no toolbar on phones).
+const HEIGHTS: Record<SheetSize, string> = { peek: `${PEEK_PX}px`, half: '50%', full: `calc(100% - ${FULL_GAP_PX}px - env(safe-area-inset-top))` }
 
 /**
  * The top of the Trips panel or sheet: where you came from as small links (Trips › Moab), then
@@ -148,12 +149,14 @@ export function TripsSheet({
   subtitle,
   size,
   onSize,
+  hidden = false,
   children,
 }: {
   crumbs: Crumb[]
   subtitle?: string
   size: SheetSize
   onSize: (size: SheetSize) => void
+  hidden?: boolean
   children: ReactNode
 }) {
   const sheet = useRef<HTMLElement>(null)
@@ -208,6 +211,7 @@ export function TripsSheet({
     <aside
       ref={sheet}
       aria-label="Trips panel"
+      hidden={hidden}
       style={{ height: dragHeight ?? HEIGHTS[size] }}
       className={`absolute inset-x-0 bottom-0 z-20 flex flex-col overflow-hidden rounded-t-2xl border-t border-line bg-surface shadow-[0_-6px_24px_rgb(0_0_0/0.18)] ${dragHeight === null ? 'transition-[height] duration-200' : ''}`}
     >
@@ -230,9 +234,9 @@ export function TripsSheet({
         <button
           onClick={cycle}
           aria-label={size === 'full' ? 'Shrink trips' : 'Expand trips'}
-          className="flex h-4 w-full items-end justify-center"
+          className="flex h-5 w-full items-end justify-center"
         >
-          <span aria-hidden className="h-1.5 w-10 rounded-full bg-line" />
+          <span aria-hidden className="h-1.5 w-12 rounded-full bg-muted/50" />
         </button>
         <div className="flex h-[3.75rem] items-center px-4">
           <PanelHeading crumbs={crumbs} subtitle={subtitle} stacked={false} />

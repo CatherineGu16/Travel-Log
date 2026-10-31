@@ -144,7 +144,7 @@ function Shell() {
   /** The phone sheet's size; at the list, peeking is the bare map ("#/") and taller is "#/trips". */
   const sizeSheet = (size: SheetSize) => {
     setSheetSize(size)
-    if (routePlaceId || detailTrip) return
+    if (form || routePlaceId || detailTrip) return
     if (size === 'peek' && page === 'trips') navigate(pageHref('map'), { replace: true })
     if (size !== 'peek' && page === 'map') navigate(pageHref('trips'), { replace: true })
   }
@@ -175,13 +175,12 @@ function Shell() {
   const openTrip = (trip: Trip) => navigate(tripHref(trip.id))
   // Closing a trip goes back up: to its place when you came from a pin, else to the list.
   const closeTrip = () => close(routePlaceId ? placeHref(routePlaceId) : pageHref('trips'))
-  /** Opens the trip form: in the Trips panel over the map on wider screens, a sheet on phones. */
+  /** Opens the trip form over the map: in the Trips panel on wider screens, the Trips sheet (raised all the way) on phones. */
   const openForm = (next: FormState) => {
     finishShape(null)
-    if (!phone) {
-      if (page === 'you') navigate(pageHref('trips'))
-      setPanelOpen(true)
-    }
+    if (page === 'you') navigate(pageHref('trips'))
+    if (phone) setSheetSize('full')
+    else setPanelOpen(true)
     setForm(next)
   }
   const addTrip = () => openForm({ trip: null, initialMain: null })
@@ -253,8 +252,6 @@ function Shell() {
       trip={form.trip}
       initialMain={form.initialMain}
       initialStep={form.step}
-      inline={!phone}
-      hidden={phone && shape !== null}
       onDraftRoute={setDraft}
       shapeLegAt={legRequest}
       leaveTo={leaveTo}
@@ -286,7 +283,7 @@ function Shell() {
       trip={detailTrip}
       data={data}
       onOpenTrip={openTrip}
-      onEdit={(trip: Trip, step?: TripStep) => setForm({ trip, initialMain: null, step })}
+      onEdit={(trip: Trip, step?: TripStep) => openForm({ trip, initialMain: null, step })}
       onTag={(tag) => {
         setFilter({ ...filter, tag })
         navigate(pageHref('trips'), { replace: true })
@@ -390,7 +387,7 @@ function Shell() {
         )}
 
         {error && (
-          <p role="alert" className="absolute inset-x-3 top-3 z-30 mx-auto max-w-md rounded-lg bg-surface p-3 text-center text-sm text-danger shadow">
+          <p role="alert" className="absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-30 sm:top-3 mx-auto max-w-md rounded-lg bg-surface p-3 text-center text-sm text-danger shadow">
             {error}
           </p>
         )}
@@ -400,7 +397,7 @@ function Shell() {
             role="region"
             aria-label="Shape the route"
             // Wider screens with the trip form in the panel: centered over the map beside it.
-            className={`absolute inset-x-3 top-3 z-30 mx-auto flex max-w-md flex-col gap-2.5 rounded-2xl border border-line bg-surface p-3 text-sm shadow-[0_8px_30px_rgb(0_0_0/0.25)] ${formInPanel && panelOpen ? 'sm:left-[27.5rem]' : ''}`}
+            className={`absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-30 mx-auto sm:top-3 flex max-w-md flex-col gap-2.5 rounded-2xl border border-line bg-surface p-3 text-sm shadow-[0_8px_30px_rgb(0_0_0/0.25)] ${formInPanel && panelOpen ? 'sm:left-[27.5rem]' : ''}`}
           >
             <div className="flex min-w-0 items-center gap-1.5">
               <RouteBadge>A</RouteBadge>
@@ -460,8 +457,10 @@ function Shell() {
         {onMap && !shape && (
           <>
             <ShadeLegend show={perRegion.size > 0 || pins.length > 0} />
-            <div className="absolute top-3 left-3 z-10 flex gap-2 sm:right-3 sm:left-auto">
+            {/* Phones have no toolbar: the sync status sits by the Parks button, below the status bar. */}
+            <div className="absolute top-[max(0.75rem,env(safe-area-inset-top))] left-3 z-10 flex gap-2 sm:top-3 sm:right-3 sm:left-auto">
               <ParksLayerControl mode={parksMode} onChange={setParksMode} visited={visitedParks.size} total={parks.length} />
+              {phone && <SyncChip onSettings={() => navigate(youHref('settings'))} />}
             </div>
           </>
         )}
@@ -478,9 +477,16 @@ function Shell() {
           </TripsPanel>
         )}
         {onMap && !shape && !phone && !panelOpen && !formInPanel && <ShowTripsButton onClick={() => setPanelOpen(true)} />}
-        {onMap && !shape && phone && (
-          <TripsSheet crumbs={crumbs} subtitle={subtitle} size={sheetSize} onSize={sizeSheet}>
-            {tripsView}
+        {/* Phones: the trip form fills the Trips sheet (dropping it to peeking while you shape a leg) and stays until you save or cancel. */}
+        {phone && (form || (onMap && !shape)) && (
+          <TripsSheet
+            crumbs={form ? formCrumbs : crumbs}
+            subtitle={form ? undefined : subtitle}
+            size={form && shape ? 'peek' : sheetSize}
+            onSize={sizeSheet}
+            hidden={!onMap}
+          >
+            {form ? tripForm : tripsView}
           </TripsSheet>
         )}
       </main>
@@ -500,7 +506,6 @@ function Shell() {
         />
       )}
 
-      {phone && tripForm}
 
     </div>
   )

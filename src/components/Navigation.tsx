@@ -29,7 +29,7 @@ const PlusIcon = ({ className }: { className: string }) => (
 const current = (page: Page): Page => (page === 'trips' ? 'map' : page)
 
 /**
- * The toolbar across the top, the same on every page: the title, then (wider screens) the Map tab,
+ * The toolbar across the top on wider screens, the same on every page: the title, then (wider screens) the Map tab,
  * and on the right + Add trip (which opens the trip form in the Trips panel), the sync status and
  * your photo (which opens You, so You needs no tab here). Phones add trips from the tab bar.
  * Controls are 36 px tall.
@@ -37,7 +37,8 @@ const current = (page: Page): Page => (page === 'trips' ? 'map' : page)
 export function TopBar({ page: shown, onAdd, sync, you }: { page: Page; onAdd: () => void; sync: ReactNode; you: ReactNode }) {
   const page = current(shown)
   return (
-    <header className="z-30 shrink-0 border-b border-line bg-surface pt-[env(safe-area-inset-top)]">
+    // Phones have no toolbar (the map reaches the top; sync status sits by the Parks button).
+    <header className="z-30 hidden shrink-0 border-b border-line bg-surface sm:block">
       <div className="flex h-14 items-center gap-2 px-3 sm:gap-3 sm:px-4">
         <h1 className="font-display text-xl font-semibold tracking-wide whitespace-nowrap sm:text-2xl">Travel Log</h1>
         <nav aria-label="Pages" className="ml-3 hidden items-center gap-1 sm:flex">

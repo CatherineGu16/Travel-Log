@@ -12,7 +12,6 @@ import { DateRangeField } from './DateRangeField.tsx'
 import { HikesField } from './HikesField.tsx'
 import { PeoplePicker } from './PeoplePicker.tsx'
 import { ParkSuggestion, PinGlyph, PlacePicker } from './PlacePicker.tsx'
-import { Sheet } from './Sheet.tsx'
 import { StopDates } from './StopDates.tsx'
 import { TagsField } from './TagsField.tsx'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
@@ -75,19 +74,17 @@ const compareLoose = (a: PartialDate, b: PartialDate) => {
 /**
  * Add or edit a trip in three steps: Details (title, dates, who went), Route (destinations in
  * order, any of them main, each with its own dates; how you went between them; travel to and from
- * home), and Notes (hikes, description, rating, tags). On the Route step the trip so far is drawn
- * on the map. `inline`: in the Trips panel beside the map (wider screens), which stays open while
- * you shape a leg; otherwise a sheet that hides (keeping everything you've entered) while you do.
+ * home), and Notes (hikes, description, rating, tags). It fills the Trips panel beside the map
+ * (wider screens) or the Trips sheet (phones), with its steps on top and its buttons always at the
+ * bottom. On the Route step the trip so far is drawn on the map.
  */
 export function TripForm({
   trip,
   initialMain,
   initialStep,
-  hidden,
   requestShape,
   onClose,
   onSaved,
-  inline = false,
   onDraftRoute,
   shapeLegAt,
   leaveTo,
@@ -97,11 +94,9 @@ export function TripForm({
   initialMain: PlaceInput | null
   /** Open on this step (e.g. Edit next to a trip's stops opens Route). */
   initialStep?: (typeof STEPS)[number]
-  hidden: boolean
   requestShape: RequestShape
   onClose: () => void
   onSaved: (mainPlaceId: string, tripId: string) => void
-  inline?: boolean
   /** The route so far while the Route step is open (null otherwise), for drawing on the map. */
   onDraftRoute?: (route: RoutePoint[] | null) => void
   /** A leg tapped on the map: shape the leg arriving at this point of the draft route. */
@@ -508,11 +503,11 @@ export function TripForm({
   }
 
   const heading = trip ? 'Edit trip' : 'Add trip'
-  // In the panel, the form takes the keyboard focus when it opens (as the sheet does), unless a field already has it.
+  // The form takes the keyboard focus when it opens, unless a field already has it.
   const panel = useRef<HTMLElement>(null)
   useEffect(() => {
-    if (inline && !panel.current?.contains(document.activeElement)) panel.current?.focus({ preventScroll: true })
-  }, [inline])
+    if (!panel.current?.contains(document.activeElement)) panel.current?.focus({ preventScroll: true })
+  }, [])
   // Leaving by a link (the breadcrumb) with changes asks first; without any, it just goes.
   const snapshot = () =>
     JSON.stringify([title, startDate, endDate, destinations.map(({ key: _k, open: _o, ...d }) => d), start, startMode, endMode, startVia, endVia, companions, description, highlights, rating, tags, hikes])
@@ -834,30 +829,24 @@ export function TripForm({
     </form>
   )
 
-  if (inline)
-    return (
-      <section
-        ref={panel}
-        tabIndex={-1}
-        aria-label={heading}
-        className="flex min-h-0 flex-1 flex-col outline-none"
-        onKeyDown={(e) => {
-          // Escape closes it, like the sheet; not when it's closing a menu inside it.
-          if (e.key === 'Escape' && !e.defaultPrevented && !(e.target as HTMLElement).closest('[role="menu"]')) onClose()
-        }}
-      >
-        {/* The panel's heading says Add trip / Edit trip; the steps sit under it. */}
-        <div className="border-b border-line px-4 pt-2 pb-1">
-          <Steps step={step} onGo={goTo} />
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{form}</div>
-        <div className="border-t border-line px-4 py-2">{footer}</div>
-      </section>
-    )
   return (
-    <Sheet open={!hidden} onOpenChange={(open) => !open && onClose()} title={heading} accent="var(--primary)" tall toolbar={<Steps step={step} onGo={goTo} />} footer={footer}>
-      {form}
-    </Sheet>
+    <section
+      ref={panel}
+      tabIndex={-1}
+      aria-label={heading}
+      className="flex min-h-0 flex-1 flex-col outline-none"
+      onKeyDown={(e) => {
+        // Escape closes it, like the sheet; not when it's closing a menu inside it.
+        if (e.key === 'Escape' && !e.defaultPrevented && !(e.target as HTMLElement).closest('[role="menu"]')) onClose()
+      }}
+    >
+      {/* The panel's heading says Add trip / Edit trip; the steps sit under it. */}
+      <div className="border-b border-line px-4 pt-2 pb-1">
+        <Steps step={step} onGo={goTo} />
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{form}</div>
+      <div className="border-t border-line px-4 py-2">{footer}</div>
+    </section>
   )
 }
 

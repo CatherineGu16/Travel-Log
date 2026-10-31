@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { openAddTrip, openYou, toStep } from './helpers.ts'
+import { openAddTrip, openYou, toStep, tripForm } from './helpers.ts'
 
 test('wider screens: Add trip opens the form in the Trips panel, which stays while you shape a leg', async ({ page, isMobile }) => {
   test.skip(isMobile, 'Phones keep the full-screen form')
@@ -69,4 +69,28 @@ test('wider screens: the breadcrumb leaves the trip form, asking first if you ch
   await ask.getByRole('button', { name: 'Discard' }).click()
   await expect(form).toBeHidden()
   await expect(page).toHaveURL(/#\/trips$/)
+})
+
+test('phones: no toolbar, map credits folded, and Add trip fills the Trips sheet with its buttons in reach', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'Wider screens have the toolbar')
+  await page.goto('./')
+  await expect(page.getByRole('heading', { name: 'Travel Log' })).toBeHidden()
+  // The map credits start folded into their ⓘ button.
+  await expect(page.locator('.maplibregl-ctrl-attrib')).toBeVisible()
+  await expect(page.locator('.maplibregl-ctrl-attrib.maplibregl-compact-show')).toHaveCount(0)
+
+  const form = await openAddTrip(page)
+  const sheet = page.getByRole('complementary', { name: 'Trips panel' })
+  await expect(sheet.getByRole('region', { name: 'Add trip', exact: true })).toBeVisible()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(form.getByRole('button', { name: 'Next: Route' })).toBeInViewport()
+  await toStep(form, 'Route')
+  await form.getByRole('combobox', { name: /^Add (a|another) destination$/ }).fill('zion')
+  await form.getByRole('option', { name: /Zion National Park/ }).first().click()
+  await expect(form.getByRole('button', { name: 'Add trip', exact: true })).toBeInViewport()
+  await form.getByRole('button', { name: 'Add trip', exact: true }).click()
+  await expect(form).toBeHidden()
+  // Editing opens in the sheet too, with Save in reach.
+  await page.getByRole('button', { name: 'Edit the stops' }).click()
+  await expect(tripForm(page, 'Edit trip').getByRole('button', { name: 'Save' })).toBeInViewport()
 })

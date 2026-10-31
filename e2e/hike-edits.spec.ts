@@ -69,6 +69,8 @@ test("the public repo's owner corrects a suggested hike, and it's shared to the 
   await expect(sheet.getByRole('option', { name: /^Angels Landing/ })).toContainText('5.4 mi')
   await sheet.getByRole('button', { name: 'Close' }).click()
 
+  // The sync status is in the toolbar (wider screens) or by the Parks button on the map (phones).
+  await page.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: 'Map' }).filter({ visible: true }).click()
   await page.getByRole('button', { name: /Sync now/ }).click()
   await expect.poll(() => gh.read('Travel-Log/src/data/hike-edits.json')?.zion?.['angels-landing']?.distanceMi).toBe(5.4)
 })

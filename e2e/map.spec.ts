@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('the outline map loads with only bundled data, and the globe toggle and US button work', async ({ page }) => {
+test('the outline map loads with only bundled data, and the globe toggle and US button work', async ({ page, isMobile }) => {
   const outside: string[] = []
   page.on('request', (r) => {
     const url = new URL(r.url())
@@ -8,7 +8,8 @@ test('the outline map loads with only bundled data, and the globe toggle and US 
   })
 
   await page.goto('./')
-  await expect(page.getByRole('heading', { name: 'Travel Log' })).toBeVisible()
+  // Phones have no toolbar; the map starts at the top of the screen.
+  if (!isMobile) await expect(page.getByRole('heading', { name: 'Travel Log' })).toBeVisible()
   // The header is just the title and pages; your numbers are on the You page.
   await expect(page.getByText(/\/ 64 parks/)).toHaveCount(0)
   await expect(page.locator('[data-testid="map"] canvas')).toBeVisible()
