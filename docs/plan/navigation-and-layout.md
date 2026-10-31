@@ -48,10 +48,13 @@ The map page always has Trips over it, showing one of three views, with a **brea
 (`Trips › Moab › Moab 2021`; each step back is a link):
 
 - **The list** (`TripList.tsx`): search, filter, group, sort.
-- **A pin** (or a place in Most visited): with **one trip**, that trip opens straight away
-  (`Trips › Moab 2023`). With **more than one**, `Trips › Moab` lists them as cards
-  (`PinCard.tsx`), newest first, each with its dates, places in order and who went; pointing at a
-  card puts its route on the map, tapping it opens the trip (`Trips › Moab › Moab 2021`).
+- **A pin** (or a place in Most visited): `Trips › Moab` lists its trips as cards (`PinCard.tsx`),
+  newest first, one card when you've been once, each with its dates, places in order and who
+  went; pointing at a card puts its route on the map, tapping it opens the trip with all its
+  details (`Trips › Moab › Moab 2021`).
+- **Phones**: the same in the sheet. Tapping a pin raises it to half height with the card(s), the
+  route drawn above; a card opens the trip (drag the sheet up for more of it); ‹ or the
+  breadcrumb goes back; tapping the bare map goes back to the list and lowers the sheet.
 - **A trip** (`TripDetail.tsx`): every detail right away (no Details button), with its route on
   the big map: When, Who went, Stops, Notes, each with its own Edit (which opens the form on that
   step, so there's no Edit trip button), and a quiet "Delete trip" at the end (back up a level,

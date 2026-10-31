@@ -9,9 +9,9 @@ import { PinGlyph } from './PlacePicker.tsx'
 import { WhoWent } from './WhoWent.tsx'
 
 /**
- * A place's trips (a pin visited more than once), filling the Trips panel or sheet (Trips › Moab):
- * a card per visit, newest first. Pointing at a card (or focusing it) draws its route on the map;
- * tapping it opens the trip with all its details.
+ * A place's trips (its pin), filling the Trips panel or sheet (Trips › Moab): a card per visit,
+ * newest first (one card when you've been once). Pointing at a card (or focusing it) draws its
+ * route on the map; tapping it opens the trip with all its details.
  */
 export function PinCard({
   pin,

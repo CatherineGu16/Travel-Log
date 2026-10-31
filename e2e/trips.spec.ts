@@ -35,6 +35,15 @@ test('log a multi-stop family trip, see it on the map, and it survives a reload'
   const detail = tripDetails(page, /^Zion/)
   await expect(detail.getByRole('list', { name: 'Stops' }).getByRole('listitem')).toHaveText([/Zion National Park/, /1\s*Springdale/, /2\s*Las Vegas/])
   await expect(detail.getByText('Mom')).toBeVisible()
+
+  // Its pin (here from Most visited) shows the trip as a card first, even when it's the only one;
+  // the card opens the details.
+  await openPlaceTrips(page, /^Zion/)
+  const cards = page.getByRole('region', { name: 'Zion National Park trips' }).getByRole('listitem')
+  await expect(cards).toHaveCount(1)
+  await expect(page.getByRole('list', { name: 'Stops' })).toBeHidden()
+  await cards.getByRole('button').click()
+  await expect(detail.getByRole('list', { name: 'Stops' })).toBeVisible()
   // Your numbers, on the You page.
   await openYou(page)
   const numbers = page.getByRole('region', { name: 'Your travel in numbers' })
@@ -87,13 +96,16 @@ test('a pin with two trips lists them as cards; a card shows its route and opens
 
   await openPlaceTrips(page, /^Moab/)
   const cards = page.getByRole('region', { name: 'Moab trips' }).getByRole('listitem')
-  // The newest is on the map; each card shows its places in order.
-  await expect(cards.nth(0)).toContainText('On the map')
+  // Each card shows its places in order, newest first.
   await expect(cards.nth(0)).toContainText(/Moab\s*›\s*1\s*Monticello\s*›\s*2\s*Blanding/)
   await expect(cards.nth(1)).toContainText('Green River')
-  // Pointing at a card puts its route on the map.
+  // Pointing at a card puts its route on the map. (The test's pointer is moved on purpose: where it
+  // was left after the last tap would otherwise count as pointing at a card.)
+  await cards.nth(0).getByRole('button').hover()
+  await expect(cards.nth(0)).toContainText('On the map')
   await cards.nth(1).getByRole('button').hover()
   await expect(cards.nth(1)).toContainText('On the map')
+  await expect(cards.nth(0)).not.toContainText('On the map')
 
   // Tapping it opens the trip, with its details right there.
   await cards.nth(1).getByRole('button').click()

@@ -159,11 +159,8 @@ function Shell() {
     openPin(place.id)
     setFocus({ lng: place.lng, lat: place.lat, token: ++focusToken.current })
   }
-  /** A place's trips: straight to the trip when there's only one, otherwise a card per visit. */
-  const openPin = (placeId: string) => {
-    const only = pins.find((p) => p.place.id === placeId)?.trips
-    navigate(only?.length === 1 ? tripHref(only[0].id) : placeHref(placeId))
-  }
+  /** A place's trips: a card per visit (even just one); tapping a card opens the trip. */
+  const openPin = (placeId: string) => navigate(placeHref(placeId))
   /**
    * A map pin opens its trips. Tapping the bare map lets go of the place or trip you were on, back
    * to the list (on a phone with nothing open, it lowers the sheet).
