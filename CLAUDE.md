@@ -56,12 +56,13 @@ formats are documented in `docs/plan/data.md` and the loaders in `src/lib/gazett
 
 **UI (`src/components/`, `src/ui/`)**
 - `App.tsx`: shell, pages, selection, shaping banner and state.
-- `TripForm.tsx`: Add/Edit trip stepper (Details → Route timeline → Notes; `inline` in the Trips
-  panel on wider screens, drawing its draft route on the map); `StopDates.tsx` (day
+- `TripForm.tsx`: Add/Edit trip stepper (Details → Route timeline → Notes; two footer buttons, Add trip
+  only on Notes; in the Trips panel on wider screens, full-screen `FormSheet` on phones; draws its
+  draft route on the map; every way out goes through its discard check); `StopDates.tsx` (day
   strip), `LegRow.tsx` + `timeline.ts`, `PeoplePicker.tsx` (who went), `TagsField.tsx`,
   `PlacePicker.tsx`, `DateRangeField.tsx`.
 - `TripsPanel.tsx` (Trips over the map: `TripsPanel` on wider screens with its edge tab, `TripsSheet` on
-  phones; the heading: breadcrumb, title, subtitle), `TripList.tsx` (the list), `PinCard.tsx` (a pin's trips as cards),
+  phones, `FormSheet` (the phone trip form, full screen); the heading: breadcrumb, title, subtitle), `TripList.tsx` (the list), `PinCard.tsx` (a pin's trips as cards),
   `TripDetail.tsx` (a trip),
   `ParkSheet.tsx`, `YouPage.tsx` (You: profile card, section menu/tabs, swipe, stat and
   achievement panels) with its sections `YouSections.tsx` (Profile, Achievements, `StatList`,

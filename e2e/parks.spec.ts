@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { openAddTrip, openParks, openYou, setTripYear, toStep, tripDetails, tripForm } from './helpers.ts'
+import { openAddTrip, openParks, openYou, saveNewTrip, setTripYear, toStep, tripDetails, tripForm } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -10,7 +10,7 @@ async function saveYear(page: Page, year: string) {
   const dialog = tripForm(page, 'Add trip')
   await toStep(dialog, 'Details')
   await setTripYear(dialog, year)
-  await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+  await saveNewTrip(dialog)
   await expect(dialog).toBeHidden()
 }
 

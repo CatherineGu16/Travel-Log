@@ -45,9 +45,15 @@ export async function setTripYear(dialog: Locator, year: string) {
   await button.click()
 }
 
-/** The trip form ("Add trip" / "Edit trip"): in the Trips panel on wider screens, a sheet on phones. */
+/** The trip form ("Add trip" / "Edit trip"): in the Trips panel on wider screens, sliding up over the whole screen on phones. */
 export const tripForm = (page: Page, name: 'Add trip' | 'Edit trip') =>
   page.getByRole('dialog', { name }).or(page.getByRole('complementary', { name: 'Trips panel' }).getByRole('region', { name, exact: true }))
+
+/** Adds the new trip: Add trip is on the last step (Notes), so it goes there first. */
+export async function saveNewTrip(form: Locator) {
+  await toStep(form, 'Notes')
+  await form.getByRole('button', { name: 'Add trip', exact: true }).click()
+}
 
 /** Opens Add trip: the + tab on phones, the Trips panel's button on wider screens (going to the map first if needed). */
 export async function openAddTrip(page: Page) {

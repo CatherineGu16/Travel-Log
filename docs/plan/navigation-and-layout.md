@@ -86,7 +86,10 @@ Where it sits (`TripsPanel.tsx`):
   Drag the top (a quick flick goes one size; a slow drag settles on the nearest), or tap it to go
   peeking → half → full → peeking. Opening a place or trip raises it to half; tapping the bare map
   or going to `#/` lowers it to peeking. At the list, peeking is `#/` and taller is `#/trips`. The
-  map ends where the peeking sheet starts, so its buttons stay in reach.
+  map ends where the peeking sheet starts, so its buttons stay in reach. The trip form doesn't use
+  the sheet: it slides up over the whole screen (see ui-trip-form.md).
+- **The page never scrolls** (`html`, `body`: `overflow: hidden`, no overscroll), so a swipe on
+  something with nothing to scroll doesn't drag the whole screen; every list scrolls on its own.
 
 ## Build order (done)
 

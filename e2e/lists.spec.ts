@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { openAddTrip, openTrips, openYou, setTripYear, toStep, tripDetails, tripForm } from './helpers.ts'
+import { openAddTrip, openTrips, openYou, saveNewTrip, setTripYear, toStep, tripDetails, tripForm } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -32,7 +32,7 @@ async function addTrip(page: Page, opts: { main: [string, RegExp]; year: string;
     await who.fill('')
   }
   await setTripYear(dialog, opts.year)
-  await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+  await saveNewTrip(dialog)
   await expect(dialog).toBeHidden()
 }
 

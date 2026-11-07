@@ -10,7 +10,7 @@ import { useToast } from './components/toastContext.ts'
 import { TripDetail, type TripStep } from './components/TripDetail.tsx'
 import { TripForm, type RequestShape, type RouteEnd } from './components/TripForm.tsx'
 import { TripList } from './components/TripList.tsx'
-import { PEEK_PX, ShowTripsButton, TripsPanel, TripsSheet, type Crumb, type SheetSize } from './components/TripsPanel.tsx'
+import { FormSheet, PEEK_PX, ShowTripsButton, TripsPanel, TripsSheet, type Crumb, type SheetSize } from './components/TripsPanel.tsx'
 import { ProfileAvatar, YouPage } from './components/YouPage.tsx'
 import parks from './data/national-parks.json'
 import { mainPlaceIds, parksVisited, pinsOf, tripsPerRegion } from './lib/derive.ts'
@@ -119,8 +119,8 @@ function Shell() {
   const [legRequest, setLegRequest] = useState<{ at: number; token: number } | null>(null)
   // Wider screens: the trip form sits in the Trips panel beside the map.
   const formInPanel = form !== null && !phone
-  // A breadcrumb link tapped while the form is open: the form goes there, or asks to discard changes.
-  const [leaveTo, setLeaveTo] = useState<{ href: string; token: number } | null>(null)
+  // A breadcrumb link (or the ✕, href null) tapped while the form is open: the form goes there, or asks to discard changes.
+  const [leaveTo, setLeaveTo] = useState<{ href: string | null; token: number } | null>(null)
 
   /** Moves the map to a trip: a trip with several places is fitted to its route, otherwise centered on its pin. */
   const focusTrip = (tripId: string) => {
@@ -175,12 +175,11 @@ function Shell() {
   const openTrip = (trip: Trip) => navigate(tripHref(trip.id))
   // Closing a trip goes back up: to its place when you came from a pin, else to the list.
   const closeTrip = () => close(routePlaceId ? placeHref(routePlaceId) : pageHref('trips'))
-  /** Opens the trip form over the map: in the Trips panel on wider screens, the Trips sheet (raised all the way) on phones. */
+  /** Opens the trip form over the map: in the Trips panel on wider screens, sliding up over the whole screen on phones. */
   const openForm = (next: FormState) => {
     finishShape(null)
     if (page === 'you') navigate(pageHref('trips'))
-    if (phone) setSheetSize('full')
-    else setPanelOpen(true)
+    if (!phone) setPanelOpen(true)
     setForm(next)
   }
   const addTrip = () => openForm({ trip: null, initialMain: null })
@@ -237,7 +236,8 @@ function Shell() {
         : `${tripCount} ${tripCount === 1 ? 'trip' : 'trips'}`
   // The form in the panel: Trips › Add trip, or Trips › Utah 2023 › Edit trip (no links while it's open).
   // Its links leave the form (asking first if you've changed anything).
-  const leave = (href: string) => setLeaveTo({ href, token: Date.now() })
+  const leave = (href: string | null) => setLeaveTo({ href, token: Date.now() })
+  const cancelForm = () => leave(null)
   const formCrumbs: Crumb[] = form
     ? [
         { label: 'Trips', href: pageHref('trips'), onClick: () => leave(pageHref('trips')) },
@@ -259,7 +259,7 @@ function Shell() {
         finishShape(null)
         setForm(null)
         setLeaveTo(null)
-        navigate(href)
+        if (href) navigate(href)
       }}
       requestShape={requestShape}
       onClose={() => {
@@ -471,23 +471,24 @@ function Shell() {
             crumbs={formInPanel ? formCrumbs : crumbs}
             subtitle={formInPanel ? undefined : subtitle}
             onCollapse={formInPanel ? undefined : () => setPanelOpen(false)}
+            onCloseForm={formInPanel ? cancelForm : undefined}
             hidden={!onMap}
           >
             {formInPanel ? tripForm : tripsView}
           </TripsPanel>
         )}
         {onMap && !shape && !phone && !panelOpen && !formInPanel && <ShowTripsButton onClick={() => setPanelOpen(true)} />}
-        {/* Phones: the trip form fills the Trips sheet (dropping it to peeking while you shape a leg) and stays until you save or cancel. */}
-        {phone && (form || (onMap && !shape)) && (
-          <TripsSheet
-            crumbs={form ? formCrumbs : crumbs}
-            subtitle={form ? undefined : subtitle}
-            size={form && shape ? 'peek' : sheetSize}
-            onSize={sizeSheet}
-            hidden={!onMap}
-          >
-            {form ? tripForm : tripsView}
+        {/* Phones: the Trips sheet, set aside while the trip form is open. */}
+        {phone && onMap && !shape && (
+          <TripsSheet crumbs={crumbs} subtitle={subtitle} size={sheetSize} onSize={sizeSheet} hidden={!!form}>
+            {tripsView}
           </TripsSheet>
+        )}
+        {/* Phones: the trip form slides up over everything, stepping aside while you shape a leg; it stays until you save or cancel. */}
+        {phone && form && (
+          <FormSheet title={form.trip ? 'Edit trip' : 'Add trip'} onClose={cancelForm} hidden={!onMap || shape !== null}>
+            {tripForm}
+          </FormSheet>
         )}
       </main>
 

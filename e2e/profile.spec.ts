@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { openAddTrip, openYou, setTripYear, toStep, tripDetails, tripForm } from './helpers.ts'
+import { openAddTrip, openYou, saveNewTrip, setTripYear, toStep, tripDetails, tripForm } from './helpers.ts'
 
 async function addTrip(page: import('@playwright/test').Page, query: string, option: RegExp, year: string) {
   await openAddTrip(page)
@@ -9,7 +9,7 @@ async function addTrip(page: import('@playwright/test').Page, query: string, opt
   await dialog.getByRole('option', { name: option }).first().click()
   await toStep(dialog, 'Details')
   await setTripYear(dialog, year)
-  await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+  await saveNewTrip(dialog)
   await expect(dialog).toBeHidden()
 }
 

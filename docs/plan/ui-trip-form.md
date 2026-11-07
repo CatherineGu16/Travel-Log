@@ -4,13 +4,15 @@
 **Where it opens**: on wider screens, in the **Trips panel** beside the map (Trips › Add trip, or
 Trips › Utah 2023 › Edit trip, with the steps under the heading), from the toolbar's **+ Add
 trip** or a trip's Edit; from You (Log a visit, or Add trip) it goes to the map first. It stays in the panel (hidden, keeping what you
-typed) if you go to another page, and the panel can't be hidden while it's open; Escape or Cancel
-closes it. The breadcrumb's links (Trips, or the trip you're editing) leave it too: straight away
-if nothing changed, otherwise after "Discard this trip?" (Keep editing / Discard). Phones: the same form fills the **Trips sheet** (raised all the way), with the steps
-under its heading and Back / Next / Save always at the bottom; it drops to peeking while you shape
-a leg. On the **Route step** the trip so far is drawn
-on the big map as you add places (places not saved yet get a ★) and the map fits it beside the
-panel. **Shaping a leg** keeps the form in the panel while the map shows that leg with the shaping
+typed) if you go to another page, and the panel can't be hidden while it's open. **Cancelling**:
+the ✕ by the heading, Cancel (Details step), Escape, or the breadcrumb's links (Trips, or the trip
+you're editing) all leave it: straight away if nothing changed, otherwise after "Discard this
+trip?" (Keep editing / Discard). **Phones**: the form slides up from the bottom and **fills the
+whole screen**, over the map, the Trips sheet and the tab bar (`FormSheet` in `TripsPanel.tsx`),
+with "Add trip" and a ✕ at the top, the steps under it and the two buttons at the bottom; it steps
+aside while you shape a leg and slides back up after. Once the trip has a place, the trip so far is
+drawn on the big map **on every step**, updating as you add places (places not saved yet get a ★),
+and the map fits it beside the panel. **Shaping a leg** keeps the form in the panel while the map shows that leg with the shaping
 bar (Undo, Straighten, Cancel, Done); you can also **tap a leg's line on the map** to shape it.
 
 **Route step layout**: one vertical **timeline**. A line runs down a narrow left column, styled like
@@ -24,8 +26,10 @@ Shape on map. A one-line hint replaces the old paragraph.
 A **three-step stepper**, so trip details and mapping out the route are on separate pages: **1.
 Details** (title, dates, who went), **2. Route** (where it started and ended, destinations in order, the leg between
 each pair, coming back the same way), **3. Notes** (hikes, description, highlights, rating, tags). Back and
-Next keep everything; Save works from the Route step on, since Notes is optional. Editing a trip
-opens the same steps with tabs to jump straight to one.
+Next keep everything. **Two buttons only** at the bottom: Cancel (Details) or Back, then Next until
+Notes, where **Add trip** is (Notes are optional, so it's one tap past Route). Editing a trip opens
+the same steps with tabs to jump straight to one, and its buttons are Cancel / Back and **Save**
+(from any step).
 
 - **Where you went**: add destinations in order: search a place (your places and parks first, then
   cities and towns in the US and abroad, **biggest first**: size on a log scale, with towns near

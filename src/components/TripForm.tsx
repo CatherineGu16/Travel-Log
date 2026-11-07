@@ -101,9 +101,9 @@ export function TripForm({
   onDraftRoute?: (route: RoutePoint[] | null) => void
   /** A leg tapped on the map: shape the leg arriving at this point of the draft route. */
   shapeLegAt?: { at: number; token: number } | null
-  /** A link tapped elsewhere (the breadcrumb): go there, first asking to discard changes if there are any. */
-  leaveTo?: { href: string; token: number } | null
-  onLeave?: (href: string) => void
+  /** A link tapped elsewhere (the breadcrumb), or the close button (href null): go, first asking to discard changes if there are any. */
+  leaveTo?: { href: string | null; token: number } | null
+  onLeave?: (href: string | null) => void
 }) {
   const store = useStore()
   const { data } = useTravelState()
@@ -297,8 +297,8 @@ export function TripForm({
       ...(home && backLeg ? [{ place: at('draft-end', start!.name, home.lng, home.lat), role: 'home' as const, number: null, via: backLeg.via, leg: backLeg }] : []),
     ]
   }
-  // Drawn on the map while the Route step is open; told again only when it changes.
-  const draft = step === 1 ? draftRoute() : null
+  // Drawn on the map once there's somewhere to go, on every step; told again only when it changes.
+  const draft = destinations.length ? draftRoute() : null
   const draftKey = draft ? JSON.stringify(draft.map((r) => [r.place.lng, r.place.lat, r.role, r.number, r.marker, r.via, r.leg?.mode])) : ''
   const draftRef = useRef(draft)
   useLayoutEffect(() => {
@@ -411,8 +411,9 @@ export function TripForm({
   const secondary = 'min-h-11 rounded-lg px-4 font-bold text-muted hover:text-fg'
   const primary = 'min-h-11 rounded-lg bg-primary px-5 font-bold text-on-primary'
   const saveLabel = trip ? 'Save' : 'Add trip'
-  // Editing saves from any step; a new trip once it has somewhere to go. Notes are optional.
-  const canSave = !!trip || step > 0 || destinations.length > 0
+  // Two buttons: Cancel or Back, then Next until the last step. Editing saves from any step; a new
+  // trip is added from Notes (which are optional), once it has somewhere to go.
+  const canSave = !!trip || step === 2
   let stopNumber = 0
   /** "Days 2–3 · May 2 – 3" (the day numbers when the dates are whole days). */
   const stopDates = (d: DestinationDraft) =>
@@ -508,15 +509,16 @@ export function TripForm({
   useEffect(() => {
     if (!panel.current?.contains(document.activeElement)) panel.current?.focus({ preventScroll: true })
   }, [])
-  // Leaving by a link (the breadcrumb) with changes asks first; without any, it just goes.
+  // Leaving by a link (the breadcrumb), Cancel, the close button or Escape asks first if anything changed; otherwise it just goes.
   const snapshot = () =>
     JSON.stringify([title, startDate, endDate, destinations.map(({ key: _k, open: _o, ...d }) => d), start, startMode, endMode, startVia, endVia, companions, description, highlights, rating, tags, hikes])
   const [unchanged] = useState(snapshot)
-  const [leaving, setLeaving] = useState<string | null>(null)
-  const leaveRef = useRef<(href: string) => void>(() => {})
+  const [leaving, setLeaving] = useState<{ href: string | null } | null>(null)
+  const leaveRef = useRef<(href: string | null) => void>(() => {})
   useLayoutEffect(() => {
-    leaveRef.current = (href) => (snapshot() === unchanged ? onLeave?.(href) : setLeaving(href))
+    leaveRef.current = (href) => (snapshot() !== unchanged ? setLeaving({ href }) : href === null ? onClose() : onLeave?.(href))
   })
+  const cancel = () => leaveRef.current(null)
   useEffect(() => {
     if (leaveTo) leaveRef.current(leaveTo.href)
   }, [leaveTo])
@@ -527,7 +529,11 @@ export function TripForm({
       <button type="button" onClick={() => setLeaving(null)} className={secondary}>
         Keep editing
       </button>
-      <button type="button" onClick={() => onLeave?.(leaving)} className="min-h-11 rounded-lg bg-danger px-4 font-bold text-white">
+      <button
+        type="button"
+        onClick={() => (leaving.href === null ? onClose() : onLeave?.(leaving.href))}
+        className="min-h-11 rounded-lg bg-danger px-4 font-bold text-white"
+      >
         Discard
       </button>
     </div>
@@ -539,7 +545,7 @@ export function TripForm({
         </p>
       )}
       {step === 0 ? (
-        <button type="button" onClick={onClose} className={`ml-auto ${secondary}`}>
+        <button type="button" onClick={cancel} className={`ml-auto ${secondary}`}>
           Cancel
         </button>
       ) : (
@@ -547,14 +553,13 @@ export function TripForm({
           Back
         </button>
       )}
-      {step < 2 && (
-        <button type="button" onClick={() => goTo((step + 1) as Step)} className={canSave ? secondary : primary}>
-          Next: {STEPS[step + 1]}
-        </button>
-      )}
-      {canSave && (
+      {canSave ? (
         <button type="button" onClick={save} className={primary}>
           {saveLabel}
+        </button>
+      ) : (
+        <button type="button" onClick={() => goTo((step + 1) as Step)} className={primary}>
+          Next: {STEPS[step + 1]}
         </button>
       )}
     </div>
@@ -837,15 +842,15 @@ export function TripForm({
       className="flex min-h-0 flex-1 flex-col outline-none"
       onKeyDown={(e) => {
         // Escape closes it, like the sheet; not when it's closing a menu inside it.
-        if (e.key === 'Escape' && !e.defaultPrevented && !(e.target as HTMLElement).closest('[role="menu"]')) onClose()
+        if (e.key === 'Escape' && !e.defaultPrevented && !(e.target as HTMLElement).closest('[role="menu"]')) cancel()
       }}
     >
       {/* The panel's heading says Add trip / Edit trip; the steps sit under it. */}
       <div className="border-b border-line px-4 pt-2 pb-1">
         <Steps step={step} onGo={goTo} />
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{form}</div>
-      <div className="border-t border-line px-4 py-2">{footer}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">{form}</div>
+      <div className="border-t border-line px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">{footer}</div>
     </section>
   )
 }

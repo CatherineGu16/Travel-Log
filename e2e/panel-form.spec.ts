@@ -29,12 +29,13 @@ test('wider screens: Add trip opens the form in the Trips panel, which stays whi
   await banner.getByRole('button', { name: 'Done' }).click()
   await expect(form.getByRole('button', { name: /^Shape the route from Zion/ })).toHaveText('Bends 1× · Edit')
 
-  // Going to You and back keeps what you entered; Escape closes the form.
+  // Going to You and back keeps what you entered; Escape (like the ✕) asks before throwing it away.
   await openYou(page)
   await page.getByRole('link', { name: 'Map' }).click()
   await expect(form.getByText('Zion National Park', { exact: true })).toBeVisible()
   await form.getByText('Where you went').click()
   await page.keyboard.press('Escape')
+  await form.getByRole('group', { name: 'Discard changes' }).getByRole('button', { name: 'Discard' }).click()
   await expect(form).toBeHidden()
   await expect(panel.getByRole('searchbox', { name: 'Search trips' })).toBeVisible()
 })
@@ -71,7 +72,28 @@ test('wider screens: the breadcrumb leaves the trip form, asking first if you ch
   await expect(page).toHaveURL(/#\/trips$/)
 })
 
-test('phones: no toolbar, map credits folded, and Add trip fills the Trips sheet with its buttons in reach', async ({ page, isMobile }) => {
+test('wider screens: the ✕ by the heading cancels the trip form', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'Phones have their own ✕')
+  await page.goto('./')
+  const form = await openAddTrip(page)
+  await page.getByRole('complementary', { name: 'Trips panel' }).getByRole('button', { name: 'Cancel add trip' }).click()
+  await expect(form).toBeHidden()
+})
+
+test('the trip form has two buttons: Cancel or Back, then Next until Notes, where Add trip is', async ({ page }) => {
+  await page.goto('./')
+  const form = await openAddTrip(page)
+  const footer = form.getByRole('button', { name: /^(Cancel|Back|Next: \w+|Add trip)$/ })
+  await expect(footer).toHaveText(['Cancel', 'Next: Route'])
+  await footer.getByText('Next: Route').click()
+  await form.getByRole('combobox', { name: /^Add (a|another) destination$/ }).fill('zion')
+  await form.getByRole('option', { name: /Zion National Park/ }).first().click()
+  await expect(footer).toHaveText(['Back', 'Next: Notes'])
+  await footer.getByText('Next: Notes').click()
+  await expect(footer).toHaveText(['Back', 'Add trip'])
+})
+
+test('phones: no toolbar, map credits folded, and Add trip slides up over the whole screen with a quick ✕', async ({ page, isMobile }) => {
   test.skip(!isMobile, 'Wider screens have the toolbar')
   await page.goto('./')
   await expect(page.getByRole('heading', { name: 'Travel Log' })).toBeHidden()
@@ -79,18 +101,25 @@ test('phones: no toolbar, map credits folded, and Add trip fills the Trips sheet
   await expect(page.locator('.maplibregl-ctrl-attrib')).toBeVisible()
   await expect(page.locator('.maplibregl-ctrl-attrib.maplibregl-compact-show')).toHaveCount(0)
 
-  const form = await openAddTrip(page)
-  const sheet = page.getByRole('complementary', { name: 'Trips panel' })
-  await expect(sheet.getByRole('region', { name: 'Add trip', exact: true })).toBeVisible()
-  await expect(page.getByRole('dialog')).toHaveCount(0)
+  // It covers the tab bar and the Trips sheet; the ✕ cancels it straight away when nothing's changed.
+  let form = await openAddTrip(page)
+  await expect(page.getByRole('dialog', { name: 'Add trip' })).toBeVisible()
+  await expect(page.getByRole('complementary', { name: 'Trips panel' })).toBeHidden()
+  await page.getByRole('button', { name: 'Cancel add trip' }).click()
+  await expect(form).toBeHidden()
+  await expect(page.getByRole('complementary', { name: 'Trips panel' })).toBeVisible()
+
+  form = await openAddTrip(page)
   await expect(form.getByRole('button', { name: 'Next: Route' })).toBeInViewport()
   await toStep(form, 'Route')
   await form.getByRole('combobox', { name: /^Add (a|another) destination$/ }).fill('zion')
   await form.getByRole('option', { name: /Zion National Park/ }).first().click()
+  await form.getByRole('button', { name: 'Next: Notes' }).click()
   await expect(form.getByRole('button', { name: 'Add trip', exact: true })).toBeInViewport()
   await form.getByRole('button', { name: 'Add trip', exact: true }).click()
   await expect(form).toBeHidden()
-  // Editing opens in the sheet too, with Save in reach.
+  // Editing slides up the same way, with Save in reach.
   await page.getByRole('button', { name: 'Edit the stops' }).click()
+  await expect(page.getByRole('dialog', { name: 'Edit trip' })).toBeVisible()
   await expect(tripForm(page, 'Edit trip').getByRole('button', { name: 'Save' })).toBeInViewport()
 })

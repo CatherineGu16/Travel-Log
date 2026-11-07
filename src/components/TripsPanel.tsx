@@ -1,4 +1,5 @@
 import { useRef, useState, type PointerEvent, type ReactNode } from 'react'
+import { useKeyboardArea } from '../ui/useKeyboardInset.ts'
 
 /** One step of the breadcrumb: a link back, or (the last) where you are. `onClick` handles the link itself (the trip form asks before leaving). */
 export type Crumb = { label: string; href?: string; onClick?: () => void }
@@ -87,6 +88,23 @@ function PanelHeading({ crumbs, subtitle, stacked }: { crumbs: Crumb[]; subtitle
   )
 }
 
+/** The ✕ that closes the trip form (it asks first if anything changed). */
+function CloseButton({ label, onClick, className = '' }: { label: string; onClick: () => void; className?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className={`grid size-11 shrink-0 place-items-center rounded-full text-muted hover:bg-raised hover:text-fg ${className}`}
+    >
+      <svg viewBox="0 0 20 20" className="size-5" aria-hidden>
+        <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    </button>
+  )
+}
+
 /** The tab on the edge of the panel (or of the map, while it's hidden) that hides or shows the Trips panel. */
 function EdgeTab({ open, onClick, className }: { open: boolean; onClick: () => void; className: string }) {
   return (
@@ -107,26 +125,30 @@ function EdgeTab({ open, onClick, className }: { open: boolean; onClick: () => v
 /**
  * Wider screens: Trips as a panel on the left over the map, so the map stays in view: the heading
  * (breadcrumb, title, subtitle), then the view. The tab on its edge hides it for the full map
- * (left out while the trip form is open, so it can't be hidden mid-edit).
+ * (left out while the trip form is open, so it can't be hidden mid-edit; a ✕ by the heading cancels the form instead).
  */
 export function TripsPanel({
   crumbs,
   subtitle,
   onCollapse,
+  onCloseForm,
   hidden = false,
   children,
 }: {
   crumbs: Crumb[]
   subtitle?: string
   onCollapse?: () => void
+  /** The trip form is open: a ✕ by the heading closes it. */
+  onCloseForm?: () => void
   hidden?: boolean
   children: ReactNode
 }) {
   return (
     <aside aria-label="Trips panel" hidden={hidden} className="absolute top-3 bottom-3 left-3 z-20 flex w-[26rem] max-w-[calc(100%-4.5rem)]">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_8px_30px_rgb(0_0_0/0.25)]">
-        <div className="border-b border-line px-4 py-3">
+        <div className="flex items-start gap-2 border-b border-line px-4 py-3">
           <PanelHeading crumbs={crumbs} subtitle={subtitle} stacked />
+          {onCloseForm && <CloseButton label={`Cancel ${crumbs.at(-1)?.label.toLowerCase()}`} onClick={onCloseForm} className="-mr-2" />}
         </div>
         {children}
       </div>
@@ -246,5 +268,31 @@ export function TripsSheet({
         {children}
       </div>
     </aside>
+  )
+}
+
+/**
+ * Phones: the trip form slides up over everything (the map and the tab bar) and fills the screen,
+ * with its title and a ✕ to cancel at the top. It steps aside (hidden, keeping what you entered)
+ * while you shape a leg on the map, and slides back up after.
+ */
+export function FormSheet({ title, onClose, hidden = false, children }: { title: string; onClose: () => void; hidden?: boolean; children: ReactNode }) {
+  // While the on-screen keyboard is open, it fills just the part of the screen you can see, so its buttons stay above the keyboard.
+  const keyboard = useKeyboardArea(!hidden)
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      hidden={hidden}
+      style={keyboard ? { top: keyboard.top, bottom: 'auto', height: keyboard.height } : undefined}
+      className="fixed inset-0 z-40 flex flex-col overflow-hidden overscroll-none bg-surface [animation:sheet-up_220ms_cubic-bezier(.2,.8,.2,1)]"
+    >
+      <div className={`flex shrink-0 items-center gap-2 px-4 ${keyboard ? 'pt-1' : 'pt-[max(0.5rem,env(safe-area-inset-top))]'}`}>
+        <h2 className="min-w-0 flex-1 truncate font-display text-[1.75rem] leading-tight font-semibold">{title}</h2>
+        <CloseButton label={`Cancel ${title.toLowerCase()}`} onClick={onClose} className="-mr-2" />
+      </div>
+      {children}
+    </div>
   )
 }

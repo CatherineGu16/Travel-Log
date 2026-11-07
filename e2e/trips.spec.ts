@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { dateRange, openAddTrip, openDates, openPeople, openPlaceTrips, openSettings, openTrips, openYou, pickDays, setTripYear, toStep, tripDetails, tripForm } from './helpers.ts'
+import { dateRange, openAddTrip, openDates, openPeople, openPlaceTrips, openSettings, openTrips, openYou, pickDays, saveNewTrip, setTripYear, toStep, tripDetails, tripForm } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -28,7 +28,7 @@ test('log a multi-stop family trip, see it on the map, and it survives a reload'
   await dialog.getByRole('checkbox', { name: 'Family' }).check()
   await dialog.getByRole('button', { name: 'Add “Mom”' }).click()
 
-  await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+  await saveNewTrip(dialog)
   await expect(dialog).toBeHidden()
 
   // Saved, the trip opens with all its details; the stops follow the order they were added.
@@ -67,7 +67,7 @@ test('a second trip to the same place stacks on its pin', async ({ page }) => {
     await choosePlace(page, DEST, 'moab', /^Moab/)
     await toStep(dialog, 'Details')
     await setTripYear(dialog, year)
-    await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+    await saveNewTrip(dialog)
     await expect(dialog).toBeHidden()
   }
   // Its pin now has two trips: a card for each, newest first.
@@ -90,7 +90,7 @@ test('a pin with two trips lists them as cards; a card shows its route and opens
     for (const [q, o] of stops) await choosePlace(page, DEST, q, o)
     await toStep(dialog, 'Details')
     await setTripYear(dialog, year)
-    await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+    await saveNewTrip(dialog)
     await expect(dialog).toBeHidden()
   }
 
@@ -140,7 +140,7 @@ test('a trip with two main destinations, each with its own dates', async ({ page
   }
   await toStep(dialog, 'Details')
   await expect(dateRange(dialog, 'Trip dates')).toContainText('May 1 – 6, 2024')
-  await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+  await saveNewTrip(dialog)
   await expect(dialog).toBeHidden()
 
   // The parks checklist shows the days at Zion, not the whole trip.
@@ -264,7 +264,7 @@ test('shaping the route between two places bends the dotted line through your ta
 
   await expect(dialog).toBeVisible()
   await expect(dialog.getByRole('button', { name: /^Shape the route from Zion/ })).toHaveText('Bends 1× · Edit')
-  await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+  await saveNewTrip(dialog)
   await expect(dialog).toBeHidden()
 
   // Saved with the trip, which opens with its details; its stops' Edit opens the Route step.
@@ -296,7 +296,7 @@ test('notes, rating and tags are their own step and show on the trip', async ({ 
   await tag.press('Enter')
   await tag.pressSequentially('desert,')
   await expect(dialog.getByRole('list', { name: 'Tags on this trip' }).getByRole('listitem')).toHaveText(['camping', 'desert'])
-  await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+  await saveNewTrip(dialog)
   await expect(dialog).toBeHidden()
 
   // Saved, the trip opens with all its details.
@@ -331,7 +331,7 @@ test('legs between stops: guessed from distance, changed with a tap, and filtera
   await drive.click()
   await dialog.getByRole('group', { name: 'How you got from Los Angeles to Las Vegas' }).getByRole('button', { name: 'Train' }).click()
   await expect(dialog.getByRole('button', { name: /^Train from Los Angeles to Las Vegas/ })).toBeVisible()
-  await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+  await saveNewTrip(dialog)
   await expect(dialog).toBeHidden()
 
   // The trip's details list just the places, not how you traveled between them.
@@ -396,7 +396,7 @@ test('a road trip from home with two main pins; changing home leaves it alone', 
   await banner.getByRole('button', { name: /Follow the way you came/ }).click()
   await banner.getByRole('button', { name: 'Done' }).click()
   await expect(dialog.getByRole('button', { name: 'Shape the route from Zion National Park to Pasadena on the map' })).toHaveText(/^Bends \d+× · Edit$/)
-  await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+  await saveNewTrip(dialog)
   await expect(dialog).toBeHidden()
 
   // The trip's stops are the places, without home.
@@ -463,7 +463,7 @@ test('cities abroad: biggest first, narrowed by country, and grouped by country'
   await search.fill('Lisbon')
   await dialog.getByRole('option', { name: /^Lisbon\s*Portugal$/ }).click()
   await choosePlace(page, DEST, 'Porto, Portugal', /^Porto\s*Portugal$/)
-  await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+  await saveNewTrip(dialog)
   await expect(dialog).toBeHidden()
   await expect(tripDetails(page, /^Lisbon/)).toBeVisible()
 
@@ -501,7 +501,7 @@ test('stop dates from a strip of the trip days, shown as day numbers; details li
   await dialog.getByRole('button', { name: 'Next: Notes' }).click()
   await dialog.getByRole('textbox', { name: 'Add a tag' }).fill('canyons')
   await dialog.getByRole('textbox', { name: 'Add a tag' }).press('Enter')
-  await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+  await saveNewTrip(dialog)
   await expect(dialog).toBeHidden()
   // Two parks on one trip earns a tier, announced with the save (Undo still there).
   await expect(page.getByRole('status')).toContainText('🏅 Bronze · Park Hopper')
@@ -585,7 +585,7 @@ test('tags you have used before are chips to add; who went in the details is jus
       // The second trip is offered the tags from the first.
       await dialog.getByRole('group', { name: "Tags you've used" }).getByRole('button', { name: '+ road food' }).click()
     }
-    await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+    await saveNewTrip(dialog)
     await expect(dialog).toBeHidden()
   }
 

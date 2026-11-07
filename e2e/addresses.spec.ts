@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { openAddTrip, openSettings, toStep, tripDetails, tripForm } from './helpers.ts'
+import { openAddTrip, openSettings, saveNewTrip, toStep, tripDetails, tripForm } from './helpers.ts'
 
 test('a trip’s details have their own address: reload keeps them open, Back closes them', async ({ page }) => {
   await page.goto('./')
@@ -8,7 +8,7 @@ test('a trip’s details have their own address: reload keeps them open, Back cl
   await toStep(dialog, 'Route')
   await dialog.getByRole('combobox', { name: /^Add (a|another) destination$/ }).fill('moab')
   await dialog.getByRole('option', { name: /^Moab/ }).first().click()
-  await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+  await saveNewTrip(dialog)
   await expect(dialog).toBeHidden()
 
   // Saved, the trip opens with its details, at its own address, under Trips.
