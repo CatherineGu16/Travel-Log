@@ -4,7 +4,7 @@
 ## Pages and addresses
 
 - **Pages**: Map · **+** · You, as bottom tabs on phones (which have no toolbar: the sync chip sits
-  by the Parks button on the map); on wider screens the toolbar has a Map
+  at the top right of the map, on a solid background); on wider screens the toolbar has a Map
   tab, **+ Add trip** (which opens the trip form in the Trips panel; see ui-trip-form.md) and your
   photo, which opens You (ringed while you're there), so there's no You tab. There's no Trips tab (trips live on the map,
   below) and no Parks tab (the checklist is You › Parks). The toolbar spans the top, above the map
@@ -53,12 +53,13 @@ The map page always has Trips over it, showing one of three views, with a **brea
   newest first, one card when you've been once, each with its dates, places in order and who
   went; pointing at a card puts its route on the map, tapping it opens the trip with all its
   details (`Trips › Moab › Moab 2021`).
-- **Phones**: the same in the sheet. Tapping a pin raises it to half height with the card(s), the
+- **Phones**: the same in the sheet. Opening a trip from the list (or a place) sets the sheet at
+  half height, whatever size it was, with the map centered on it above. Tapping a pin raises it to half height with the card(s), the
   route drawn above; a card opens the trip (drag the sheet up for more of it); ‹ or the
   breadcrumb goes back; tapping the bare map goes back to the list and lowers the sheet.
 - **A trip** (`TripDetail.tsx`): every detail right away (no Details button), with its route on
   the big map: When, Who went, Stops, Notes, each with its own Edit (which opens the form on that
-  step, so there's no Edit trip button), and a quiet "Delete trip" at the end (back up a level,
+  step, so there's no Edit trip button), and a red "Delete trip" with a trash can at the end (back up a level,
   with Undo). Saving a trip opens it.
 - **Getting back**: below the list, a ‹ button by the title goes up a level; the breadcrumb's links
   too. **Clicking the bare map** lets go of the place or trip and goes back to the list (on a phone

@@ -5,7 +5,12 @@ export interface ToastAction {
   onClick: () => void
 }
 
-export const ToastContext = createContext<(text: string, actions?: ToastAction[]) => void>(() => {})
+export interface ToastOptions {
+  /** Stays a few seconds instead of a moment: problems, and removals whose Undo is the way back. */
+  long?: boolean
+}
+
+export const ToastContext = createContext<(text: string, actions?: ToastAction[], options?: ToastOptions) => void>(() => {})
 
 export const useToast = () => useContext(ToastContext)
 

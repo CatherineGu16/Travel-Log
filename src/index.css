@@ -192,6 +192,12 @@ input[type='month']::-webkit-date-and-time-value {
     transform: translateX(100%);
   }
 }
+@keyframes toast-up {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+}
 @keyframes fade-in {
   from {
     opacity: 0;

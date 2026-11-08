@@ -261,7 +261,10 @@ export function MapView(props: MapViewProps) {
   // Fly to a place on request.
   const { focus } = props
   useEffect(() => {
-    if (map && focus) map.easeTo({ center: [focus.lng, focus.lat], zoom: Math.max(map.getZoom(), 5), duration: 800 })
+    if (!map || !focus) return
+    // Phones: centered in the top half, above the Trips sheet at half height.
+    const offset: [number, number] = window.innerWidth < 640 ? [0, -map.getContainer().clientHeight / 4] : [0, 0]
+    map.easeTo({ center: [focus.lng, focus.lat], zoom: Math.max(map.getZoom(), 5), offset, duration: 800 })
   }, [map, focus])
 
   useEffect(() => {

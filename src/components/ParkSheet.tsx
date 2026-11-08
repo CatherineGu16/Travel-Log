@@ -67,7 +67,7 @@ export function ParkSheet({
   const uncheck = (h: HikeDone) => {
     const trips = h.times.map((t) => t.trip.id)
     const undoId = store.apply((d, c) => trips.reduce((acc, id) => removeHike(acc, c, id, h.key), d), `Removed ${h.name}`)
-    if (undoId !== null) toast(`Removed ${h.name}`, [{ label: 'Undo', onClick: () => store.undo(undoId) }])
+    if (undoId !== null) toast(`Removed ${h.name}`, [{ label: 'Undo', onClick: () => store.undo(undoId) }], { long: true })
   }
 
   const meta = [

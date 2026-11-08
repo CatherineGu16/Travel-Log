@@ -6,11 +6,14 @@
   so Back works; see navigation-and-layout.md for the addresses. On phones **Add trip** is a large
   colored circle raised between the bottom tabs.
 - **Toolbar** (wider screens; phones have none, so the map reaches the top and the sync chip sits
-  by the Parks button): full width across the top: the title, a Map tab (wider screens), then **+ Add
+  at the top right, on a solid background): full width across the top: the title, a Map tab (wider screens), then **+ Add
   trip** (opens the form in the Trips panel), the sync chip (which opens Settings when there's a
   problem) and your photo (opens You). Phones add trips from the tab bar's +. All
   36 px tall. Anything you can press shows the hand cursor. People & groups, Parks and Settings
   are sections of the You page.
+- **Messages** ("Added Zion 2024", with Undo) show at the bottom of the screen (on phones just
+  above the tab bar) for 0.8 s; a ✕ or a swipe down or sideways dismisses one sooner. Problems and
+  removals ("Deleted …", whose Undo is the way back) stay 5 s. Pointing at one keeps it.
 - **Settings** (You › Settings, or the sync chip): Sync across devices (same as Watchlist), **Map detail** (Outline · Detailed, with a
   note that Detailed contacts OpenFreeMap and Photon), People & groups (see below),
   Export/Import, theme. **Home** (pick your town from the bundled place search; synced in

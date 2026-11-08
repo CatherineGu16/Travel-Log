@@ -130,7 +130,8 @@ function Shell() {
     if (place && trip && trip.destinations.length === 1) setFocus({ lng: place.lng, lat: place.lat, token: ++focusToken.current })
   }
   // Opening a place or a trip (a pin, a link, Back) brings Trips into view; a trip you open is the
-  // one shown when you go back to its place. Phones: the bare map lets the sheet drop to peeking.
+  // one shown when you go back to its place. Phones: a place or trip sets the sheet at half height,
+  // so its route shows on the map above; the bare map lets the sheet drop to peeking.
   const routeKey = `${page}|${routePlaceId}|${detailTrip?.id}`
   const [seenRoute, setSeenRoute] = useState<string | null>(null)
   if (routeKey !== seenRoute) {
@@ -138,7 +139,7 @@ function Shell() {
     if (detailTrip) setSelectedTripId(detailTrip.id)
     if (page === 'trips') {
       setPanelOpen(true)
-      if (sheetSize === 'peek') setSheetSize('half')
+      if (routePlaceId || detailTrip || sheetSize === 'peek') setSheetSize('half')
     } else if (page === 'map') setSheetSize('peek')
   }
   /** The phone sheet's size; at the list, peeking is the bare map ("#/") and taller is "#/trips". */
@@ -361,7 +362,7 @@ function Shell() {
             visitedParks={visitedParks}
             onSelectPark={setParkSheetId}
             detailed={detailed}
-            onDetailedFailed={() => toast("The detailed map couldn't load (offline?). Showing the outline map.")}
+            onDetailedFailed={() => toast("The detailed map couldn't load (offline?). Showing the outline map.", [], { long: true })}
             focus={focus}
             onPickLeg={formInPanel && editingRoute && !shape ? (at) => setLegRequest({ at, token: Date.now() }) : undefined}
             leftInset={!phone && (panelOpen || formInPanel) ? 428 : 0}
@@ -457,11 +458,15 @@ function Shell() {
         {onMap && !shape && (
           <>
             <ShadeLegend show={perRegion.size > 0 || pins.length > 0} />
-            {/* Phones have no toolbar: the sync status sits by the Parks button, below the status bar. */}
             <div className="absolute top-[max(0.75rem,env(safe-area-inset-top))] left-3 z-10 flex gap-2 sm:top-3 sm:right-3 sm:left-auto">
               <ParksLayerControl mode={parksMode} onChange={setParksMode} visited={visitedParks.size} total={parks.length} />
-              {phone && <SyncChip onSettings={() => navigate(youHref('settings'))} />}
             </div>
+            {/* Phones have no toolbar: the sync status sits at the top right, below the status bar. */}
+            {phone && (
+              <div className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3 z-10 rounded-lg shadow-sm">
+                <SyncChip onSettings={() => navigate(youHref('settings'))} />
+              </div>
+            )}
           </>
         )}
 

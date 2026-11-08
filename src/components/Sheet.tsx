@@ -39,7 +39,7 @@ export function Sheet({
   // the screen; its buttons stay at the bottom of that area.
   const phone = typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches
   const keyboard = useKeyboardArea(open && phone)
-  // A full-screen panel covers the top strip messages use, so a message showing now would sit on its title.
+  // A full-screen panel has its buttons along the bottom, where a message showing now would sit on them.
   const dismissToast = useDismissToast()
   useEffect(() => {
     if (open && full && phone) dismissToast()

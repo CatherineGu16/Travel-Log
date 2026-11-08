@@ -3,7 +3,8 @@
 
 ## Trips list (non-map)
 - Every trip in a plain, scrollable list: title, main destination, dates, stops count, and the
-  faces of who went.
+  faces of who went. No rating on the rows (no room for it on phones; the same on wider screens);
+  Sort by Rating still works.
 - **Group by**: Year (default, newest first) · State · Who went (Family, Friends, …, Other).
 - **Sort**: Newest · Oldest · Title · Rating.
 - **Who-went filter**: Family, Friends, other groups or people, same as the map. Filters are shared with the map
@@ -41,4 +42,4 @@
   **notes**: hikes (each park opens its page), description, highlights, rating and tags (each shows
   your trips with that tag). **Edit** next to each part opens the trip on that step (When and Who
   went → Details, Stops → Route, Notes → Notes); "Add notes, a rating or tags" when there are none.
-  No Edit trip button. **Delete trip** (with Undo) is a quiet link at the end.
+  No Edit trip button. **Delete trip** (with Undo) is at the end, red, with a trash can.

@@ -42,7 +42,7 @@ export function TripDetail({
     const undoId = store.apply((d, c) => deleteTrip(d, c, trip.id), `Deleted ${trip.title}`)
     if (undoId === null) return
     onClose()
-    toast(`Deleted ${trip.title}`, [{ label: 'Undo', onClick: () => store.undo(undoId) }])
+    toast(`Deleted ${trip.title}`, [{ label: 'Undo', onClick: () => store.undo(undoId) }], { long: true })
   }
   const editLink = (step: TripStep, what: string) => (
     <button onClick={() => onEdit(trip, step)} aria-label={`Edit ${what}`} className="-my-1 min-h-9 rounded-lg px-2 text-sm font-bold text-primary hover:bg-raised">
@@ -218,9 +218,19 @@ export function TripDetail({
     <section aria-label={trip.title} className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {body}
-        {/* Each part has its own Edit; deleting the whole trip is the one thing left, kept quiet at the end. */}
+        {/* Each part has its own Edit; deleting the whole trip is the one thing left, at the end. */}
         <div className="mt-8 border-t border-line pt-3">
-          <button onClick={remove} className="-ml-2 min-h-10 rounded-lg px-2 text-sm text-muted hover:bg-raised hover:text-danger">
+          <button onClick={remove} className="-ml-2 flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-bold text-danger hover:bg-danger/10">
+            <svg viewBox="0 0 20 20" className="size-4.5" aria-hidden>
+              <path
+                d="M3.5 5.5h13M8 5.5V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5m-6.5 0 .7 10.6a1 1 0 0 0 1 .9h5.6a1 1 0 0 0 1-.9l.7-10.6M8.5 8.5v5.5m3-5.5v5.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
             Delete trip
           </button>
         </div>

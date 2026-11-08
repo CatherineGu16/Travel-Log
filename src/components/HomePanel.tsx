@@ -40,7 +40,7 @@ export function HomePanel() {
             type="button"
             onClick={() => {
               const undoId = store.apply((d, c) => setHome(d, c, null), 'Cleared home')
-              if (undoId !== null) toast('Home cleared', [{ label: 'Undo', onClick: () => store.undo(undoId) }])
+              if (undoId !== null) toast('Home cleared', [{ label: 'Undo', onClick: () => store.undo(undoId) }], { long: true })
             }}
             className="min-h-10 w-fit rounded-lg px-3 text-sm font-bold text-muted hover:bg-raised hover:text-danger"
           >

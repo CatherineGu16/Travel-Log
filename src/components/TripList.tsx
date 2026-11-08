@@ -105,7 +105,6 @@ function TripRow({ trip, data, onOpen }: { trip: Trip; data: TravelData; onOpen:
             {formatDateRange(trip.startDate, trip.endDate, trip.approximate)}
             {mains.length > 0 && ` · ${mains.map((m) => m.name).join(' & ')}`}
             {stops > 0 && ` · ${stops} ${stops === 1 ? 'stop' : 'stops'}`}
-            {trip.rating && ` · ${'★'.repeat(trip.rating)}`}
           </span>
         </span>
         <WhoWent trip={trip} data={data} size={24} max={3} />

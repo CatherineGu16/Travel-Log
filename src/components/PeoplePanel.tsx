@@ -182,7 +182,7 @@ export function PersonEditor({ id, onDone, profile = false }: { id: string | nul
   const remove = () => {
     if (!id || !existing) return
     const undoId = store.apply((d, c) => deletePerson(d, c, id), `Removed ${existing.name}`)
-    if (undoId !== null) toast(`Removed ${existing.name}`, [{ label: 'Undo', onClick: () => store.undo(undoId) }])
+    if (undoId !== null) toast(`Removed ${existing.name}`, [{ label: 'Undo', onClick: () => store.undo(undoId) }], { long: true })
     onDone()
   }
 
@@ -326,7 +326,7 @@ function GroupEditor({ id, onDone }: { id: string | null; onDone: () => void }) 
   const remove = () => {
     if (!id || !existing) return
     const undoId = store.apply((d, c) => deleteGroup(d, c, id), `Deleted ${existing.name}`)
-    if (undoId !== null) toast(`Deleted ${existing.name}`, [{ label: 'Undo', onClick: () => store.undo(undoId) }])
+    if (undoId !== null) toast(`Deleted ${existing.name}`, [{ label: 'Undo', onClick: () => store.undo(undoId) }], { long: true })
     onDone()
   }
 
