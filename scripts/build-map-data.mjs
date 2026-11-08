@@ -17,6 +17,8 @@
 //   world-countries.json  Natural Earth 50m countries (TopoJSON), so neighbors show as land
 //   world-cities.json     GeoNames cities over 15,000 people outside the US (CC BY 4.0, credited
 //                         as "GeoNames" on the map), for offline place search ranked by size
+//   airports.json         OurAirports (public domain): large airports and medium ones with scheduled
+//                         flights that have an IATA code, for searching by code ("SAN") or name
 //   public/fonts/         Noto Sans glyphs (SIL OFL) so map labels render without any outside request
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
@@ -42,6 +44,7 @@ const POPULATION = 'https://www2.census.gov/programs-surveys/popest/datasets/202
 const NE = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson'
 const GEONAMES = 'https://download.geonames.org/export/dump'
 const GLYPHS = 'https://tiles.openfreemap.org/fonts'
+const OURAIRPORTS = 'https://davidmegginson.github.io/ourairports-data'
 const FONT_STACKS = ['Noto Sans Regular', 'Noto Sans Bold', 'Noto Sans Italic']
 // Basic Latin, Latin-1, Latin Extended-A (ā, ō), spacing modifiers (ʻokina), punctuation (– ’).
 const GLYPH_RANGES = ['0-255', '256-511', '512-767', '8192-8447']
@@ -330,6 +333,56 @@ async function buildWorldCities() {
   console.log(`  ${cities.length} cities in ${used.size} countries`)
 }
 
+// ---------- Airports ----------
+
+/** Splits one CSV line (quoted fields may hold commas; "" is a quote). */
+function csvLine(line) {
+  const out = []
+  let field = ''
+  let quoted = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (quoted) {
+      if (ch === '"' && line[i + 1] === '"') {
+        field += '"'
+        i++
+      } else if (ch === '"') quoted = false
+      else field += ch
+    } else if (ch === '"') quoted = true
+    else if (ch === ',') {
+      out.push(field)
+      field = ''
+    } else field += ch
+  }
+  out.push(field)
+  return out
+}
+
+async function buildAirports() {
+  console.log('Airports (OurAirports)')
+  const lines = (await download(`${OURAIRPORTS}/airports.csv`, 'ourairports-airports.csv')).split('\n')
+  const head = csvLine(lines[0])
+  const col = (name) => head.indexOf(name)
+  const [TYPE, NAME, LAT, LNG, COUNTRY, REGION, CITY, SCHEDULED, IATA] = ['type', 'name', 'latitude_deg', 'longitude_deg', 'iso_country', 'iso_region', 'municipality', 'scheduled_service', 'iata_code'].map(col)
+  const ORDER = { large_airport: 0, medium_airport: 1 }
+  // [IATA code, name, city, region (ISO 3166-2, US only), country code, lat, lng], large airports first.
+  const rows = []
+  const seen = new Set()
+  for (const line of lines.slice(1)) {
+    if (!line) continue
+    const c = csvLine(line)
+    const iata = c[IATA]?.trim().toUpperCase()
+    const order = ORDER[c[TYPE]]
+    // Large airports, and medium ones with scheduled flights (most of the rest are military or private fields).
+    if (!/^[A-Z]{3}$/.test(iata ?? '') || order === undefined || (order > 0 && c[SCHEDULED] !== 'yes') || seen.has(iata)) continue
+    seen.add(iata)
+    rows.push({ order, row: [iata, c[NAME], c[CITY], c[COUNTRY] === 'US' ? c[REGION] : '', c[COUNTRY], round(Number(c[LAT])), round(Number(c[LNG]))] })
+  }
+  rows.sort((a, b) => a.order - b.order || a.row[0].localeCompare(b.row[0]))
+  await writeJson('airports.json', rows.map((r) => r.row))
+  console.log(`  ${rows.length} airports`)
+}
+
 // ---------- Fonts ----------
 
 async function buildFonts() {
@@ -350,11 +403,16 @@ if (ONLY === 'world-cities') {
   await buildWorldCities()
   process.exit(0)
 }
+if (ONLY === 'airports') {
+  await buildAirports()
+  process.exit(0)
+}
 await buildStates()
 const parks = await buildParks()
 await buildPlaces()
 await buildCitiesAndLakes()
 await buildCountries()
 await buildWorldCities()
+await buildAirports()
 await buildFonts()
 console.log(`\nDone. ${parks.length} national parks.`)

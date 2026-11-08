@@ -16,12 +16,12 @@ npx tsc -b           # typecheck (fast; run after edits)
 npm run lint         # oxlint
 npx vitest run       # unit tests (next to the code, *.test.ts)
 npx playwright test  # e2e, desktop Chrome + iPhone (builds first; ~1.5 min). -g "name" for one test
-npm run data:map     # rebuild bundled map/search data (--only=world-cities for one file)
+npm run data:map     # rebuild bundled map/search data (--only=world-cities or --only=airports for one file)
 ```
 
 ## Don't open (big generated data; ask before reading)
 
-`src/data/us-places.json` (1.2 MB), `src/data/world-cities.json` (1.5 MB), `park-hikes.json`,
+`src/data/us-places.json` (1.2 MB), `src/data/world-cities.json` (1.5 MB), `airports.json`, `park-hikes.json`,
 `park-boundaries.json`, `world-countries.json`, `us-states.json`, `us-cities.json`, `us-lakes.json`,
 `scripts/nps-day-hikes.json`, `scripts/park-hikes.csv`, `scripts/park-hikes-report.md`. Their row
 formats are documented in `docs/plan/data.md` and the loaders in `src/lib/gazetteer.ts` /
@@ -42,7 +42,7 @@ formats are documented in `docs/plan/data.md` and the loaders in `src/lib/gazett
 - `derive.ts`: pins, visits, parks/states visited, shading. `filters.ts`: filter, search, grouping.
 - `achievements.ts`: tiered achievements (`ACHIEVEMENTS`, `achievementStatus`, `newlyEarned`),
   worked out from trips, never stored. `stats.ts`: totals and the stat lists for the You page, `tripWhere` (a trip's main places · distances).
-- `placeSearch.ts` (offline search ranking, country narrowing), `gazetteer.ts` (lazy data loaders,
+- `placeSearch.ts` (offline search ranking, country narrowing, airports by IATA code), `gazetteer.ts` (lazy data loaders,
   naming a dropped pin), `onlineSearch.ts` (Photon, Detailed map only), `partialDate.ts`
   (YYYY / YYYY-MM / YYYY-MM-DD, day numbers), `geo.ts`, `states.ts`.
 - `hikeEdits.ts`, `addedHikes.ts`: NPS hike corrections and shared hikes. `backup.ts`, `zip.ts`: export/import.

@@ -17,6 +17,11 @@ us-places.json        [name, state, lat, lng, population] for ~32,000 US cities,
 world-cities.json     { countries: {code: name}, cities: [name, region, country, lat, lng, population] }
                       for ~29,000 cities over 15,000 people outside the US (GeoNames), biggest
                       first; offline place search and naming a pin dropped abroad
+airports.json         [IATA code, name, city, region (ISO 3166-2, US only, else ''), country, lat,
+                      lng] for ~3,300 airports (OurAirports, public domain): large ones and medium
+                      ones with scheduled flights, large first. Search by code ("SAN", "lax")
+                      lists the airport right after your places; by name, after the towns, unless
+                      the search says "airport" ("san diego airport"). ~240 KB, loaded on first search
 us-cities.json        ~700 US cities with population and rank (Natural Earth), for map labels
 us-lakes.json         large lakes in and around the US (Natural Earth 50m)
 park-hikes.json       parkId → [ { id, name, npsUrl, difficulty, distanceMi, distanceSource,

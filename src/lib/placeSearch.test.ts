@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import parks from '../data/national-parks.json'
 import towns from '../data/us-places.json'
 import world from '../data/world-cities.json'
-import { searchPlaces, type TownRow, type WorldCities } from './placeSearch.ts'
+import airports from '../data/airports.json'
+import { searchPlaces, type AirportRow, type TownRow, type WorldCities } from './placeSearch.ts'
 import type { Place } from './types.ts'
 
 const sources = (yours: Place[] = []) => ({
@@ -88,5 +89,28 @@ describe('searchPlaces worldwide', () => {
     expect(searchPlaces('london uk', sources())[0]).toMatchObject({ label: 'London', detail: expect.stringMatching(/United Kingdom$/) })
     expect(searchPlaces('london ca', sources()).every((r) => r.detail === 'CA')).toBe(true)
     expect(searchPlaces('london usa', sources()).every((r) => /^[A-Z]{2}$/.test(r.detail))).toBe(true)
+  })
+})
+
+describe('searchPlaces airports', () => {
+  const withAirports = (yours: Place[] = []) => ({ ...sources(yours), airports: airports as unknown as AirportRow[] })
+
+  it('finds an airport by its code, in any case', () => {
+    for (const q of ['SAN', 'san']) expect(searchPlaces(q, withAirports())[0]).toMatchObject({ kind: 'airport', label: 'San Diego International Airport', detail: 'SAN · San Diego, CA' })
+    expect(searchPlaces('lax', withAirports())[0]).toMatchObject({ label: 'Los Angeles International Airport', ref: { place: { city: 'Los Angeles', regionCode: 'US-CA', countryCode: 'US', parkId: null } } })
+    expect(searchPlaces('lhr', withAirports())[0]).toMatchObject({ label: 'London Heathrow Airport', detail: 'LHR · London, United Kingdom' })
+  })
+
+  it('still lists the city first for its name; "airport" asks for the airport', () => {
+    const results = searchPlaces('San Diego', withAirports())
+    expect(results[0]).toMatchObject({ kind: 'town', label: 'San Diego', detail: 'CA' })
+    expect(searchPlaces('san diego airport', withAirports())[0]).toMatchObject({ kind: 'airport', label: 'San Diego International Airport' })
+  })
+
+  it('reuses an airport you have saved instead of listing it twice', () => {
+    const saved: Place = { ...zionPlace, id: 'a1', name: 'Los Angeles International Airport', regionCode: 'US-CA', parkId: null, lat: 33.94, lng: -118.41 }
+    const results = searchPlaces('lax', withAirports([saved]))
+    expect(results[0]).toMatchObject({ kind: 'yours', ref: { placeId: 'a1' } })
+    expect(results.filter((r) => r.label === 'Los Angeles International Airport')).toHaveLength(1)
   })
 })

@@ -15,6 +15,9 @@ export interface WorldCities {
 }
 type CityRow = WorldCities['cities'][number]
 
+/** A row of airports.json (OurAirports): [IATA code, name, city, region (ISO 3166-2, US only, else ''), country code, lat, lng]. */
+export type AirportRow = [string, string, string, string, string, number, number]
+
 /** Other ways people write a country, for narrowing a search ("Lisbon, Portugal", "london uk"). */
 const COUNTRY_ALIASES: Record<string, string> = { usa: 'US', 'united states of america': 'US', america: 'US', uk: 'GB', england: 'GB', scotland: 'GB', wales: 'GB', holland: 'NL' }
 
@@ -30,7 +33,7 @@ export interface ParkInfo {
 export interface SearchResult {
   key: string
   /** "online" results come from Photon, only with the detailed map on. */
-  kind: 'yours' | 'park' | 'town' | 'online'
+  kind: 'yours' | 'park' | 'town' | 'airport' | 'online'
   label: string
   detail: string
   isPark: boolean
@@ -75,6 +78,20 @@ const cityDetail = (row: CityRow, countries: Record<string, string>) => {
   return row[1] && normalize(row[1]) !== normalize(row[0]) ? `${row[1]}, ${country}` : country
 }
 
+export function airportInput(row: AirportRow): PlaceInput {
+  const [, name, city, regionCode, countryCode, lat, lng] = row
+  return { name, lat, lng, city: city || null, countryCode, regionCode: regionCode || null, parkId: null }
+}
+
+/** "SAN · San Diego, CA"; abroad "LHR · London, United Kingdom". */
+const airportDetail = (row: AirportRow, countries: Record<string, string>) => {
+  const where = row[4] === 'US' ? stateOf(row[3]) : (countries[row[4]] ?? row[4])
+  return [row[0], [row[2], where].filter(Boolean).join(', ')].filter(Boolean).join(' · ')
+}
+
+/** Words that just say "an airport", left out when matching the rest of a search to airport names. */
+const AIRPORT_WORDS = new Set(['airport', 'airports', 'intl', 'international', 'regional', 'field'])
+
 const stateCodes = new WeakMap<TownRow[], Set<string>>()
 const stateCodesOf = (towns: TownRow[]) => {
   let codes = stateCodes.get(towns)
@@ -107,11 +124,13 @@ export function parkInput(park: ParkInfo): PlaceInput {
  * then cities and towns, US and worldwide, bigger ones first. A trailing state or country narrows
  * it ("Springdale, UT", "Lisbon, Portugal"). With `near` (e.g. the trip's main destination), towns
  * close to it get a boost, so a small town nearby beats a bigger one far away, but not a city
- * many times its size ("Lisbon" on an Ohio trip is still Portugal's).
+ * many times its size ("Lisbon" on an Ohio trip is still Portugal's). With `airports`, a 3-letter
+ * code ("SAN", "lax") puts that airport right after your places; airport names match too, after
+ * the towns, unless the search says "airport".
  */
 export function searchPlaces(
   query: string,
-  sources: { yours: Place[]; visits: Map<string, number>; parks: ParkInfo[]; towns: TownRow[]; world?: WorldCities | null },
+  sources: { yours: Place[]; visits: Map<string, number>; parks: ParkInfo[]; towns: TownRow[]; world?: WorldCities | null; airports?: AirportRow[] | null },
   limit = 8,
   near: { lat: number; lng: number } | null = null,
 ): SearchResult[] {
@@ -157,6 +176,57 @@ export function searchPlaces(
       isPark: true,
       ref: { place: parkInput(park) },
       rank: 10 + s,
+      distance: 0,
+      population: 0,
+    })
+  }
+
+  // Airports: by code first, then by name.
+  const code = /^[a-z]{3}$/.test(typed) ? typed.toUpperCase() : null
+  const words = q.split(' ')
+  const asksAirport = words.some((w) => AIRPORT_WORDS.has(w))
+  const nameWords = words.filter((w) => !AIRPORT_WORDS.has(w))
+  for (const row of sources.airports ?? []) {
+    const where = row[4] === 'US' ? stateOf(row[3]) : row[4]
+    if (yourTowns.has(`${normalize(row[1])}|${where}`) || (state && where !== state) || (country && row[4] !== country)) continue
+    let rank: number | null = null
+    if (code && row[0] === code) {
+      // An airport you've saved before ("LAX" doesn't match its name): your place, so its pin is reused.
+      const saved = sources.yours.find((p) => normalize(p.name) === normalize(row[1]) && (p.countryCode === 'US' ? stateOf(p.regionCode) : p.countryCode) === where)
+      if (saved) {
+        const visits = sources.visits.get(saved.id) ?? 0
+        results.push({
+          key: `place:${saved.id}`,
+          kind: 'yours',
+          label: saved.name,
+          detail: [visits ? `Been ${visits}×` : 'Saved place', row[0]].join(' · '),
+          isPark: false,
+          ref: { placeId: saved.id },
+          rank: 5,
+          distance: 0,
+          population: 0,
+        })
+        continue
+      }
+      rank = 5
+    }
+    else if (asksAirport) {
+      // "san diego airport": every other word starts a word of its name or city.
+      const has = ` ${normalize(row[1])} ${normalize(row[2])}`
+      if (nameWords.length && nameWords.every((w) => has.includes(` ${w}`))) rank = 15
+    } else {
+      const s = score(row[1], q)
+      if (s !== null && s <= 1) rank = 30 + s
+    }
+    if (rank === null) continue
+    results.push({
+      key: `airport:${row[0]}`,
+      kind: 'airport',
+      label: row[1],
+      detail: airportDetail(row, countries),
+      isPark: false,
+      ref: { place: airportInput(row) },
+      rank,
       distance: 0,
       population: 0,
     })
@@ -211,5 +281,7 @@ export function searchPlaces(
       a.label.localeCompare(b.label),
   )
 
-  return [...results.sort((a, b) => a.rank - b.rank), ...towns].slice(0, limit).map(({ rank: _rank, distance: _distance, population: _population, ...r }) => r)
+  // Airports found by name come after the towns; by code (or "… airport"), before them.
+  const sorted = results.sort((a, b) => a.rank - b.rank)
+  return [...sorted.filter((r) => r.rank < 30), ...towns, ...sorted.filter((r) => r.rank >= 30)].slice(0, limit).map(({ rank: _rank, distance: _distance, population: _population, ...r }) => r)
 }

@@ -3,7 +3,7 @@ import { feature } from 'topojson-client'
 import type { GeometryCollection, Topology } from 'topojson-specification'
 import parksJson from '../data/national-parks.json'
 import { containsPoint, distanceMeters } from './geo.ts'
-import type { ParkInfo, TownRow, WorldCities } from './placeSearch.ts'
+import type { AirportRow, ParkInfo, TownRow, WorldCities } from './placeSearch.ts'
 import type { PlaceInput } from './travelActions.ts'
 import type { DistanceKind } from './types.ts'
 
@@ -22,6 +22,10 @@ export const loadTowns = () => (towns ??= import('../data/us-places.json').then(
 let world: Promise<WorldCities> | null = null
 /** Cities over 15,000 people outside the US, from GeoNames. */
 export const loadWorldCities = () => (world ??= import('../data/world-cities.json').then((m) => m.default as unknown as WorldCities))
+
+let airports: Promise<AirportRow[]> | null = null
+/** Airports with an IATA code (large ones, and medium ones with scheduled flights), from OurAirports. */
+export const loadAirports = () => (airports ??= import('../data/airports.json').then((m) => m.default as unknown as AirportRow[]))
 
 let states: Promise<Area[]> | null = null
 const loadStates = () =>

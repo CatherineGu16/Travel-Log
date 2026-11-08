@@ -1,10 +1,10 @@
 import { useEffect, useId, useMemo, useState } from 'react'
 import { visitsPerPlace } from '../lib/derive.ts'
-import { loadTowns, loadWorldCities, parkAt, PARKS } from '../lib/gazetteer.ts'
+import { loadAirports, loadTowns, loadWorldCities, parkAt, PARKS } from '../lib/gazetteer.ts'
 import type { ParkInfo } from '../lib/placeSearch.ts'
 import { searchOnline } from '../lib/onlineSearch.ts'
 import { useMapDetail } from '../ui/mapDetail.ts'
-import { searchPlaces, type SearchResult, type TownRow, type WorldCities } from '../lib/placeSearch.ts'
+import { searchPlaces, type AirportRow, type SearchResult, type TownRow, type WorldCities } from '../lib/placeSearch.ts'
 import { describeRef, type ChosenPlace } from '../lib/chosenPlace.ts'
 import { live } from '../lib/travelActions.ts'
 import type { TravelData } from '../lib/types.ts'
@@ -12,7 +12,7 @@ import type { TravelData } from '../lib/types.ts'
 const NO_RESULTS: SearchResult[] = []
 
 /**
- * Pick a place: type to search your places, national parks, US towns and cities worldwide (all offline). A chosen
+ * Pick a place: type to search your places, national parks, US towns, cities worldwide and airports (by code, "SAN"), all offline. A chosen
  * place shows as a chip; a dropped pin can be renamed.
  */
 export function PlacePicker({
@@ -40,16 +40,18 @@ export function PlacePicker({
   const [query, setQuery] = useState('')
   const [towns, setTowns] = useState<TownRow[]>([])
   const [world, setWorld] = useState<WorldCities | null>(null)
+  const [airports, setAirports] = useState<AirportRow[] | null>(null)
   const [active, setActive] = useState(0)
 
   useEffect(() => {
     void loadTowns().then(setTowns)
     void loadWorldCities().then(setWorld)
+    void loadAirports().then(setAirports)
   }, [])
 
   const yours = useMemo(() => live(data.places), [data.places])
   const visits = useMemo(() => visitsPerPlace(data), [data])
-  const local = useMemo(() => searchPlaces(query, { yours, visits, parks: PARKS, towns, world }, 8, near), [query, yours, visits, towns, world, near])
+  const local = useMemo(() => searchPlaces(query, { yours, visits, parks: PARKS, towns, world, airports }, 8, near), [query, yours, visits, towns, world, airports, near])
 
   // With the detailed map on, landmarks and addresses from Photon follow the offline results.
   const detailed = useMapDetail() === 'detailed'
@@ -158,7 +160,7 @@ export function PlacePicker({
                 onPointerEnter={() => setActive(i)}
                 className={`flex min-h-11 w-full items-center gap-2 px-3 py-1.5 text-left ${i === active ? 'bg-raised' : ''}`}
               >
-                <PinGlyph park={r.isPark} />
+                {r.kind === 'airport' ? <PlaneGlyph /> : <PinGlyph park={r.isPark} />}
                 <span className="min-w-0 flex-1 truncate">{r.label}</span>
                 <span className={`shrink-0 text-xs ${r.kind === 'yours' ? 'font-bold text-primary' : 'text-muted'}`}>
                   {r.detail}
@@ -217,6 +219,15 @@ export function PinGlyph({ park, className = 'size-5' }: { park: boolean; classN
     <svg viewBox="0 0 24 24" aria-hidden className={`shrink-0 ${className} ${park ? 'text-park' : 'text-primary'}`}>
       <path d="M12 2a7 7 0 0 1 7 7c0 5.2-7 13-7 13S5 14.2 5 9a7 7 0 0 1 7-7z" fill="currentColor" />
       <circle cx="12" cy="9" r="2.6" fill="var(--surface)" />
+    </svg>
+  )
+}
+
+/** An airport in the search results. */
+function PlaneGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className="size-5 shrink-0 text-[var(--route)]">
+      <path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z" fill="currentColor" />
     </svg>
   )
 }
