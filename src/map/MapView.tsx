@@ -349,10 +349,15 @@ const worldZoom = (map: MapLibreMap) => {
 /** Taps select pins (or zoom into clusters); long-press / right-click adds a trip; pick mode picks. */
 function bindInteractions(map: MapLibreMap, latest: { current: MapViewProps }) {
   const pinLayers = ['pins', 'pin-badges', 'pin-badge-count']
+  // When a bend was last grabbed or let go. The browser sends a click when you let go of a dragged
+  // bend, and the dot may not be drawn under the pointer yet, so that click would add a new bend.
+  let bendTouchedAt = -Infinity
+  const BEND_CLICK_MS = 500
 
   map.on('click', (e: MapMouseEvent) => {
     const props = latest.current
-    // Tapping a bend (to drag it) doesn't add another one on top of it.
+    // Grabbing, dragging or tapping a bend doesn't add another one.
+    if (props.picking && performance.now() - bendTouchedAt < BEND_CLICK_MS) return
     if (props.picking && props.showBends && map.queryRenderedFeatures(e.point, { layers: ['route-bends-hit'] }).length) return
     if (props.picking) return props.onPick(e.lngLat.lng, e.lngLat.lat)
     const cluster = map.queryRenderedFeatures(e.point, { layers: ['pin-clusters'] })[0]
@@ -389,30 +394,43 @@ function bindInteractions(map: MapLibreMap, latest: { current: MapViewProps }) {
 
   // Dragging a bend while shaping: the map stays put and the dot follows the pointer.
   let dragging: number | null = null
+  // Where the dot was last dragged to: a cancelled touch (a call coming in) leaves it there.
+  let draggedTo: [number, number] | null = null
   const dragTo = (e: MapMouseEvent | MapTouchEvent) => {
-    if (dragging !== null) latest.current.onDragBend?.(dragging, [e.lngLat.lng, e.lngLat.lat], false)
+    if (dragging === null) return
+    draggedTo = [e.lngLat.lng, e.lngLat.lat]
+    latest.current.onDragBend?.(dragging, draggedTo, false)
   }
   const drop = (e: MapMouseEvent | MapTouchEvent) => {
     if (dragging === null) return
-    latest.current.onDragBend?.(dragging, [e.lngLat.lng, e.lngLat.lat], true)
+    bendTouchedAt = performance.now()
+    const at: [number, number] | null = e.type === 'touchcancel' ? draggedTo : [e.lngLat.lng, e.lngLat.lat]
+    // Let go without moving it: nothing changes, so Undo doesn't get an empty step.
+    if (at && draggedTo) latest.current.onDragBend?.(dragging, at, true)
     dragging = null
     map.dragPan.enable()
     map.getCanvas().style.cursor = latest.current.picking ? 'crosshair' : ''
     map.off('mousemove', dragTo)
     map.off('touchmove', dragTo)
+    map.off('mouseup', drop)
+    map.off('touchend', drop)
+    map.off('touchcancel', drop)
   }
   const grab = (e: MapLayerMouseEvent | MapLayerTouchEvent) => {
     if (!latest.current.showBends || ('points' in e && e.points.length !== 1)) return
     const bend = e.features?.[0]
     if (!bend) return
     e.preventDefault()
+    bendTouchedAt = performance.now()
+    draggedTo = null
     dragging = bend.properties.index as number
     map.dragPan.disable()
     map.getCanvas().style.cursor = 'grabbing'
     map.on('mousemove', dragTo)
     map.on('touchmove', dragTo)
-    map.once('mouseup', drop)
-    map.once('touchend', drop)
+    map.on('mouseup', drop)
+    map.on('touchend', drop)
+    map.on('touchcancel', drop)
   }
   map.on('mousedown', 'route-bends-hit', grab)
   map.on('touchstart', 'route-bends-hit', grab)

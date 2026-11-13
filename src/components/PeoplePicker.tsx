@@ -23,17 +23,21 @@ function editDistance(a: string, b: string): number {
  * takes them all off again), anyone else going as chips with ×, and a search to add someone else,
  * which can add someone new (after offering anyone with a similar name, so a typo doesn't make a
  * second Alex). A group that's on stands for its people, so they aren't listed one by one. People
- * not in a group are only found by searching. The trip only ever records the people.
+ * not in a group are only found by searching. The trip only ever records the people (the form
+ * tags the trip with a group you turn on, through `onGroup`).
  */
 export function PeoplePicker({
   data,
   value,
   onChange,
   onAddPerson,
+  onGroup,
 }: {
   data: TravelData
   value: string[]
   onChange: (ids: string[]) => void
+  /** A group chip turned on or off, e.g. to tag the trip "Family". */
+  onGroup?: (name: string, on: boolean) => void
   /** Creates a person in these groups and returns their id. */
   onAddPerson: (name: string, groupIds: string[]) => string | null
 }) {
@@ -83,7 +87,10 @@ export function PeoplePicker({
                 key={group.id}
                 type="button"
                 aria-pressed={on}
-                onClick={() => onChange(on ? value.filter((v) => !members.includes(v)) : [...new Set([...value, ...members])])}
+                onClick={() => {
+                  onChange(on ? value.filter((v) => !members.includes(v)) : [...new Set([...value, ...members])])
+                  onGroup?.(group.name, !on)
+                }}
                 className={`flex min-h-10 items-center gap-1.5 rounded-full border px-3.5 text-sm font-bold ${
                   on ? 'border-primary bg-primary text-on-primary' : 'border-line text-fg hover:border-muted'
                 }`}

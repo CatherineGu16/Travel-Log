@@ -38,7 +38,9 @@
 - **Shaping a route**: the line between two destinations is straight unless you shape it. In Add
   / Edit trip, "Shape the route on the map" between two places opens the map with just that leg
   (A to B); each tap adds a bend where it fits along the leg, with Undo, Straighten, Cancel and
-  Done. **Drag a dot** to move a bend (one Undo step per drag; tapping a dot doesn't add another).
+  Done. **Drag a dot** to move a bend (one Undo step per drag; tapping a dot doesn't add another, and
+  neither does letting go: the click a browser sends when you let go, which iPhones send even after
+  a drag, is ignored for half a second after a dot is grabbed or let go).
   The rest of the trip shows faintly behind the leg, and the shaping card (A → B, a one-line hint,
   then Undo · Straighten · Cancel · Done) replaces the header while you shape.
   **Follow the way you came** (when the leg starts on the route drawn so far) sets the bends

@@ -83,11 +83,12 @@ the same steps with tabs to jump straight to one, and its buttons are Cancel / B
   aren't listed until you **search** for them. Typing a name that isn't anyone offers people with
   a similar name first ("Did you mean Alexa?"), then **Add “…” as someone new**, in whichever
   groups you tick. The trip only records the people, never the groups (so a group is "on" when
-  everyone in it went).
+  everyone in it went). **Turning a group chip on tags the trip with the group's name** (Family);
+  turning it off takes that tag off again. Adding the group's people one by one doesn't tag it.
 - Optional (Notes step): hikes, description and highlights (the boxes grow as you type), rating,
   **tags as chips**: tags on your other trips (most used first) and your group names are offered
   as chips to tap; type a new one and press Enter or a comma; × removes one. "Family" is a tag
-  like any other, not part of who went.
+  like any other (× removes it even with Family going), not part of who went.
 - Save, then the map flies to the new pin and shows its route.
 - **On phones**, while the on-screen keyboard is open the form fills exactly the visible part of the
   screen (iPhone Safari pans the page when you tap a field) and scrolls on its own, so the title

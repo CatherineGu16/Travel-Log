@@ -199,21 +199,33 @@ test('who went: groups are on or off, anyone else is searched for and added', as
 
   await openAddTrip(page)
   const dialog = tripForm(page, 'Add trip')
+  // Somewhere to go first, so the Notes step (where tags are) opens.
+  await toStep(dialog, 'Route')
+  await choosePlace(page, DEST, 'zion', /Zion National Park/)
+  await toStep(dialog, 'Details')
   const groups = dialog.getByRole('group', { name: 'Groups' })
   const others = dialog.getByRole('list', { name: 'Also going' })
   await expect(groups.getByRole('button')).toHaveText(['Family', 'Friends'])
   // People not in a group aren't listed until you search for them.
   await expect(dialog.getByRole('button', { name: 'Jordan' })).toHaveCount(0)
 
-  // A group is one chip: on brings everyone in it, without listing them one by one; off takes them off.
+  // A group is one chip: on brings everyone in it, without listing them one by one, and tags the
+  // trip with it; off takes them and the tag off.
   const family = groups.getByRole('button', { name: 'Family' })
+  const familyTag = dialog.getByRole('button', { name: 'Remove the Family tag' })
   await family.click()
   await expect(family).toHaveAttribute('aria-pressed', 'true')
   await expect(dialog).toContainText('3 people')
   await expect(others).toHaveCount(0)
+  await toStep(dialog, 'Notes')
+  await expect(familyTag).toHaveCount(1)
+  await toStep(dialog, 'Details')
   await family.click()
   await expect(family).toHaveAttribute('aria-pressed', 'false')
   await expect(dialog).not.toContainText('3 people')
+  await toStep(dialog, 'Notes')
+  await expect(familyTag).toHaveCount(0)
+  await toStep(dialog, 'Details')
 
   // Anyone else: search, tap, and they're listed with ×.
   const search = dialog.getByRole('searchbox', { name: 'Add a person' })
@@ -526,6 +538,48 @@ test('stop dates from a strip of the trip days, shown as day numbers; details li
   await expect(page.getByRole('status')).toContainText('Deleted')
 })
 
+test('dragging a bend never adds another, however quickly you let go; a tap after still adds one', async ({ page }) => {
+  await page.goto('./')
+  const dialog = await openAddTrip(page)
+  await toStep(dialog, 'Route')
+  await choosePlace(page, DEST, 'zion', /Zion National Park/)
+  await choosePlace(page, DEST, 'Las Vegas', /^Las Vegas\s*NV$/)
+  await dialog.getByRole('button', { name: 'Shape the route from Zion National Park to Las Vegas on the map' }).click()
+  const banner = page.getByRole('region', { name: 'Shape the route' })
+  const map = page.locator('[data-testid="map"] canvas')
+  const box = (await map.boundingBox())!
+  let x = box.x + box.width / 2
+  let y = box.y + box.height * 0.6
+  await page.mouse.click(x, y)
+  await page.waitForTimeout(300)
+  // Drag the dot around, letting go the moment it lands each time, and back and forth by a hair.
+  // iPhones follow a finger lifted after a drag with a press and a click right where it let go
+  // (before the dot may be drawn there): that click mustn't add a bend either.
+  for (const [dx, dy] of [[-50, -30], [40, 10], [2, 1], [-30, 25], [1, 0], [60, -20]]) {
+    await page.mouse.move(x, y)
+    await page.mouse.down()
+    await page.mouse.move(x + dx, y + dy, { steps: 2 })
+    await page.mouse.up()
+    x += dx
+    y += dy
+    await page.mouse.click(x, y)
+  }
+  await banner.getByRole('button', { name: 'Done' }).click()
+  await expect(dialog.getByRole('button', { name: /^Shape the route from Zion/ })).toHaveText('Bends 1× · Edit')
+
+  // A tap on the map a moment after a drag is a new bend.
+  await dialog.getByRole('button', { name: /^Shape the route from Zion/ }).click()
+  await page.mouse.move(x, y)
+  await page.mouse.down()
+  await page.mouse.move(x + 20, y + 20, { steps: 2 })
+  await page.mouse.up()
+  await page.waitForTimeout(700)
+  // (Right of the middle: on wider screens the left of the map is under the Trips panel.)
+  await page.mouse.click(box.x + box.width * 0.8, box.y + box.height * 0.3)
+  await banner.getByRole('button', { name: 'Done' }).click()
+  await expect(dialog.getByRole('button', { name: /^Shape the route from Zion/ })).toHaveText('Bends 2× · Edit')
+})
+
 test('shaping a leg can follow the way you came, then take more taps', async ({ page }) => {
   await page.goto('./')
   await openAddTrip(page)
@@ -577,8 +631,8 @@ test('tags you have used before are chips to add; who went in the details is jus
     await choosePlace(page, DEST, query, option)
     await toStep(dialog, 'Notes')
     if (title === 'First') {
-      // Your group names are offered as tags; new ones are typed.
-      await dialog.getByRole('group', { name: "Tags you've used" }).getByRole('button', { name: '+ Family' }).click()
+      // Turning Family on in who went tagged the trip Family; new tags are typed.
+      await expect(dialog.getByRole('button', { name: 'Remove the Family tag' })).toBeVisible()
       await dialog.getByRole('textbox', { name: 'Add a tag' }).fill('road food')
       await dialog.getByRole('textbox', { name: 'Add a tag' }).press('Enter')
     } else {

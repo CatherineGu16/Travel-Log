@@ -596,6 +596,13 @@ export function TripForm({
             data={data}
             value={companions}
             onChange={setCompanions}
+            // Turning a group on (Family) tags the trip with it; turning it off takes the tag off.
+            onGroup={(name, on) =>
+              setTags((t) => {
+                const rest = t.filter((tag) => tag.toLowerCase() !== name.toLowerCase())
+                return on ? (rest.length < t.length ? t : [...t, name]) : rest
+              })
+            }
             onAddPerson={(name, groupIds) => {
               const id = newId()
               const ok = store.apply((d, c) => addPerson(d, c, id, { name, groupIds }), `Added ${name}`)
