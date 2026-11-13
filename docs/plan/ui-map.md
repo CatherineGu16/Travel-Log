@@ -11,7 +11,8 @@
   Hover (desktop) or tap (mobile) shows the state name and trip count.
 - **Location pins**, one per major location (×N badge when visited more than once), clustered
   when zoomed out. **Green pins are national parks**; all others use the accent color. A small
-  legend explains the colors.
+  legend explains the colors. A pin in the wrong spot can be moved: **Move pin** under its trips
+  (see navigation-and-layout.md).
 - Tapping a pin opens a **preview card** with the place name and its **stacked visit dates**. The
   newest visit is selected and its **dotted route** is drawn. Tapping another date switches the
   card (title, who went, stops, hikes) and redraws the route for that trip.

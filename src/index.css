@@ -159,6 +159,15 @@ input[type='month']::-webkit-date-and-time-value {
   }
 }
 
+/* The pin you're moving: lifted a little, with a hand to show it can be dragged. */
+.moving-pin {
+  cursor: grab;
+  filter: drop-shadow(0 4px 6px rgb(0 0 0 / 0.35));
+}
+.moving-pin:active {
+  cursor: grabbing;
+}
+
 /* MapLibre's attribution control, restyled to match the app. */
 .maplibregl-ctrl-attrib {
   background: color-mix(in srgb, var(--surface) 85%, transparent) !important;

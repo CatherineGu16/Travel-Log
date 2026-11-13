@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type { Pin } from '../lib/derive.ts'
 import { legMemory } from '../lib/legs.ts'
 import { formatDateRange } from '../lib/partialDate.ts'
@@ -8,10 +8,17 @@ import { PRESSABLE_CARD } from './cards.ts'
 import { PinGlyph } from './PlacePicker.tsx'
 import { WhoWent } from './WhoWent.tsx'
 
+// Where the pointer last was. A browser also tells a card the pointer moved onto it when the card
+// appears under a resting pointer (as the list opens), at that same spot; that isn't pointing at it.
+let pointerAt: string | null = null
+if (typeof window !== 'undefined')
+  for (const type of ['pointermove', 'pointerdown'] as const)
+    window.addEventListener(type, (e) => (pointerAt = `${e.clientX},${e.clientY}`), { capture: true, passive: true })
+
 /**
  * A place's trips (its pin), filling the Trips panel or sheet (Trips › Moab): a card per visit,
- * newest first (one card when you've been once). Pointing at a card (or focusing it) draws its
- * route on the map; tapping it opens the trip with all its details.
+ * newest first (one card when you've been once). Moving the pointer onto a card (or focusing it)
+ * draws its route on the map; tapping it opens the trip with all its details.
  */
 export function PinCard({
   pin,
@@ -19,6 +26,7 @@ export function PinCard({
   data,
   onPreview,
   onOpen,
+  onMovePin,
 }: {
   pin: Pin
   /** The visit whose route the map shows. */
@@ -26,7 +34,11 @@ export function PinCard({
   data: TravelData
   onPreview: (tripId: string) => void
   onOpen: (trip: Trip) => void
+  /** Move this place's pin (it's in the wrong spot). */
+  onMovePin?: () => void
 }) {
+  // Where the pointer was resting when the cards appeared.
+  const [restingAt] = useState(() => pointerAt)
   const routes = useMemo(() => {
     const memory = legMemory(data)
     return new Map(pin.trips.map((t) => [t.id, routeOf(t, data.places, { home: data.home, memory })]))
@@ -44,7 +56,8 @@ export function PinCard({
             <li key={t.id}>
               <button
                 onClick={() => onOpen(t)}
-                onMouseEnter={() => onPreview(t.id)}
+                // Only when the pointer really moves onto it, not when the card appears under it.
+                onPointerMove={(e) => !shown && `${e.clientX},${e.clientY}` !== restingAt && onPreview(t.id)}
                 onFocus={() => onPreview(t.id)}
                 aria-label={`${t.title}, ${formatDateRange(t.startDate, t.endDate, t.approximate)}`}
                 className={`${PRESSABLE_CARD} flex w-full items-start gap-3 p-3 ${shown ? 'border-primary/60' : ''}`}
@@ -88,6 +101,21 @@ export function PinCard({
           )
         })}
       </ul>
+      {onMovePin && (
+        <div className="flex shrink-0 items-center gap-2 border-t border-line px-4 py-1 text-sm text-muted">
+          <span className="min-w-0 flex-1">Pin in the wrong spot?</span>
+          <button
+            onClick={onMovePin}
+            aria-label={`Move the ${pin.place.name} pin`}
+            className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-2 font-bold text-primary hover:bg-raised"
+          >
+            <svg viewBox="0 0 20 20" className="size-4" aria-hidden>
+              <path d="M10 2v16M2 10h16M10 2 7.5 4.5M10 2l2.5 2.5M10 18l-2.5-2.5M10 18l2.5-2.5M2 10l2.5-2.5M2 10l2.5 2.5M18 10l-2.5-2.5M18 10l-2.5 2.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Move pin
+          </button>
+        </div>
+      )}
     </section>
   )
 }

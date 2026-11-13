@@ -16,12 +16,12 @@ npx tsc -b           # typecheck (fast; run after edits)
 npm run lint         # oxlint
 npx vitest run       # unit tests (next to the code, *.test.ts)
 npx playwright test  # e2e, desktop Chrome + iPhone (builds first; ~1.5 min). -g "name" for one test
-npm run data:map     # rebuild bundled map/search data (--only=world-cities or --only=airports for one file)
+npm run data:map     # rebuild bundled map/search data (--only=world-cities, places or airports for one file)
 ```
 
 ## Don't open (big generated data; ask before reading)
 
-`src/data/us-places.json` (1.2 MB), `src/data/world-cities.json` (1.5 MB), `airports.json`, `park-hikes.json`,
+`src/data/us-places.json` (1.2 MB), `src/data/world-cities.json` (1.5 MB), `airports.json`, `place-fixes.json`, `park-hikes.json`,
 `park-boundaries.json`, `world-countries.json`, `us-states.json`, `us-cities.json`, `us-lakes.json`,
 `scripts/nps-day-hikes.json`, `scripts/park-hikes.csv`, `scripts/park-hikes-report.md`. Their row
 formats are documented in `docs/plan/data.md` and the loaders in `src/lib/gazetteer.ts` /
@@ -31,9 +31,10 @@ formats are documented in `docs/plan/data.md` and the loaders in `src/lib/gazett
 
 **Data and rules (`src/lib/`, pure, unit-tested)**
 - `types.ts`: the saved format (`TravelData`, `Trip`, `Destination`, `Place`, `Person`, `Group`, `Home`, `Profile`).
-- `travelActions.ts`: every edit as `(data, ctx) => data` (saveTrip, setHome, people/groups, hikes,
+- `travelActions.ts`: every edit as `(data, ctx) => data` (saveTrip, movePlace, setHome, people/groups, hikes,
   undo via `revertTo`, `setProfile`). Applied through the store.
-- `travelData.ts`: `parseTravelData` (validates and **migrates older saves on every load**),
+- `travelData.ts`: `parseTravelData` (validates and **migrates older saves on every load**, incl.
+  `fixedPoint`: saved city points moved downtown),
   `mergeData` (newest `updatedAt` per record wins; tombstones), `sameContent`.
 - `legs.ts`: legs between stops and to/from the start; mode guesses (250 mi, or 500 mi after a
   drive; remembered picks); road trip / cruise; `tripStart`.
@@ -64,7 +65,7 @@ formats are documented in `docs/plan/data.md` and the loaders in `src/lib/gazett
   `PlacePicker.tsx`, `DateRangeField.tsx`.
 - `TripsPanel.tsx` (Trips over the map: `TripsPanel` on wider screens with its edge tab, `TripsSheet` on
   phones, `FormSheet` (the phone trip form, full screen); the heading: breadcrumb, title, subtitle), `TripList.tsx` (the list), `PinCard.tsx` (a pin's trips as cards),
-  `TripDetail.tsx` (a trip),
+  `TripDetail.tsx` (a trip; Move pin lives on `PinCard`, the move banner and draggable pin in `App.tsx` / `MapView.tsx`),
   `ParkSheet.tsx`, `YouPage.tsx` (You: profile card, section menu/tabs, swipe, stat and
   achievement panels) with its sections `YouSections.tsx` (Profile, Achievements, `StatList`,
   `AchievementDetail`), `ParksSection.tsx` (the 64-park checklist), `PeoplePanel.tsx`

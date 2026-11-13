@@ -51,8 +51,12 @@ The map page always has Trips over it, showing one of three views, with a **brea
 - **The list** (`TripList.tsx`): search, filter, group, sort.
 - **A pin** (or a place in Most visited): `Trips › Moab` lists its trips as cards (`PinCard.tsx`),
   newest first, one card when you've been once, each with its dates, places in order and who
-  went; pointing at a card puts its route on the map, tapping it opens the trip with all its
-  details (`Trips › Moab › Moab 2021`).
+  went; pointing at a card puts its route on the map (moving the pointer onto it, not a card
+  appearing under a resting pointer), tapping it opens the trip with all its details
+  (`Trips › Moab › Moab 2021`). Under the cards, **"Pin in the wrong spot? Move pin"**: the map
+  zooms in on the pin, which you **drag** (or tap the map where it should be); a banner has Cancel
+  and Done. Done moves the place, so every trip there follows (`movePlace`), with Undo in the
+  message (which stays 5 s, like a removal). Phones set the Trips sheet aside meanwhile.
 - **Phones**: the same in the sheet. Opening a trip from the list (or a place) sets the sheet at
   half height, whatever size it was, with the map centered on it above. Tapping a pin raises it to half height with the card(s), the
   route drawn above; a card opens the trip (drag the sheet up for more of it); ‹ or the

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { addPerson, deleteTrip, emptyData, saveTrip, setProfile, type TripInput } from './travelActions.ts'
-import { mergeData, parseTravelData, sameContent } from './travelData.ts'
+import { addPerson, deleteTrip, emptyData, movePlace, saveTrip, setHome, setProfile, type TripInput } from './travelActions.ts'
+import { fixedPoint, mergeData, parseTravelData, sameContent } from './travelData.ts'
 import { FAMILY_GROUP_ID, type EditContext } from './types.ts'
 import { tripInput } from '../test/tripInput.ts'
 
@@ -156,5 +156,39 @@ describe('profile', () => {
     const old = JSON.parse(JSON.stringify(emptyData('2024-01-01T00:00:00Z')))
     delete old.profile
     expect(parseTravelData(old).profile).toBeNull()
+  })
+})
+
+describe('city points', () => {
+  // San Francisco's old Census point was out in the Pacific; the bundled one is now downtown.
+  const ocean = { lat: 37.7272, lng: -123.0322 }
+  const downtown = { lat: 37.7749, lng: -122.4194 }
+
+  it('moves a place, a trip start and Home saved at an old city point to its downtown point', () => {
+    let d = saveTrip(emptyData('2024-01-01T00:00:00Z'), at('2024-01-02T00:00:00Z'), tripInput({ title: 'SF', main: { name: 'San Francisco', ...ocean, regionCode: 'US-CA' } }))
+    d = setHome(d, at('2024-01-03T00:00:00Z'), { name: 'San Francisco', ...ocean })
+    const saved = JSON.parse(JSON.stringify({ ...d, trips: d.trips.map((t) => ({ ...t, start: { name: 'San Francisco', ...ocean } })) }))
+    const loaded = parseTravelData(saved)
+    expect(loaded.places[0]).toMatchObject(downtown)
+    expect(loaded.home).toMatchObject(downtown)
+    expect(loaded.trips[0].start).toMatchObject(downtown)
+  })
+
+  it('leaves every other point alone, including one a hair away from an old city point', () => {
+    expect(fixedPoint(38.57, -109.55)).toEqual({ lat: 38.57, lng: -109.55 })
+    expect(fixedPoint(37.7273, -123.0322)).toEqual({ lat: 37.7273, lng: -123.0322 })
+  })
+})
+
+describe('movePlace', () => {
+  it('moves just that place, to about a metre, and the move survives a reload', () => {
+    const d = saveTrip(emptyData('2024-01-01T00:00:00Z'), at('2024-01-02T00:00:00Z'), input)
+    const placeId = d.places[0].id
+    const moved = movePlace(d, at('2024-01-05T00:00:00Z'), placeId, { lat: 38.573331234, lng: -109.549843219 })
+    expect(moved.places[0]).toMatchObject({ lat: 38.57333, lng: -109.54984, updatedAt: '2024-01-05T00:00:00Z' })
+    expect(movePlace(d, at('2024-01-05T00:00:00Z'), 'nope', { lat: 1, lng: 1 }).places).toEqual(d.places)
+    expect(sameContent(parseTravelData(JSON.parse(JSON.stringify(moved))), moved)).toBe(true)
+    // Synced, the newer move wins.
+    expect(mergeData(d, moved).places[0].lat).toBe(38.57333)
   })
 })

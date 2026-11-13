@@ -1,3 +1,4 @@
+import placeFixes from '../data/place-fixes.json'
 import { isPartialDate } from './partialDate.ts'
 import { insertCheapest } from './route.ts'
 import { isLegMode } from './legs.ts'
@@ -50,6 +51,15 @@ export function sameContent(a: TravelData, b: TravelData): boolean {
   return canon(a) === canon(b)
 }
 
+// Cities whose bundled point moved downtown (the Census point was only somewhere inside the city's
+// limits: San Francisco's was in the Pacific). "lat,lng" before → [lat, lng] now.
+const MOVED = new Map((placeFixes as [number, number, number, number][]).map(([lat, lng, toLat, toLng]) => [`${lat},${lng}`, [toLat, toLng] as const]))
+/** A point saved at one of those old city points, moved to the city's downtown point; any other point stays put. */
+export function fixedPoint(lat: number, lng: number): { lat: number; lng: number } {
+  const to = MOVED.get(`${lat},${lng}`)
+  return to ? { lat: to[0], lng: to[1] } : { lat, lng }
+}
+
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 /** A [lng, lat] pair that is on the map. */
 const isLngLat = (v: unknown): v is LngLat =>
@@ -98,8 +108,7 @@ export function parseTravelData(input: unknown): TravelData {
       ? {
           ...base,
           name: str(x.name, 'Unnamed place'),
-          lat: x.lat,
-          lng: x.lng,
+          ...fixedPoint(x.lat, x.lng),
           city: typeof x.city === 'string' ? x.city : null,
           countryCode: str(x.countryCode, 'US'),
           regionCode: typeof x.regionCode === 'string' ? x.regionCode : null,
@@ -180,7 +189,7 @@ export function parseTravelData(input: unknown): TravelData {
     const s = isObject(x.start) ? x.start : null
     const start: TripStart | null | undefined =
       s && typeof s.lat === 'number' && typeof s.lng === 'number' && isLngLat([s.lng, s.lat])
-        ? { name: str(s.name, 'Home'), lat: s.lat, lng: s.lng }
+        ? { name: str(s.name, 'Home'), ...fixedPoint(s.lat, s.lng) }
         : 'start' in x || !earlier
           ? null
           : undefined
@@ -246,7 +255,7 @@ export function parseTravelData(input: unknown): TravelData {
   const homeBase = h && synced(h)
   const home: Home | null =
     h && homeBase && typeof h.lat === 'number' && typeof h.lng === 'number' && isLngLat([h.lng, h.lat])
-      ? { ...homeBase, name: str(h.name, 'Home'), lat: h.lat, lng: h.lng }
+      ? { ...homeBase, name: str(h.name, 'Home'), ...fixedPoint(h.lat, h.lng) }
       : null
 
   // Added later: older files have none.

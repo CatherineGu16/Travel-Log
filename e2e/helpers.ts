@@ -102,3 +102,18 @@ export const openPeople = (page: Page) => openYouSection(page, 'People & groups'
 
 /** Opens Settings (on the You page), where sync, Home, map detail and backups live. */
 export const openSettings = (page: Page) => openYouSection(page, 'Settings')
+
+/** What's saved on this device (IndexedDB), as the app stores it. */
+export const savedData = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<{ places: { name: string; lat: number; lng: number }[] }>((resolve, reject) => {
+        const open = indexedDB.open('travel-log', 1)
+        open.onerror = () => reject(open.error)
+        open.onsuccess = () => {
+          const get = open.result.transaction('kv', 'readonly').objectStore('kv').get('travel')
+          get.onerror = () => reject(get.error)
+          get.onsuccess = () => resolve(get.result)
+        }
+      }),
+  )

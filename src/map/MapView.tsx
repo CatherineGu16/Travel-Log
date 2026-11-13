@@ -1,5 +1,6 @@
 import {
   Map as MapLibreMap,
+  Marker,
   setWorkerUrl,
   type ExpressionSpecification,
   type GeoJSONSource,
@@ -66,6 +67,9 @@ export interface MapViewProps {
   contextLines?: [number, number][][]
   /** While set, taps on the map pick a point instead of selecting pins. */
   picking: boolean
+  /** A pin you're moving: drawn as a pin you can drag; letting go (or a tap, through onPick) puts it there. */
+  movingPin?: { name: string; lng: number; lat: number; park: boolean } | null
+  onMovePin?: (lng: number, lat: number) => void
   onPick: (lng: number, lat: number) => void
   /** National parks layer: which parks to show, which you've visited, and what tapping one does. */
   parksMode: ParksMode
@@ -74,8 +78,11 @@ export interface MapViewProps {
   /** Settings → Map detail: add OpenFreeMap tiles under your layers. */
   detailed: boolean
   onDetailedFailed: () => void
-  /** Changes when the map should fly to a place (e.g. a trip you just saved). */
-  focus: { lng: number; lat: number; token: number } | null
+  /**
+   * Changes when the map should fly to a place (e.g. a trip you just saved); `centered` when
+   * nothing covers the bottom half on phones, `zoom` to come in at least that close.
+   */
+  focus: { lng: number; lat: number; token: number; centered?: boolean; zoom?: number } | null
   /** While you edit a trip's route: a ground leg tapped on the map, by the route point it arrives at. */
   onPickLeg?: (at: number) => void
   /**
@@ -258,13 +265,43 @@ export function MapView(props: MapViewProps) {
     shaded.current = new Set(tripsPerRegion.keys())
   }, [map, tripsPerRegion])
 
+  // The pin you're moving: a pin you can drag around, which follows taps on the map too.
+  const { movingPin } = props
+  const marker = useRef<Marker | null>(null)
+  useEffect(() => {
+    if (!map || !movingPin) {
+      marker.current?.remove()
+      marker.current = null
+      return
+    }
+    if (!marker.current) {
+      const el = document.createElement('div')
+      el.className = 'moving-pin'
+      el.setAttribute('aria-label', `${movingPin.name} pin: drag to move it`)
+      el.style.color = movingPin.park ? 'var(--park)' : 'var(--primary)'
+      el.innerHTML =
+        '<svg viewBox="0 0 24 32" width="36" height="48" aria-hidden="true"><path d="M12 31s10-10.2 10-18A10 10 0 0 0 2 13c0 7.8 10 18 10 18Z" fill="currentColor" stroke="white" stroke-width="2"/><circle cx="12" cy="12.5" r="4" fill="white"/></svg>'
+      marker.current = new Marker({ element: el, anchor: 'bottom', draggable: true }).setLngLat([movingPin.lng, movingPin.lat]).addTo(map)
+      marker.current.on('dragend', () => {
+        const at = marker.current?.getLngLat()
+        if (at) latest.current.onMovePin?.(at.lng, at.lat)
+      })
+    } else marker.current.setLngLat([movingPin.lng, movingPin.lat])
+  }, [map, movingPin])
+  useEffect(
+    () => () => {
+      marker.current?.remove()
+    },
+    [],
+  )
+
   // Fly to a place on request.
   const { focus } = props
   useEffect(() => {
     if (!map || !focus) return
     // Phones: centered in the top half, above the Trips sheet at half height.
-    const offset: [number, number] = window.innerWidth < 640 ? [0, -map.getContainer().clientHeight / 4] : [0, 0]
-    map.easeTo({ center: [focus.lng, focus.lat], zoom: Math.max(map.getZoom(), 5), offset, duration: 800 })
+    const offset: [number, number] = window.innerWidth < 640 && !focus.centered ? [0, -map.getContainer().clientHeight / 4] : [0, 0]
+    map.easeTo({ center: [focus.lng, focus.lat], zoom: Math.max(map.getZoom(), focus.zoom ?? 5), offset, duration: 800 })
   }, [map, focus])
 
   useEffect(() => {
@@ -356,6 +393,8 @@ function bindInteractions(map: MapLibreMap, latest: { current: MapViewProps }) {
 
   map.on('click', (e: MapMouseEvent) => {
     const props = latest.current
+    // Letting go of the pin you're moving isn't a tap on the map.
+    if ((e.originalEvent.target as Element | null)?.closest?.('.maplibregl-marker')) return
     // Grabbing, dragging or tapping a bend doesn't add another one.
     if (props.picking && performance.now() - bendTouchedAt < BEND_CLICK_MS) return
     if (props.picking && props.showBends && map.queryRenderedFeatures(e.point, { layers: ['route-bends-hit'] }).length) return

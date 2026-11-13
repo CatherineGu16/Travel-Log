@@ -13,7 +13,17 @@ park-boundaries.json  TopoJSON park boundaries (NPS Land Resources Division, pub
                       simplified, ~300 KB; used for the parks layer and park auto-suggest
 us-places.json        [name, state, lat, lng, population] for ~32,000 US cities, towns and CDPs
                       (Census Gazetteer + 2024 population estimates; Natural Earth fills in big
-                      unincorporated places like Honolulu); offline place search, biggest first
+                      unincorporated places like Honolulu); offline place search, biggest first.
+                      The point is GeoNames' downtown point for the cities it lists (15,000+
+                      people: same name and state, nearest within 80 km, about the same
+                      population); else the Census "internal point", which is only somewhere
+                      inside the city's limits (San Francisco's, taking in the Farallon Islands,
+                      was in the Pacific; Los Angeles' 16 km from downtown)
+place-fixes.json      [old lat, old lng, new lat, new lng] for the ~1,000 cities that moved over 2 km
+                      that way. `parseTravelData` moves a saved place, Home or trip start sitting
+                      exactly on an old point to the new one on every load (`fixedPoint`), so
+                      saved pins aren't left in the ocean and searching the city again still
+                      reuses the saved place
 world-cities.json     { countries: {code: name}, cities: [name, region, country, lat, lng, population] }
                       for ~29,000 cities over 15,000 people outside the US (GeoNames), biggest
                       first; offline place search and naming a pin dropped abroad

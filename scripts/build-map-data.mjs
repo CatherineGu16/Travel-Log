@@ -3,7 +3,7 @@
 //
 //   node scripts/build-map-data.mjs            uses cached downloads when present
 //   node scripts/build-map-data.mjs --refresh  re-downloads everything
-//   node scripts/build-map-data.mjs --only=world-cities   rebuilds just that file
+//   node scripts/build-map-data.mjs --only=world-cities   rebuilds just that file (or places, airports)
 //
 // Sources (all public domain or free to redistribute):
 //   us-states.json        us-atlas states-10m (US Census), tagged with ISO 3166-2 region codes
@@ -11,7 +11,12 @@
 //                         parks for location, established date and acreage (facts only)
 //   park-boundaries.json  NPS Land Resources Division boundaries, simplified (TopoJSON)
 //   us-places.json        Census Gazetteer places (cities, towns, CDPs) with 2024 population
-//                         estimates (Census), for offline place search ranked by size
+//                         estimates (Census), for offline place search ranked by size. Cities
+//                         GeoNames lists (15,000+ people) use its downtown point: the Census
+//                         point is only somewhere inside the city's limits (San Francisco's,
+//                         which take in the Farallon Islands, is out in the Pacific)
+//   place-fixes.json      [old lat, old lng, new lat, new lng] for every place that moved over
+//                         2 km that way, so places saved at the old point move too (travelData.ts)
 //   us-cities.json        Natural Earth populated places in the US, for map labels
 //   us-lakes.json         Natural Earth 50m lakes in and around the US
 //   world-countries.json  Natural Earth 50m countries (TopoJSON), so neighbors show as land
@@ -235,8 +240,43 @@ async function buildPlaces() {
     const lng = round(Number(f[iLng].trim()))
     return [name, f[iState], lat, lng, population.get(f[iGeoid]) ?? fromNaturalEarth(name, lat, lng)]
   })
+
+  // Downtown points from GeoNames, for the cities it lists. A city matches the same name in the
+  // same state, the nearest within 80 km, with about the same population (or, with no Census
+  // population, within 25 km), so a small town doesn't take a bigger namesake's point.
+  await download(`${GEONAMES}/cities15000.zip`, 'geonames-cities15000.zip', { binary: true })
+  const gnTsv = execFileSync('unzip', ['-p', join(CACHE, 'geonames-cities15000.zip')], { maxBuffer: 64 * 1024 * 1024 }).toString('utf8')
+  const key = (name, state) => `${name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/^(saint|st\.?) /, 'st ')}|${state}`
+  const centers = new Map()
+  for (const line of gnTsv.split('\n')) {
+    const c = line.split('\t')
+    if (c.length < 15 || c[8] !== 'US' || SKIP_FEATURES.has(c[7])) continue
+    for (const name of new Set([c[1], c[2]])) {
+      const k = key(name, c[10])
+      centers.set(k, [...(centers.get(k) ?? []), { lat: Number(c[4]), lng: Number(c[5]), pop: Number(c[14]) || 0 }])
+    }
+  }
+  const km = (lat1, lng1, lat2, lng2) => {
+    const r = Math.PI / 180
+    const h = Math.sin(((lat2 - lat1) * r) / 2) ** 2 + Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin(((lng2 - lng1) * r) / 2) ** 2
+    return 12742 * Math.asin(Math.sqrt(h))
+  }
+  const fixes = []
+  for (const row of places) {
+    const [name, state, lat, lng, pop] = row
+    const best = (centers.get(key(name, state)) ?? [])
+      .map((c) => ({ ...c, d: km(lat, lng, c.lat, c.lng) }))
+      .filter((c) => c.d < 80 && (pop > 0 && c.pop > 0 ? c.pop / pop > 0.4 && c.pop / pop < 2.5 : c.d < 25))
+      .sort((a, b) => a.d - b.d)[0]
+    if (!best) continue
+    row[2] = round(best.lat)
+    row[3] = round(best.lng)
+    if (best.d > 2) fixes.push([lat, lng, row[2], row[3]])
+  }
   // Compact rows: [name, USPS state, lat, lng, population]. Region code is "US-" + state.
   await writeJson('us-places.json', places)
+  await writeJson('place-fixes.json', fixes)
+  console.log(`  ${fixes.length} cities moved over 2 km to their downtown point (GeoNames)`)
 }
 
 // ---------- Cities (labels) and lakes ----------
@@ -401,6 +441,10 @@ await mkdir(CACHE, { recursive: true })
 await mkdir(DATA, { recursive: true })
 if (ONLY === 'world-cities') {
   await buildWorldCities()
+  process.exit(0)
+}
+if (ONLY === 'places') {
+  await buildPlaces()
   process.exit(0)
 }
 if (ONLY === 'airports') {

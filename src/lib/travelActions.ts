@@ -241,6 +241,13 @@ export function deleteTrip(data: TravelData, ctx: EditContext, tripId: string): 
   return { ...data, updatedAt: ctx.now, trips: tombstone(data.trips, tripId, ctx.now) }
 }
 
+/** Moves a place's pin to where it really is (to about a metre); every trip there follows. */
+export function movePlace(data: TravelData, ctx: EditContext, placeId: string, to: { lat: number; lng: number }): TravelData {
+  const lat = Math.round(to.lat * 1e5) / 1e5
+  const lng = Math.round(to.lng * 1e5) / 1e5
+  return { ...data, updatedAt: ctx.now, places: data.places.map((p) => (p.id === placeId ? { ...p, lat, lng, updatedAt: ctx.now } : p)) }
+}
+
 // ---------- People ----------
 
 export const AVATAR_COLORS = ['#d1543a', '#2b6f8f', '#2f7d4f', '#8a5cc2', '#c98a1a', '#c2477a', '#3f7f86', '#6b6f2a']

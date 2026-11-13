@@ -21,7 +21,7 @@ import { legMemory } from './lib/legs.ts'
 import { addBend, routeOf, type RoutePoint } from './lib/route.ts'
 import { tripWhere } from './lib/stats.ts'
 import { regionName } from './lib/states.ts'
-import { live, type PlaceInput } from './lib/travelActions.ts'
+import { live, movePlace, type PlaceInput } from './lib/travelActions.ts'
 import type { LngLat, Place, Trip } from './lib/types.ts'
 import { loadServices, ServicesContext, useStore, useTravelState, type AppServices } from './store/useTravel.ts'
 import type { ParksMode } from './map/MapView.tsx'
@@ -87,7 +87,9 @@ function Shell() {
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null)
   const [form, setForm] = useState<FormState | null>(null)
   const [shape, setShape] = useState<ShapeRequest | null>(null)
-  const [focus, setFocus] = useState<{ lng: number; lat: number; token: number } | null>(null)
+  const [focus, setFocus] = useState<{ lng: number; lat: number; token: number; centered?: boolean; zoom?: number } | null>(null)
+  // A place's pin you're moving (it was in the wrong spot), and where it is now.
+  const [moving, setMoving] = useState<{ place: Place; lng: number; lat: number } | null>(null)
   const focusToken = useRef(0)
   // Trips over the map: a panel on wider screens (open, or hidden for the full map), a sheet on phones.
   const [panelOpen, setPanelOpen] = useState(true)
@@ -136,6 +138,8 @@ function Shell() {
   const [seenRoute, setSeenRoute] = useState<string | null>(null)
   if (routeKey !== seenRoute) {
     setSeenRoute(routeKey)
+    // Going somewhere else lets go of a pin you were moving, without moving it.
+    setMoving(null)
     if (detailTrip) setSelectedTripId(detailTrip.id)
     if (page === 'trips') {
       setPanelOpen(true)
@@ -170,6 +174,23 @@ function Shell() {
     if (placeId) openPin(placeId)
     else if (routePlaceId || detailTrip) navigate(pageHref('map'))
     else if (phone && sheetSize !== 'peek') sizeSheet('peek')
+  }
+
+  /** Starts moving a place's pin: it can be dragged, or tapped into place, until Done or Cancel. */
+  const startMove = (place: Place) => {
+    setMoving({ place, lng: place.lng, lat: place.lat })
+    // Close enough to put it on the right street.
+    setFocus({ lng: place.lng, lat: place.lat, token: ++focusToken.current, centered: true, zoom: 11 })
+  }
+  /** Done: the pin goes where you put it (with Undo); every trip there follows. */
+  const finishMove = () => {
+    if (!moving) return
+    const { place, lng, lat } = moving
+    setMoving(null)
+    if (lng === place.lng && lat === place.lat) return
+    const undoId = store.apply((d, c) => movePlace(d, c, place.id, { lat, lng }), `Moved ${place.name}`)
+    // Long, like a removal: Undo is the only way back to where the pin was.
+    if (undoId !== null) toast(`Moved ${place.name}`, [{ label: 'Undo', onClick: () => store.undo(undoId) }], { long: true })
   }
 
   /** A trip's details, at its own address. */
@@ -300,6 +321,7 @@ function Shell() {
         data={data}
         onPreview={setSelectedTripId}
         onOpen={(trip) => navigate(placeHref(placePin.place.id, trip.id))}
+        onMovePin={() => startMove(placePin.place)}
       />
     ) : (
       <p className="p-4 text-sm text-muted">No trips here match the filter.</p>
@@ -341,7 +363,8 @@ function Shell() {
         <div className="absolute inset-x-0 top-0 bottom-[var(--peek)] sm:bottom-0" style={{ '--peek': `${PEEK_PX}px` } as React.CSSProperties}>
         <Suspense fallback={<div className="h-full w-full bg-bg" />}>
           <MapView
-            pins={pins}
+            // The pin you're moving is drawn as one you can drag instead.
+            pins={moving ? pins.filter((p) => p.place.id !== moving.place.id) : pins}
             tripsPerRegion={perRegion}
             selectedPlaceId={selectedPlaceId}
             route={route}
@@ -356,8 +379,14 @@ function Shell() {
                 setForm({ trip: null, initialMain })
               })
             }}
-            picking={shape !== null}
-            onPick={(lng, lat) => shape && changeShape(addBend([shape.from.lng, shape.from.lat], shape.via, [shape.to.lng, shape.to.lat], [lng, lat]))}
+            picking={shape !== null || moving !== null}
+            onPick={(lng, lat) =>
+              moving
+                ? setMoving({ ...moving, lng, lat })
+                : shape && changeShape(addBend([shape.from.lng, shape.from.lat], shape.via, [shape.to.lng, shape.to.lat], [lng, lat]))
+            }
+            movingPin={moving && { name: moving.place.name, lng: moving.lng, lat: moving.lat, park: !!moving.place.parkId }}
+            onMovePin={(lng, lat) => setMoving((m) => m && { ...m, lng, lat })}
             parksMode={parksMode}
             visitedParks={visitedParks}
             onSelectPark={setParkSheetId}
@@ -455,7 +484,27 @@ function Shell() {
           </div>
         )}
 
-        {onMap && !shape && (
+        {moving && onMap && (
+          <div
+            role="region"
+            aria-label="Move the pin"
+            // Wider screens: centered over the map beside the Trips panel.
+            className={`absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-30 mx-auto flex max-w-md flex-col gap-2 rounded-2xl border border-line bg-surface p-3 text-sm shadow-[0_8px_30px_rgb(0_0_0/0.25)] sm:top-3 ${!phone && panelOpen ? 'sm:left-[27.5rem]' : ''}`}
+          >
+            <b className="min-w-0 truncate">Move {moving.place.name}</b>
+            <p className="-mt-1 text-xs text-muted">Drag the pin, or tap the map where it should be. Every trip there moves with it.</p>
+            <div className="flex items-center justify-end gap-1 border-t border-line pt-2">
+              <button onClick={() => setMoving(null)} className="min-h-11 rounded-lg px-3 font-bold text-muted hover:bg-raised hover:text-fg">
+                Cancel
+              </button>
+              <button onClick={finishMove} className="min-h-11 rounded-lg bg-primary px-4 font-bold text-on-primary">
+                Done
+              </button>
+            </div>
+          </div>
+        )}
+
+        {onMap && !shape && !moving && (
           <>
             <ShadeLegend show={perRegion.size > 0 || pins.length > 0} />
             <div className="absolute top-[max(0.75rem,env(safe-area-inset-top))] left-3 z-10 flex gap-2 sm:top-3 sm:right-3 sm:left-auto">
@@ -484,7 +533,7 @@ function Shell() {
         )}
         {onMap && !shape && !phone && !panelOpen && !formInPanel && <ShowTripsButton onClick={() => setPanelOpen(true)} />}
         {/* Phones: the Trips sheet, set aside while the trip form is open. */}
-        {phone && onMap && !shape && (
+        {phone && onMap && !shape && !moving && (
           <TripsSheet crumbs={crumbs} subtitle={subtitle} size={sheetSize} onSize={sizeSheet} hidden={!!form}>
             {tripsView}
           </TripsSheet>

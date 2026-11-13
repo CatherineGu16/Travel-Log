@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { dateRange, openAddTrip, openDates, openPeople, openPlaceTrips, openSettings, openTrips, openYou, pickDays, saveNewTrip, setTripYear, toStep, tripDetails, tripForm } from './helpers.ts'
+import { dateRange, openAddTrip, savedData, openDates, openPeople, openPlaceTrips, openSettings, openTrips, openYou, pickDays, saveNewTrip, setTripYear, toStep, tripDetails, tripForm } from './helpers.ts'
 
 /** The trip form's place search: "Add a destination", then "Add another destination". */
 const DEST = /^Add (a|another) destination$/
@@ -727,4 +727,56 @@ test('tags you have used before are chips to add; who went in the details is jus
   // Who went lists the people, not the group they're in.
   const who = detail.getByRole('heading', { name: 'Who went' }).locator('xpath=../following-sibling::ul')
   await expect(who.getByRole('listitem')).toHaveText([/Mom/, /Dad/])
+})
+
+test('San Francisco is downtown, not in the ocean; a pin can be moved by dragging or tapping, with Undo', async ({ page }) => {
+  await page.goto('./')
+  const dialog = await openAddTrip(page)
+  await toStep(dialog, 'Route')
+  await choosePlace(page, DEST, 'San Francisco', /^San Francisco\s*CA$/)
+  await saveNewTrip(dialog)
+  await expect(dialog).toBeHidden()
+  const sf = async () => (await savedData(page)).places.find((p) => p.name === 'San Francisco')!
+  await expect.poll(sf).toMatchObject({ lat: 37.7749, lng: -122.4194 })
+
+  // Its pin's trips have Move pin: the pin can be dragged, the map tapped, Cancel leaves it be.
+  await openPlaceTrips(page, /^San Francisco/)
+  const moveButton = page.getByRole('button', { name: 'Move the San Francisco pin' })
+  await moveButton.click()
+  const banner = page.getByRole('region', { name: 'Move the pin' })
+  await expect(banner).toContainText('Move San Francisco')
+  const pin = page.locator('.moving-pin')
+  await expect(pin).toBeVisible()
+  await page.waitForTimeout(900) // the map settles on the pin
+  const map = page.locator('[data-testid="map"] canvas')
+  const box = (await map.boundingBox())!
+  await map.click({ position: { x: box.width * 0.7, y: box.height * 0.75 } })
+  await banner.getByRole('button', { name: 'Cancel' }).click()
+  await expect(banner).toBeHidden()
+  await expect.poll(sf).toMatchObject({ lat: 37.7749, lng: -122.4194 })
+
+  // Drag it, then Done: saved where it was dropped.
+  await moveButton.click()
+  await page.waitForTimeout(900)
+  const at = (await pin.boundingBox())!
+  await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(at.x + at.width / 2 + 60, at.y + at.height / 2 + 40, { steps: 8 })
+  await page.mouse.up()
+  // Letting go isn't a tap on the map: the pin stays where it was dropped.
+  const dropped = (await pin.boundingBox())!
+  expect(Math.abs(dropped.x - (at.x + 60))).toBeLessThan(4)
+  await banner.getByRole('button', { name: 'Done' }).click()
+  await expect(page.getByRole('status')).toContainText(/Moved San Francisco\s*Undo/)
+  await expect.poll(async () => (await sf()).lng).toBeGreaterThan(-122.4194)
+
+  // A tap puts it there too; Undo puts it back.
+  await moveButton.click()
+  await page.waitForTimeout(900)
+  const before = await sf()
+  await map.click({ position: { x: box.width * 0.75, y: box.height * 0.3 } })
+  await banner.getByRole('button', { name: 'Done' }).click()
+  await expect.poll(async () => (await sf()).lat).not.toBe(before.lat)
+  await page.getByRole('status').getByRole('button', { name: 'Undo' }).click()
+  await expect.poll(sf).toMatchObject({ lat: before.lat, lng: before.lng })
 })
