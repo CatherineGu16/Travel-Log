@@ -10,7 +10,8 @@ import parksJson from '../data/national-parks.json'
 import { HikeFacts } from './HikeFacts.tsx'
 import { HikeAdder } from './HikeAdder.tsx'
 import { HikeCorrections } from './HikeCorrections.tsx'
-import { useNpsHikes } from '../ui/useNpsHikes.ts'
+import { useAddedHikes, useNpsHikes } from '../ui/useNpsHikes.ts'
+import { addedHikeFacts } from '../lib/hikeEdits.ts'
 import { Sheet } from './Sheet.tsx'
 import { useToast } from './toastContext.ts'
 
@@ -38,6 +39,7 @@ export function ParkSheet({
   const park = PARKS.find((p) => p.id === parkId)!
   const info = details.get(parkId)
   const npsHikes = useNpsHikes(parkId, data)
+  const addedHikes = useAddedHikes(parkId, data)
   // Only the public repo's owner corrects the shared suggestions.
   const { sharesHikes } = useSyncState()
   const [choosing, setChoosing] = useState<TripHike | null>(null)
@@ -47,7 +49,8 @@ export function ParkSheet({
   const done = useMemo(() => hikesDone(data, parkId), [data, parkId])
   // Newest first.
   const doneList = [...done.values()].sort((a, b) => (b.times[0]?.date ?? '').localeCompare(a.times[0]?.date ?? ''))
-  const npsOf = (h: HikeDone) => npsHikes.find((n) => n.id === h.hikeId) ?? null
+  // A hike's facts: NPS's, or (for one you typed in) the shared added hike's, as corrected.
+  const npsOf = (h: HikeDone) => npsHikes.find((n) => n.id === h.hikeId) ?? (h.hikeId === null ? addedHikeFacts(addedHikes, h.name) : null)
 
   const addTo = (tripId: string, hike: TripHike) => {
     const trip = visits.find((v) => v.trip.id === tripId)?.trip
@@ -177,7 +180,7 @@ export function ParkSheet({
               label={`Which trip was “${choosing.name}” on?`}
             />
           )}
-          {sharesHikes && npsHikes.length > 0 && <HikeCorrections parkId={parkId} hikes={npsHikes} />}
+          {sharesHikes && npsHikes.length + addedHikes.length > 0 && <HikeCorrections parkId={parkId} hikes={npsHikes} added={addedHikes} />}
         </section>
       </div>
     </Sheet>

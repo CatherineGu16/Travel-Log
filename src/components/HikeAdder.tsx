@@ -1,8 +1,9 @@
-import { useEffect, useId, useMemo, useState } from 'react'
-import { loadAddedHikes, sameHikeName, type AddedHikes } from '../lib/addedHikes.ts'
+import { useId, useMemo, useState } from 'react'
+import { sameHikeName } from '../lib/addedHikes.ts'
 import { hikesDone } from '../lib/derive.ts'
 import { matchesHike, type NpsHike } from '../lib/gazetteer.ts'
-import { useNpsHikes } from '../ui/useNpsHikes.ts'
+import { useAddedHikes, useNpsHikes } from '../ui/useNpsHikes.ts'
+import { addedHikeFacts } from '../lib/hikeEdits.ts'
 import type { TravelData, TripHike } from '../lib/types.ts'
 import { HikeFacts } from './HikeFacts.tsx'
 
@@ -35,10 +36,7 @@ export function HikeAdder({
 }) {
   const id = useId()
   const nps = useNpsHikes(parkId, data)
-  const [added, setAdded] = useState<AddedHikes>({})
-  useEffect(() => {
-    void loadAddedHikes().then(setAdded)
-  }, [])
+  const added = useAddedHikes(parkId, data)
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
@@ -49,9 +47,11 @@ export function HikeAdder({
       if (has(s.hikeId, s.name) || out.some((o) => sameHikeName(o.name, s.name) || (s.hikeId && o.hikeId === s.hikeId))) return
       out.push(s)
     }
-    const npsOf = (hikeId: string | null, name: string) => nps.find((h) => h.id === hikeId) ?? nps.find((h) => sameHikeName(h.name, name)) ?? null
+    const npsOf = (hikeId: string | null, name: string) =>
+      nps.find((h) => h.id === hikeId) ?? nps.find((h) => sameHikeName(h.name, name)) ?? (hikeId === null ? addedHikeFacts(added, name) : null)
     for (const h of hikesDone(data, parkId).values()) push({ hikeId: h.hikeId, name: h.name, nps: npsOf(h.hikeId, h.name), from: 'yours' })
-    for (const h of added[parkId] ?? []) push({ hikeId: null, name: h.name, nps: null, from: 'added' })
+    // Added hikes as corrected (a typed hike: no id, just its name and any facts).
+    for (const h of added) if (!h.hidden) push({ hikeId: null, name: h.name, nps: h, from: 'added' })
     for (const h of nps) if (!h.hidden) push({ hikeId: h.id, name: h.name, nps: h, from: 'nps' })
     return out
   }, [data, parkId, added, nps, has])
@@ -138,3 +138,4 @@ export function HikeAdder({
     </div>
   )
 }
+

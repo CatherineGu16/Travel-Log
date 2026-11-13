@@ -58,7 +58,7 @@ test("the public repo's owner corrects a suggested hike, and it's shared to the 
   await connect(page, 'CatherineGu16')
 
   const sheet = await openZion(page)
-  await sheet.getByRole('button', { name: /Correct the NPS hike info/ }).click()
+  await sheet.getByRole('button', { name: /Correct the hike suggestions/ }).click()
   await sheet.getByRole('button', { name: 'Edit Angels Landing' }).click()
   const form = sheet.getByRole('group', { name: 'Edit Angels Landing' })
   await form.getByRole('textbox', { name: 'Distance (mi)' }).fill('5.4')
@@ -75,6 +75,49 @@ test("the public repo's owner corrects a suggested hike, and it's shared to the 
   await expect.poll(() => gh.read('Travel-Log/src/data/hike-edits.json')?.zion?.['angels-landing']?.distanceMi).toBe(5.4)
 })
 
+test("the owner corrects a hike people added: renamed, given a distance, or not suggested any more", async ({ page, context }) => {
+  const gh = fakeGitHub('CatherineGu16')
+  await gh.attach(context)
+  await page.goto('./')
+  await connect(page, 'CatherineGu16')
+
+  // Panoramic Point is on the shared list of added hikes (src/data/added-hikes.json) for Kings Canyon.
+  await openParks(page)
+  await page.getByRole('listitem', { name: 'Kings Canyon' }).getByRole('button', { name: /Kings Canyon/ }).click()
+  const sheet = page.getByRole('dialog', { name: 'Kings Canyon National Park' })
+  await sheet.getByRole('button', { name: /Correct the hike suggestions/ }).click()
+  const added = sheet.getByRole('list', { name: 'Added hikes' })
+  await added.getByRole('button', { name: 'Edit Panoramic Point' }).click()
+  const form = sheet.getByRole('group', { name: 'Edit Panoramic Point' })
+  await form.getByRole('textbox', { name: 'Name' }).fill('Panoramic Point Trail')
+  await form.getByRole('textbox', { name: 'Distance (mi)' }).fill('2.5')
+  await form.getByLabel('Distance is').selectOption('round trip')
+  await form.getByRole('button', { name: 'Save' }).click()
+  await expect(added.getByRole('listitem')).toContainText(['Panoramic Point Trail'])
+  await expect(added).toContainText('corrected')
+
+  // The suggestion shows it at once, renamed and with its distance.
+  await sheet.getByRole('combobox', { name: 'Add a hike' }).fill('panoramic')
+  await expect(sheet.getByRole('option', { name: /^Panoramic Point Trail/ })).toContainText('2.5 mi')
+  await sheet.getByRole('combobox', { name: 'Add a hike' }).fill('')
+
+  // Shared to the public corrections on the next sync, under the name it was added with.
+  await sheet.getByRole('button', { name: 'Close' }).click()
+  await page.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: 'Map' }).filter({ visible: true }).click()
+  await page.getByRole('button', { name: /Sync now/ }).click()
+  await expect.poll(() => gh.read('Travel-Log/src/data/hike-edits.json')?.['kings-canyon']?.['added:panoramic point']?.name).toBe('Panoramic Point Trail')
+
+  // "Don't suggest this hike" takes it out of the suggestions.
+  await openParks(page)
+  await page.getByRole('listitem', { name: 'Kings Canyon' }).getByRole('button', { name: /Kings Canyon/ }).click()
+  await sheet.getByRole('button', { name: /Correct the hike suggestions/ }).click()
+  await added.getByRole('button', { name: 'Edit Panoramic Point Trail' }).click()
+  await sheet.getByRole('group', { name: 'Edit Panoramic Point Trail' }).getByRole('checkbox', { name: "Don't suggest this hike" }).check()
+  await sheet.getByRole('group', { name: 'Edit Panoramic Point Trail' }).getByRole('button', { name: 'Save' }).click()
+  await sheet.getByRole('combobox', { name: 'Add a hike' }).fill('panoramic')
+  await expect(sheet.getByRole('option', { name: /^Panoramic Point/ })).toHaveCount(0)
+})
+
 test('nobody else sees the correction tools', async ({ page, context }) => {
   const gh = fakeGitHub('someone')
   await gh.attach(context)
@@ -82,5 +125,5 @@ test('nobody else sees the correction tools', async ({ page, context }) => {
   await connect(page, 'someone')
   const sheet = await openZion(page)
   await expect(sheet.getByRole('combobox', { name: 'Add a hike' })).toBeVisible()
-  await expect(sheet.getByRole('button', { name: /Correct the NPS hike info/ })).toHaveCount(0)
+  await expect(sheet.getByRole('button', { name: /Correct the hike suggestions/ })).toHaveCount(0)
 })

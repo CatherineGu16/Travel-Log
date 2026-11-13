@@ -8,24 +8,49 @@ import { HikeFacts } from './HikeFacts.tsx'
 import { useToast } from './toastContext.ts'
 
 /**
- * For the public repo's owner: fix the NPS hike suggestions for a park (name, distance, time,
- * difficulty) or hide ones that shouldn't be suggested. Saved like any edit (with Undo) and shared
- * to the public list on the next sync, so every device gets them after the next deploy.
+ * For the public repo's owner: fix a park's hike suggestions, both NPS's and the ones people added
+ * (name, distance, time, difficulty), or hide ones that shouldn't be suggested. Saved like any
+ * edit (with Undo) and shared to the public list on the next sync, so every device gets them
+ * after the next deploy.
  */
-export function HikeCorrections({ parkId, hikes }: { parkId: string; hikes: ShownHike[] }) {
+export function HikeCorrections({ parkId, hikes, added }: { parkId: string; hikes: ShownHike[]; added: ShownHike[] }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [editing, setEditing] = useState<string | null>(null)
-  const edited = hikes.filter((h) => h.original).length
-  const shown = hikes.filter((h) => matchesHike(h.name, query)).sort((a, b) => a.name.localeCompare(b.name))
+  const edited = [...hikes, ...added].filter((h) => h.original).length
+  const matching = (list: ShownHike[]) => list.filter((h) => matchesHike(h.name, query)).sort((a, b) => a.name.localeCompare(b.name))
+  const row = (h: ShownHike, isAdded: boolean) =>
+    editing === h.id ? (
+      <li key={h.id} className="py-2">
+        <EditForm parkId={parkId} hike={h} added={isAdded} onDone={() => setEditing(null)} />
+      </li>
+    ) : (
+      <li key={h.id} className="flex min-h-11 items-center gap-2 px-1 py-1">
+        <span className={`min-w-0 flex-1 ${h.hidden ? 'text-muted line-through' : ''}`}>
+          <span className="text-sm">{h.name}</span>
+          {h.hidden ? <span className="ml-2 text-xs no-underline">hidden</span> : <HikeFacts hike={h} />}
+        </span>
+        {h.original && <span className="shrink-0 text-xs text-muted">corrected</span>}
+        <button
+          type="button"
+          aria-label={`Edit ${h.name}`}
+          onClick={() => setEditing(h.id)}
+          className="min-h-9 shrink-0 rounded-md px-2 text-sm font-bold text-primary hover:bg-raised"
+        >
+          Edit
+        </button>
+      </li>
+    )
+  const shownAdded = matching(added)
 
   return (
     <section aria-label="Correct hike info" className="mt-4 rounded-xl border border-dashed border-line">
       <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="flex min-h-11 w-full items-center gap-2 px-3 text-left text-sm">
         <span className="flex-1">
-          <span className="font-bold">Correct the NPS hike info</span>
+          <span className="font-bold">Correct the hike suggestions</span>
           <span className="block text-xs text-muted">
-            {hikes.length} suggested{edited > 0 && ` · ${edited} corrected`}. Fixes are shared to the public list when you sync.
+            {hikes.length} from NPS{added.length > 0 && ` · ${added.length} added`}
+            {edited > 0 && ` · ${edited} corrected`}. Fixes are shared to the public list when you sync.
           </span>
         </span>
         <svg viewBox="0 0 20 20" className={`size-4 shrink-0 text-muted ${open ? 'rotate-180' : ''}`} aria-hidden="true">
@@ -34,7 +59,7 @@ export function HikeCorrections({ parkId, hikes }: { parkId: string; hikes: Show
       </button>
       {open && (
         <div className="border-t border-line p-2">
-          {hikes.length > 10 && (
+          {hikes.length + added.length > 10 && (
             <input
               type="search"
               aria-label="Find a suggested hike"
@@ -44,30 +69,18 @@ export function HikeCorrections({ parkId, hikes }: { parkId: string; hikes: Show
               className="mb-2 h-10 w-full min-w-0 rounded-lg border border-line bg-bg px-3 text-base"
             />
           )}
-          <ul className="divide-y divide-line">
-            {shown.map((h) =>
-              editing === h.id ? (
-                <li key={h.id} className="py-2">
-                  <EditForm parkId={parkId} hike={h} onDone={() => setEditing(null)} />
-                </li>
-              ) : (
-                <li key={h.id} className="flex min-h-11 items-center gap-2 px-1 py-1">
-                  <span className={`min-w-0 flex-1 ${h.hidden ? 'text-muted line-through' : ''}`}>
-                    <span className="text-sm">{h.name}</span>
-                    {h.hidden ? <span className="ml-2 text-xs no-underline">hidden</span> : <HikeFacts hike={h} />}
-                  </span>
-                  {h.original && <span className="shrink-0 text-xs text-muted">corrected</span>}
-                  <button
-                    type="button"
-                    aria-label={`Edit ${h.name}`}
-                    onClick={() => setEditing(h.id)}
-                    className="min-h-9 shrink-0 rounded-md px-2 text-sm font-bold text-primary hover:bg-raised"
-                  >
-                    Edit
-                  </button>
-                </li>
-              ),
-            )}
+          {/* Hikes people typed in, shared to the public list: renamed, given facts, or hidden here. */}
+          {shownAdded.length > 0 && (
+            <>
+              <h4 className="px-1 pt-1 text-xs font-bold text-muted">Added by people</h4>
+              <ul aria-label="Added hikes" className="mb-2 divide-y divide-line">
+                {shownAdded.map((h) => row(h, true))}
+              </ul>
+              <h4 className="px-1 text-xs font-bold text-muted">From NPS</h4>
+            </>
+          )}
+          <ul aria-label="NPS hikes" className="divide-y divide-line">
+            {matching(hikes).map((h) => row(h, false))}
           </ul>
         </div>
       )}
@@ -75,7 +88,7 @@ export function HikeCorrections({ parkId, hikes }: { parkId: string; hikes: Show
   )
 }
 
-function EditForm({ parkId, hike, onDone }: { parkId: string; hike: ShownHike; onDone: () => void }) {
+function EditForm({ parkId, hike, added, onDone }: { parkId: string; hike: ShownHike; added: boolean; onDone: () => void }) {
   const store = useStore()
   const toast = useToast()
   const [name, setName] = useState(hike.name)
@@ -100,7 +113,8 @@ function EditForm({ parkId, hike, onDone }: { parkId: string; hike: ShownHike; o
   }
   const reset = () => {
     const undoId = store.apply((d, c) => resetHikeEdit(d, c, parkId, hike.id), `Reset ${hike.name}`)
-    if (undoId !== null) toast(`${hike.original?.name ?? hike.name} is back to NPS's info`, [{ label: 'Undo', onClick: () => store.undo(undoId) }])
+    const back = added ? 'back as it was added' : "back to NPS's info"
+    if (undoId !== null) toast(`${hike.original?.name ?? hike.name} is ${back}`, [{ label: 'Undo', onClick: () => store.undo(undoId) }])
     onDone()
   }
 
@@ -144,7 +158,7 @@ function EditForm({ parkId, hike, onDone }: { parkId: string; hike: ShownHike; o
       </label>
       {hike.original && (
         <p className="text-xs text-muted">
-          NPS says: {hike.original.name}
+          {added ? 'Added as' : 'NPS says'}: {hike.original.name}
           {hike.original.distanceMi !== null && ` · ${hike.original.distanceMi} mi${hike.original.distanceKind ? ` ${hike.original.distanceKind}` : ''}`}
           {hike.original.duration && ` · ${hike.original.duration}`}
           {hike.original.difficulty && ` · ${hike.original.difficulty}`}
@@ -164,7 +178,7 @@ function EditForm({ parkId, hike, onDone }: { parkId: string; hike: ShownHike; o
         </button>
         {hike.original && (
           <button type="button" onClick={reset} className="ml-auto min-h-10 rounded-lg px-3 text-sm font-bold text-muted hover:text-fg">
-            Use NPS's info
+            {added ? 'Use it as added' : "Use NPS's info"}
           </button>
         )}
       </div>

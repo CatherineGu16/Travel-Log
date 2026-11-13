@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { NpsHike } from './gazetteer.ts'
-import { parsePublicHikeEdits, shownHikes, withHikeEdits, type PublicHikeEdit } from './hikeEdits.ts'
+import { addedAsHike, addedHikeFacts, addedHikeId, parsePublicHikeEdits, shownHikes, withHikeEdits, type PublicHikeEdit } from './hikeEdits.ts'
 import type { HikeEdit } from './types.ts'
 
 const nps: NpsHike = { id: 'skyline-trail', name: 'Skyline Trail', npsUrl: null, difficulty: null, distanceMi: 5, distanceSource: 'nps', duration: '4 hours' }
@@ -51,5 +51,22 @@ describe('hike corrections', () => {
     // An older copy doesn't overwrite a newer published correction.
     expect(withHikeEdits({ 'mount-rainier': { 'skyline-trail': pub({ editedAt: '2027-01-01' }) } }, [fix()])['mount-rainier']['skyline-trail'].name).toBe('Skyline (published)')
     expect(parsePublicHikeEdits(JSON.parse(JSON.stringify(written)))).toEqual(written)
+  })
+})
+
+describe('added hikes', () => {
+  it('are corrected under their name as added, ignoring case and spaces', () => {
+    expect(addedHikeId('  Panoramic   Point ')).toBe('added:panoramic point')
+    const [shown] = shownHikes([addedAsHike('Panoramic Point')], undefined, [
+      fix({ parkId: 'kings-canyon', hikeId: 'added:panoramic point', name: 'Panoramic Point Trail', distanceMi: 2.5, distanceKind: 'round trip' }),
+    ])
+    expect(shown).toMatchObject({ name: 'Panoramic Point Trail', distanceMi: 2.5, distanceKind: 'round trip', hidden: false, original: { name: 'Panoramic Point' } })
+  })
+
+  it("give their facts to a hike you typed in, by its name now or as it was added", () => {
+    const shown = shownHikes([addedAsHike('Panoramic Point')], undefined, [fix({ parkId: 'kings-canyon', hikeId: 'added:panoramic point', name: 'Panoramic Point Trail' })])
+    expect(addedHikeFacts(shown, 'panoramic point')?.name).toBe('Panoramic Point Trail')
+    expect(addedHikeFacts(shown, 'Panoramic Point Trail')?.name).toBe('Panoramic Point Trail')
+    expect(addedHikeFacts(shown, 'Lookout')).toBeNull()
   })
 })

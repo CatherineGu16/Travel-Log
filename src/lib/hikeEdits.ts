@@ -1,3 +1,4 @@
+import { sameHikeName } from './addedHikes.ts'
 import type { NpsHike } from './gazetteer.ts'
 import type { DistanceKind, HikeDifficulty, HikeEdit } from './types.ts'
 
@@ -22,7 +23,22 @@ let bundled: Promise<PublicHikeEdits> | null = null
 /** The corrections as of this build of the app. */
 export const loadPublicHikeEdits = () => (bundled ??= import('../data/hike-edits.json').then((m) => parsePublicHikeEdits(m.default)))
 
-/** A suggested hike as shown: NPS's values with any correction applied. */
+/** The id an added hike's corrections go under: "added:" and its name as it was shared, without case or extra spaces. */
+export const addedHikeId = (name: string) => `added:${name.trim().replace(/\s+/g, ' ').toLowerCase()}`
+
+/** A hike someone added (added-hikes.json: a name only), as a suggestion that can be corrected like an NPS one. */
+export const addedAsHike = (name: string): NpsHike => ({
+  id: addedHikeId(name),
+  name,
+  npsUrl: null,
+  difficulty: null,
+  distanceMi: null,
+  distanceKind: null,
+  distanceSource: null,
+  duration: null,
+})
+
+/** A suggested hike as shown: NPS's values (or an added hike's name) with any correction applied. */
 export type ShownHike = NpsHike & {
   hidden: boolean
   /** NPS's own values, when a correction changed them. */
@@ -99,4 +115,9 @@ export function parsePublicHikeEdits(value: unknown): PublicHikeEdits {
     }
   }
   return out
+}
+
+/** An added hike's facts for a hike you typed in, matched by its name now or as it was added. */
+export function addedHikeFacts(added: ShownHike[], name: string): ShownHike | null {
+  return added.find((h) => sameHikeName(h.name, name) || (h.original !== null && sameHikeName(h.original.name, name))) ?? null
 }

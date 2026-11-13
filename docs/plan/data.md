@@ -185,12 +185,19 @@ no file. A photo avatar is one small file per person. At ~20 KB each, even 200 p
   key. The next deploy bundles them, so they're suggested on every device. Each device remembers
   what it has shared and doesn't ask again. If the key can't write to `Travel-Log`, your own sync
   still works and Settings says why. The repo is taken from the build (`GITHUB_REPOSITORY`).
-- **Correcting the NPS suggestions** (owner only): in a park's page, **Correct the NPS hike info**
-  lists the park's NPS hikes with Edit: name, distance, time, difficulty, or **Don't suggest this
-  hike**. A correction is a `hikeEdits` record in your private data (synced, with Undo; resetting
+- **Correcting the suggestions** (owner only): in a park's page, **Correct the hike suggestions**
+  lists the park's hikes **added by people** (the shared list above) and **from NPS**, each with
+  Edit: name, distance, time, difficulty, or **Don't suggest this hike** (for an added hike, that's
+  how it comes off the list). An added hike's correction goes under `added:` + its name as it was
+  added (`added:panoramic point`), so added-hikes.json itself never changes; hikes you typed on
+  your trips get its facts by either name. A correction is a `hikeEdits` record in your private data (synced, with Undo; resetting
   it goes back to NPS's values) and shows at once. After each sync the corrections are written to
   `src/data/hike-edits.json` in the public repo, so every device sees them after the next deploy.
   Per hike, the newer of the published correction and your own wins.
+  **Why a separate file rather than editing park-hikes.json:** park-hikes.json is rebuilt from
+  nps.gov by `scripts/build-park-hikes.mjs`, which would wipe edits made in it; corrections laid
+  over it survive a rebuild, keep NPS's values for "Use NPS's info", and are a small file to
+  write from the app (park-hikes.json is ~360 KB). Every device shows the list with them applied.
   **Only the public repo's owner (CatherineGu16) adds to it**: the app only tries when the sync
   username is the repo's owner, and GitHub itself refuses writes from anyone else's key, so a
   stranger using the site just syncs their own private repo.
