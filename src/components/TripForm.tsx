@@ -18,6 +18,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { HomeGlyph, LegRow } from './LegRow.tsx'
 import { RAIL, railStyle } from './timeline.ts'
 import { useToast } from './toastContext.ts'
+import { useReorder } from './useReorder.ts'
 
 interface DestinationDraft {
   key: string
@@ -172,6 +173,8 @@ export function TripForm({
   }, [])
   // The stop whose dates are open for picking (one at a time).
   const [datesFor, setDatesFor] = useState<string | null>(null)
+  // The place whose name you're editing in place of its title.
+  const [renaming, setRenaming] = useState<string | null>(null)
 
   const mains = destinations.filter((d) => d.isMain)
 
@@ -315,12 +318,21 @@ export function TripForm({
       ds.map((x, i) => (x.key === key ? { ...x, place, via: [], legMode: null } : ds[i - 1]?.key === key ? { ...x, via: [], legMode: null } : x)),
     )
 
-  const move = (i: number, by: -1 | 1) =>
+  /** Moves a place to another spot in the order (its drag handle); the legs that changed start over. */
+  const reorder = (from: number, to: number) =>
     updateDestinations((d) => {
       const next = [...d]
-      ;[next[i], next[i + by]] = [next[i + by], next[i]]
+      const [moved] = next.splice(from, 1)
+      next.splice(to, 0, moved)
       return next
     })
+  const reordering = useReorder(destinations.length, reorder)
+  /** A new place's name, typed in place of its title (saved places and parks keep theirs). */
+  const rename = (key: string, name: string) =>
+    updateDestinations((ds) =>
+      ds.map((d) => (d.key === key && 'place' in d.place.ref ? { ...d, place: { ...d.place, label: name, ref: { place: { ...d.place.ref.place, name } } } } : d)),
+    )
+
   const patch = (key: string, change: Partial<DestinationDraft>) => updateDestinations((d) => d.map((x) => (x.key === key ? { ...x, ...change } : x)))
   const remove = (key: string) =>
     updateDestinations((d) => {
@@ -403,7 +415,8 @@ export function TripForm({
     const prize = won.length
       ? ` · 🏅 ${won[0].status.achievement.tiers.length > 1 ? `${TIER_NAMES[won[0].tier.level]} · ` : ''}${won[0].status.achievement.name}${won.length > 1 ? ` (+${won.length - 1} more)` : ''}`
       : ''
-    toast(`${trip ? 'Trip updated' : `Added ${saved.title}`}${prize}`, [{ label: 'Undo', onClick: () => store.undo(undoId) }])
+    // A plain save shows for a moment; one that earned an achievement stays long enough to read.
+    toast(`${trip ? 'Trip updated' : `Added ${saved.title}`}${prize}`, [{ label: 'Undo', onClick: () => store.undo(undoId) }], { long: !!prize })
     onSaved(saved.destinations.find((d) => d.isMain)!.placeId, saved.id)
   }
 
@@ -615,7 +628,7 @@ export function TripForm({
       {step === 1 && (
         <section aria-label="Where you went">
           <h3 className="text-sm font-bold">Where you went</h3>
-          <p className="mb-3 text-xs text-muted">Main places get a pin on the map. Tap a leg to change how you went.</p>
+          <p className="mb-3 text-xs text-muted">Main places get a pin on the map: tap a place's pin or number to switch it between main and stop. Drag ⠿ to reorder. Tap a leg to change how you went.</p>
           {startRow('top')}
           {toLeg && (
             <LegRow leg={toLeg} allowGuess={false} onPick={(mode) => mode && setStartMode(mode)}>
@@ -630,8 +643,11 @@ export function TripForm({
                 const leg = i > 0 ? legBefore(i) : null
                 const into = i === 0 ? toLeg : leg
                 const out = i < destinations.length - 1 ? legBefore(i + 1) : backLeg
+                // A new place that isn't a park can be renamed by tapping its name; others open "Change place".
+                const renamable = 'place' in d.place.ref && !d.place.ref.place.parkId
+                const { ref, style } = reordering.item(i)
                 return (
-                  <li key={d.key} aria-label={d.place.label}>
+                  <li key={d.key} ref={ref} style={style} aria-label={d.place.label} className={reordering.dragging === i ? 'rounded-xl bg-surface shadow-lg' : ''}>
                     {leg && (
                       <LegRow leg={leg} onPick={(legMode) => patch(d.key, { legMode })}>
                         {leg.mode !== 'flight' && (
@@ -655,37 +671,54 @@ export function TripForm({
                       above={into?.mode}
                       below={out?.mode ?? (i < destinations.length - 1 ? 'unknown' : undefined)}
                       marker={
-                        d.isMain ? (
-                          <PinGlyph park={d.place.isPark} className="size-7" />
-                        ) : (
-                          <span className="grid size-7 place-items-center rounded-full bg-[var(--route)] text-xs font-bold text-[var(--route-text)]">{number}</span>
-                        )
+                        // The pin (main) or number (stop) switches between the two.
+                        <button
+                          type="button"
+                          aria-label={d.isMain ? `${d.place.label} is a main destination` : `Make ${d.place.label} a main destination`}
+                          aria-pressed={d.isMain}
+                          disabled={onlyMain}
+                          title={onlyMain ? 'A trip needs at least one main destination' : d.isMain ? 'Main destination: tap to make it a stop' : 'Stop: tap to make it a main destination (its own pin)'}
+                          onClick={() => patch(d.key, { isMain: !d.isMain })}
+                          className="-m-0.5 grid size-11 place-items-center rounded-full hover:bg-raised disabled:cursor-default disabled:hover:bg-transparent"
+                        >
+                          {d.isMain ? (
+                            <PinGlyph park={d.place.isPark} className="size-7" />
+                          ) : (
+                            <span className="grid size-7 place-items-center rounded-full bg-[var(--route)] text-xs font-bold text-[var(--route-text)]">{number}</span>
+                          )}
+                        </button>
                       }
                     >
                       <div className="flex items-start gap-1">
                         <div className="min-w-0 flex-1 py-1">
-                          <button
-                            type="button"
-                            onClick={() => patch(d.key, { open: !d.open })}
-                            aria-expanded={d.open}
-                            aria-label={`${d.place.label}: change place, name or note`}
-                            className="block max-w-full text-left leading-snug break-words hover:underline"
-                          >
-                            <span className={d.isMain ? 'font-bold' : ''}>{d.place.label}</span>
-                            {d.place.detail && <span className="ml-1.5 text-xs text-muted">{d.place.detail}</span>}
-                          </button>
-                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                          {renaming === d.key ? (
+                            <RenameInput
+                              name={d.place.label}
+                              bold={d.isMain}
+                              onDone={(name) => {
+                                if (name) rename(d.key, name)
+                                setRenaming(null)
+                              }}
+                            />
+                          ) : (
                             <button
                               type="button"
-                              aria-label={d.isMain ? `${d.place.label} is a main destination` : `Make ${d.place.label} a main destination`}
-                              aria-pressed={d.isMain}
-                              disabled={onlyMain}
-                              title={onlyMain ? 'A trip needs at least one main destination' : d.isMain ? 'Tap to make it a stop' : 'Tap to give it a pin'}
-                              onClick={() => patch(d.key, { isMain: !d.isMain })}
-                              className={`min-h-7 rounded-full border px-2.5 text-xs font-bold disabled:cursor-default ${d.isMain ? 'border-primary/40 bg-primary/10 text-primary' : 'border-line text-muted hover:text-fg'}`}
+                              onClick={() => (renamable ? setRenaming(d.key) : patch(d.key, { open: !d.open }))}
+                              aria-expanded={renamable ? undefined : d.open}
+                              aria-label={renamable ? `Rename ${d.place.label}` : `${d.place.label}: change place or note`}
+                              title={renamable ? 'Tap to rename' : undefined}
+                              className="group block max-w-full text-left leading-snug break-words"
                             >
-                              {d.isMain ? 'Main' : 'Stop'}
+                              <span className={`group-hover:underline ${d.isMain ? 'font-bold' : ''}`}>{d.place.label}</span>
+                              {renamable && (
+                                <svg viewBox="0 0 20 20" className="ml-1 inline size-3.5 align-[-1px] text-muted" aria-hidden>
+                                  <path d="m13.5 3.5 3 3L7 16H4v-3z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+                                </svg>
+                              )}
+                              {d.place.detail && <span className="ml-1.5 text-xs text-muted">{d.place.detail}</span>}
                             </button>
+                          )}
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
                             <button
                               type="button"
                               onClick={() => setDatesFor(datesFor === d.key ? null : d.key)}
@@ -702,14 +735,20 @@ export function TripForm({
                             {d.note && <span className="min-w-0 truncate text-xs text-muted">{d.note}</span>}
                           </div>
                         </div>
-                        <StopMenu
-                          place={d.place.label}
-                          first={i === 0}
-                          last={i === destinations.length - 1}
-                          onMove={(by) => move(i, by)}
-                          onEdit={() => patch(d.key, { open: true })}
-                          onRemove={() => remove(d.key)}
-                        />
+                        {destinations.length > 1 && (
+                          <button
+                            type="button"
+                            {...reordering.handle(i)}
+                            aria-label={`Reorder ${d.place.label} (drag, or use the arrow keys)`}
+                            title="Drag to reorder"
+                            className="grid size-11 shrink-0 cursor-grab touch-none place-items-center rounded-lg text-muted hover:bg-raised hover:text-fg active:cursor-grabbing"
+                          >
+                            <svg viewBox="0 0 20 20" className="size-5" aria-hidden>
+                              {[6, 10, 14].flatMap((y) => [7.5, 12.5].map((x) => <circle key={`${x}-${y}`} cx={x} cy={y} r="1.5" fill="currentColor" />))}
+                            </svg>
+                          </button>
+                        )}
+                        <StopMenu place={d.place.label} onEdit={() => patch(d.key, { open: true })} onRemove={() => remove(d.key)} />
                       </div>
                       <div className="empty:hidden">
                         <ParkSuggestion
@@ -738,20 +777,6 @@ export function TripForm({
                       {d.open && (
                         <div className="mt-1 mb-2 flex flex-col gap-3 rounded-xl border border-line bg-bg p-3">
                           <PlacePicker label="Change to another place" data={data} near={near} value={null} onChange={(p) => p && changePlace(d.key, p)} />
-                          {'place' in d.place.ref && !d.place.ref.place.parkId && (
-                            <label className="block">
-                              <span className="mb-1 block text-sm font-bold">Name</span>
-                              <input
-                                aria-label={`${d.place.label} name`}
-                                value={d.place.label}
-                                onChange={(e) =>
-                                  'place' in d.place.ref &&
-                                  patch(d.key, { place: { ...d.place, label: e.target.value, ref: { place: { ...d.place.ref.place, name: e.target.value } } } })
-                                }
-                                className={`${input} h-10`}
-                              />
-                            </label>
-                          )}
                           <label className="block">
                             <span className="mb-1 block text-sm font-bold">Note</span>
                             <input value={d.note} onChange={(e) => patch(d.key, { note: e.target.value })} className={`${input} h-10`} />
@@ -938,22 +963,34 @@ function TimelineRow({ marker, above, below, children }: { marker: React.ReactNo
   )
 }
 
-/** "⋯" on a place: move it up or down, change it (place, name, note), or remove it. */
-function StopMenu({
-  place,
-  first,
-  last,
-  onMove,
-  onEdit,
-  onRemove,
-}: {
-  place: string
-  first: boolean
-  last: boolean
-  onMove: (by: -1 | 1) => void
-  onEdit: () => void
-  onRemove: () => void
-}) {
+/**
+ * A place's name, edited where its title was. Enter or tapping away keeps it (an empty name keeps
+ * the old one); Escape puts the old one back.
+ */
+function RenameInput({ name, bold, onDone }: { name: string; bold: boolean; onDone: (name: string | null) => void }) {
+  const [value, setValue] = useState(name)
+  const cancelled = useRef(false)
+  return (
+    <input
+      autoFocus
+      aria-label={`${name} name`}
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={() => onDone(cancelled.current ? null : value.trim().replace(/\s+/g, ' ') || null)}
+      onKeyDown={(e) => {
+        // Enter keeps the name without going on to the next step; Escape doesn't close the form.
+        if (e.key !== 'Enter' && e.key !== 'Escape') return
+        e.preventDefault()
+        cancelled.current = e.key === 'Escape'
+        e.currentTarget.blur()
+      }}
+      className={`-my-1 h-9 w-full rounded-md border border-line bg-bg px-2 text-base leading-snug ${bold ? 'font-bold' : ''}`}
+    />
+  )
+}
+
+/** "⋯" on a place: change it (another place, a note), or remove it. Its name is edited in place and its drag handle reorders it. */
+function StopMenu({ place, onEdit, onRemove }: { place: string; onEdit: () => void; onRemove: () => void }) {
   const item =
     'flex min-h-10 cursor-pointer items-center rounded-lg px-3 text-sm outline-none data-[disabled]:cursor-default data-[disabled]:opacity-40 data-[highlighted]:bg-raised'
   return (
@@ -969,14 +1006,8 @@ function StopMenu({
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content align="end" sideOffset={4} className="z-[60] min-w-48 rounded-xl border border-line bg-surface p-1 shadow-lg">
-          <DropdownMenu.Item disabled={first} onSelect={() => onMove(-1)} className={item}>
-            Move up
-          </DropdownMenu.Item>
-          <DropdownMenu.Item disabled={last} onSelect={() => onMove(1)} className={item}>
-            Move down
-          </DropdownMenu.Item>
           <DropdownMenu.Item onSelect={onEdit} className={item}>
-            Change place, name or note
+            Change place or note
           </DropdownMenu.Item>
           <DropdownMenu.Separator className="my-1 h-px bg-line" />
           <DropdownMenu.Item onSelect={onRemove} className={`${item} text-danger`}>

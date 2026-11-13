@@ -168,11 +168,22 @@ test('trip dates are a range picker: tap the first day, then the last', async ({
   await range.getByRole('combobox', { name: 'Trip dates calendar year' }).selectOption('2023')
   await range.getByRole('button', { name: 'July 4, 2023' }).click()
   await range.getByRole('button', { name: 'July 9, 2023' }).click()
-  // The last day folds it away again, showing the range.
-  await expect(range.getByRole('button', { name: /^Change Trip dates/ })).toHaveText(/Jul 4 – 9, 2023/)
+  // It stays open until Done, so a mistaken tap can be fixed: another tap starts over.
+  await range.getByRole('button', { name: 'July 5, 2023' }).click()
+  await range.getByRole('button', { name: 'July 9, 2023' }).click()
+  await expect(range.getByRole('button', { name: 'July 4, 2023' })).toHaveAttribute('aria-pressed', 'false')
+  // Done folds it away, showing the range.
+  await range.getByRole('button', { name: 'Done with Trip dates' }).click()
+  await expect(range.getByRole('button', { name: /^Change Trip dates/ })).toHaveText(/Jul 5 – 9, 2023/)
   await openDates(dialog, 'Trip dates')
   await expect(range.getByRole('button', { name: 'July 6, 2023' })).toHaveAttribute('aria-pressed', 'true')
   await expect(range.getByRole('button', { name: 'July 10, 2023' })).toHaveAttribute('aria-pressed', 'false')
+
+  // Cancel leaves the dates as they were.
+  await range.getByRole('button', { name: 'July 20, 2023' }).click()
+  await range.getByRole('button', { name: 'Cancel Trip dates' }).click()
+  await expect(range.getByRole('button', { name: /^Change Trip dates/ })).toHaveText(/Jul 5 – 9, 2023/)
+  await openDates(dialog, 'Trip dates')
 
   // Month precision keeps the range as months.
   await range.getByRole('radio', { name: 'Month' }).click()
@@ -386,11 +397,11 @@ test('a road trip from home with two main pins; changing home leaves it alone', 
   await choosePlace(page, DEST, 'Las Vegas', /^Las Vegas\s*NV$/)
   await choosePlace(page, DEST, 'zion', /Zion National Park/)
 
-  // Each place says whether it's a main pin or a stop; tap to change.
+  // Each place's marker says whether it's a main pin or a numbered stop; tap it to switch.
   const zion = dialog.getByRole('button', { name: 'Make Zion National Park a main destination' })
-  await expect(zion).toHaveText(/Stop/)
+  await expect(zion).toHaveText('1')
   await zion.click()
-  await expect(dialog.getByRole('button', { name: 'Zion National Park is a main destination' })).toHaveText(/Main/)
+  await expect(dialog.getByRole('button', { name: 'Zion National Park is a main destination' })).toHaveAttribute('aria-pressed', 'true')
 
   // Getting there and back is a flight unless you say otherwise: tap the leg to change it.
   await dialog.getByRole('button', { name: /^Flight from Pasadena to Las Vegas/ }).click()
@@ -456,10 +467,74 @@ test('a destination can be swapped for another place from its row', async ({ pag
   await expect(places).toHaveText([/Las Vegas/, /Reno/])
 
   const reno = dialog.getByRole('listitem', { name: 'Reno' })
-  await reno.getByRole('button', { name: 'Reno: change place, name or note' }).click()
+  await reno.getByRole('button', { name: 'More for Reno' }).click()
+  await page.getByRole('menuitem', { name: 'Change place or note' }).click()
   await reno.getByRole('combobox', { name: 'Change to another place' }).fill('Henderson, NV')
   await reno.getByRole('option', { name: /^Henderson\s*NV$/ }).first().click()
   await expect(places).toHaveText([/Las Vegas/, /Henderson/])
+
+  // The ⋯ menu has no Move up / Move down: places are reordered by their drag handles.
+  await dialog.getByRole('button', { name: 'More for Las Vegas' }).click()
+  await expect(page.getByRole('menuitem')).toHaveText(['Change place or note', 'Remove Las Vegas'])
+  await page.keyboard.press('Escape')
+})
+
+test('route places: drag handles reorder them, the name is edited in place', async ({ page }) => {
+  await page.goto('./')
+  const dialog = await openAddTrip(page)
+  await toStep(dialog, 'Route')
+  await choosePlace(page, DEST, 'Las Vegas', /^Las Vegas\s*NV$/)
+  await choosePlace(page, DEST, 'Reno', /^Reno\s*NV$/)
+  await choosePlace(page, DEST, 'bryce', /Bryce Canyon National Park/)
+  const places = dialog.getByRole('region', { name: 'Where you went' }).getByRole('listitem')
+  await expect(places).toHaveText([/Las Vegas/, /Reno/, /Bryce/])
+
+  // Drag Bryce's handle up above Las Vegas.
+  const handle = dialog.getByRole('button', { name: /^Reorder Bryce Canyon National Park/ })
+  const from = (await handle.boundingBox())!
+  const to = (await dialog.getByRole('listitem', { name: 'Las Vegas' }).boundingBox())!
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(from.x + from.width / 2, to.y + 4, { steps: 10 })
+  await page.mouse.up()
+  await expect(places).toHaveText([/Bryce/, /Las Vegas/, /Reno/])
+  // Letting go where it started changes nothing.
+  const reno = dialog.getByRole('button', { name: /^Reorder Reno/ })
+  const at = (await reno.boundingBox())!
+  await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2 + 5, { steps: 3 })
+  await page.mouse.up()
+  await expect(places).toHaveText([/Bryce/, /Las Vegas/, /Reno/])
+
+  // The arrow keys move a place too, keeping the focus on its handle.
+  await reno.focus()
+  await page.keyboard.press('ArrowUp')
+  await expect(places).toHaveText([/Bryce/, /Reno/, /Las Vegas/])
+  await expect(reno).toBeFocused()
+
+  // Tap a new place's name to rename it right there; Enter keeps it, Escape puts the old one back.
+  await dialog.getByRole('button', { name: 'Rename Reno' }).click()
+  const name = dialog.getByRole('textbox', { name: 'Reno name' })
+  await name.fill('Reno Airport hotel')
+  await name.press('Enter')
+  await expect(places).toHaveText([/Bryce/, /Reno Airport hotel/, /Las Vegas/])
+  await dialog.getByRole('button', { name: 'Rename Las Vegas' }).click()
+  await dialog.getByRole('textbox', { name: 'Las Vegas name' }).fill('Somewhere else')
+  await dialog.getByRole('textbox', { name: 'Las Vegas name' }).press('Escape')
+  await expect(dialog).toBeVisible()
+  await expect(places).toHaveText([/Bryce/, /Reno Airport hotel/, /Las Vegas/])
+  // A park keeps its name: its title opens "Change place or note" instead.
+  await dialog.getByRole('button', { name: 'Bryce Canyon National Park: change place or note' }).click()
+  await expect(dialog.getByRole('combobox', { name: 'Change to another place' })).toBeVisible()
+  await expect(dialog.getByRole('textbox', { name: /name$/ })).toHaveCount(0)
+
+  // The marker switches main and stop; the only main place (the first one added) can't stop being one.
+  await expect(dialog.getByRole('button', { name: 'Las Vegas is a main destination' })).toBeDisabled()
+  await dialog.getByRole('button', { name: 'Make Reno Airport hotel a main destination' }).click()
+  await expect(dialog.getByRole('button', { name: 'Las Vegas is a main destination' })).toBeEnabled()
+  await dialog.getByRole('button', { name: 'Las Vegas is a main destination' }).click()
+  await expect(dialog.getByRole('button', { name: 'Make Las Vegas a main destination' })).toHaveAttribute('aria-pressed', 'false')
 })
 
 test('cities abroad: biggest first, narrowed by country, and grouped by country', async ({ page }) => {
@@ -500,6 +575,9 @@ test('stop dates from a strip of the trip days, shown as day numbers; details li
   await expect(zionDays.getByRole('button', { name: /^Day \d+,/ })).toHaveCount(6)
   await zionDays.getByRole('button', { name: /^Day 1,/ }).click()
   await zionDays.getByRole('button', { name: /^Day 3,/ }).click()
+  // Nothing changes until Done.
+  await expect(zion.getByRole('button', { name: /^Add dates/ })).toBeVisible()
+  await zionDays.getByRole('button', { name: 'Done with the dates at Zion National Park' }).click()
   await expect(zionDays).toBeHidden()
   await expect(zion.getByRole('button', { name: /^Dates at Zion/ })).toHaveText(/Days 1–3 · May 1 – 3, 2024/)
 
@@ -509,6 +587,7 @@ test('stop dates from a strip of the trip days, shown as day numbers; details li
   const bryceDays = bryce.getByRole('group', { name: 'Days at Bryce Canyon National Park' })
   await bryceDays.getByRole('button', { name: /^Day 3,/ }).click()
   await bryceDays.getByRole('button', { name: /^Day 6,/ }).click()
+  await bryceDays.getByRole('button', { name: 'Done with the dates at Bryce Canyon National Park' }).click()
   await expect(bryce.getByRole('button', { name: /^Dates at Bryce/ })).toHaveText(/Days 3–6/)
   await dialog.getByRole('button', { name: 'Next: Notes' }).click()
   await dialog.getByRole('textbox', { name: 'Add a tag' }).fill('canyons')
@@ -516,8 +595,8 @@ test('stop dates from a strip of the trip days, shown as day numbers; details li
   await saveNewTrip(dialog)
   await expect(dialog).toBeHidden()
   // Two parks on one trip earns a tier, announced with the save (Undo still there).
-  await expect(page.getByRole('status')).toContainText('🏅 Bronze · Park Hopper')
-  await expect(page.getByRole('status').getByRole('button', { name: 'Undo' })).toBeVisible()
+  // (One check: the message only shows for a moment.)
+  await expect(page.getByRole('status')).toContainText(/🏅 Bronze · Park Hopper\s*Undo/)
 
   // Saved, the trip opens with its details: how long, each stop's days, and Edit on each part.
   const detail = tripDetails(page, /Zion/)

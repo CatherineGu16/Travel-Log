@@ -18,10 +18,11 @@ bar (Undo, Straighten, Cancel, Done); you can also **tap a leg's line on the map
 **Route step layout**: one vertical **timeline**. A line runs down a narrow left column, styled like
 each leg on the map (solid for ground, dashed for a flight, dotted when not sure), with each stop's
 marker on it: home, a pin for a main place, a number for a stop, and a dashed "+" node for adding a
-place (after the last place, before the way back). Beside each place: its full name (wrapping, not
-cut off), then a small **Main / Stop** chip and its dates; **⋯** holds Move up, Move down, Change
-place, name or note, and Remove. Beside each leg: "🚗 Drive · 143 mi · guess" (tap to change) and
-Shape on map. A one-line hint replaces the old paragraph.
+place (after the last place, before the way back). **The marker is the Main / Stop switch**: tap a
+place's pin or number to change it. Beside each place: its full name (wrapping, not cut off), then
+its dates; on the right a **⠿ drag handle** and **⋯** (Change place or note, Remove). Beside each
+leg: "🚗 Drive · 143 mi · guess" (tap to change) and Shape on map. A short hint at the top says
+what the marker, the handle and the legs do.
 
 A **three-step stepper**, so trip details and mapping out the route are on separate pages: **1.
 Details** (title, dates, who went), **2. Route** (where it started and ended, destinations in order, the leg between
@@ -40,19 +41,29 @@ the same steps with tabs to jump straight to one, and its buttons are Cancel / B
   stack onto it. A dropped pin gets its state from the bundled outlines and its nearest town from
   the bundled places list, and can be renamed. (There's no "Pick on map" in the form: a tap can't
   place a spot exactly, so tapping the map is used to shape routes instead.)
-  - Each place has a **Main / Stop** pill: Main places get a pin on the map, stops get a number
-    on the route. Tap it to switch. The first place starts as Main, and a trip keeps at least one.
+  - Each place is **Main or a stop**: Main places get a pin on the map, stops get a number on the
+    route. **Tap its marker** (the pin or number on the timeline) to switch. The first place starts
+    as Main, and a trip keeps at least one (the only Main place's marker can't be tapped).
+  - **Reorder by dragging** a place's ⠿ handle up or down: the others make room as it passes, the
+    list scrolls near its edges, and letting go drops it there (the legs that changed start over).
+    On a keyboard the handle moves its place with ↑ / ↓. (Move up / down are no longer in ⋯;
+    `useReorder.ts`.)
+  - **Rename in place**: tap a new place's name (a town, a city, a dropped pin; ✎ after it) and
+    it turns into a text box where the title was: Enter or tapping away keeps it, Escape puts the
+    old name back, an empty name keeps the old one. Parks and places saved on other trips keep
+    their names (they're shared by every trip there): tapping their name opens Change place or
+    note.
   - Each destination can have **its own dates**: its row's **📅 Add dates** opens a **strip of the
     trip's days** ("Day 1 · Wed · May 1" …) right under it: tap the day you got there, then the day
-    you left (or the same day again), and it closes, showing "Days 2–3 · May 2 – 3". The next
+    you left (or the same day again); another tap starts over. **Done** keeps them ("Days 2–3 ·
+    May 2 – 3"), **Cancel** leaves the dates as they were, **Clear** takes them off. The next
     stop's strip opens on the day the one before ended. "Other dates…" (days outside the trip),
     trips without whole-day dates, trips over 60 days, and new trips whose dates you haven't set
-    (they follow the stops) use the calendar instead. Tap a place's name for the rest: change
-    place, rename, note. On a new trip, stop dates fill in the trip's start and end until you set
-    those yourself.
+    (they follow the stops) use the calendar instead, with the same Cancel / Done. On a new trip,
+    stop dates fill in the trip's start and end until you set those yourself.
   - A place inside a national park offers to be linked to the park ("This is inside Zion National
     Park. Count it as a visit?").
-  - Move up / down, remove.
+  - Remove (in ⋯).
   - Between two destinations, a **leg row**: a small rail (solid for ground, dashed for flights),
     the mode with its icon, the straight-line distance, "guessed" until you pick one, and a tap
     target of at least 44 px that opens a one-step mode picker. Ground legs also have **"Shape the
@@ -64,16 +75,17 @@ the same steps with tabs to jump straight to one, and its buttons are Cancel / B
     leg ("Shape on map", Straighten; the way back offers "Follow the way you came"); their bends
     reset when the first or last place or the start changes. Tap the start or end row to pick
     another place for this trip, or "Use home" for the current Home.
-  - Tap a place's dates line to open it: **Change to another place** (the same place search)
-    swaps the place, keeping its dates, note and pin, and resets the legs to and from it; then its
-    own dates and note.
+  - **⋯ › Change place or note**: **Change to another place** (the same place search) swaps the
+    place, keeping its dates, note and pin, and resets the legs to and from it; and its note.
   - **Add another destination** sits right after the last place, above the way back.
   - (A "Came back the same way" switch was removed: the drive back follows the way there on its
     own, with any stops on the way back, and "Follow the way you came" covers the rest.)
 - **Trip dates**: a **date range picker**: tap the first day, then the last, on a calendar (Date),
   a month grid (Month) or a year grid (Year). The month and year menus above the calendar jump to
-  any date. Folded to one row showing the dates until you tap it, and folded again once you tap
-  the last day. ("Dates are approximate" is no longer asked; trips that have it keep it.)
+  any date. Folded to one row showing the dates until you tap it. Taps only change what the
+  calendar shows, so a mistaken tap changes nothing: tap again to start over, **Done** keeps the
+  dates and folds it, **Cancel** puts them back. ("Dates are approximate" is no longer asked;
+  trips that have it keep it.)
 - **Title** (suggested from the main destinations and year, e.g. "Zion & Las Vegas 2024").
 - **Hikes**: for every national park on the trip, the hikes you did there, added with the same
   **Add a hike** search box and suggestions as the park page (no checklist).

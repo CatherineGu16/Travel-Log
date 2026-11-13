@@ -12,8 +12,8 @@
   36 px tall. Anything you can press shows the hand cursor. People & groups, Parks and Settings
   are sections of the You page.
 - **Messages** ("Added Zion 2024", with Undo) show at the bottom of the screen (on phones just
-  above the tab bar) for 0.8 s; a ✕ or a swipe down or sideways dismisses one sooner. Problems and
-  removals ("Deleted …", whose Undo is the way back) stay 5 s. Pointing at one keeps it.
+  above the tab bar) for 0.8 s; a ✕ or a swipe down or sideways dismisses one sooner. Problems,
+  removals ("Deleted …", whose Undo is the way back) and saves that earned an achievement stay 5 s. Pointing at one keeps it.
 - **Settings** (You › Settings, or the sync chip): Sync across devices (same as Watchlist), **Map detail** (Outline · Detailed, with a
   note that Detailed contacts OpenFreeMap and Photon), People & groups (see below),
   Export/Import, theme. **Home** (pick your town from the bundled place search; synced in

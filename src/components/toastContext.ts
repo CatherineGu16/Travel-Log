@@ -6,7 +6,7 @@ export interface ToastAction {
 }
 
 export interface ToastOptions {
-  /** Stays a few seconds instead of a moment: problems, and removals whose Undo is the way back. */
+  /** Stays a few seconds instead of a moment: problems, removals whose Undo is the way back, and achievements earned. */
   long?: boolean
 }
 

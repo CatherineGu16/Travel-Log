@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { comparePartialDates, formatDateRange, precisionOf, todayIso, type DatePrecision } from '../lib/partialDate.ts'
 import type { PartialDate } from '../lib/types.ts'
 
@@ -20,15 +20,18 @@ const ordered = (a: PartialDate, b: PartialDate): [PartialDate, PartialDate] => 
 /**
  * A date range: tap the first day, then the last. Date, month or year precision, for trips you
  * only half remember. The month and year menus above the grid jump straight to any date. The
- * calendar folds away to one row showing the dates, opens when you tap it, and folds again once
- * you've tapped the last day.
+ * calendar folds away to one row showing the dates and opens when you tap it. Taps only change
+ * what the calendar shows: **Done** keeps the dates, **Cancel** goes back to what they were, so a
+ * mistaken tap never changes anything (tap again to start over).
  */
 export function DateRangeField({
   label,
-  start,
-  end,
+  start: savedStart,
+  end: savedEnd,
   onChange,
   defaultOpen = false,
+  onClose,
+  extraAction,
 }: {
   label: string
   start: PartialDate
@@ -36,38 +39,60 @@ export function DateRangeField({
   onChange: (start: PartialDate, end: PartialDate) => void
   /** Open from the start, e.g. when the field appears because you asked to add dates. */
   defaultOpen?: boolean
+  /** Done or Cancel closes whatever holds the calendar (it doesn't fold to a row of its own). */
+  onClose?: () => void
+  /** Another button at the start of the Cancel / Done row (a stop's Clear). */
+  extraAction?: ReactNode
 }) {
   const id = useId()
   const [open, setOpen] = useState(defaultOpen)
+  // The range as you pick it, kept until Done.
+  const [draft, setDraft] = useState<[PartialDate, PartialDate]>([savedStart, savedEnd])
+  const [start, end] = open ? draft : [savedStart, savedEnd]
   const precision = precisionOf(start)
-  // The next tap sets the start (then the range collapses to that one day) or the end.
+  // The next tap sets the start (the range is then just that one day) or the end.
   const [picking, setPicking] = useState<'start' | 'end'>('start')
+  // Tapped a whole range since opening (so the hint can say what Done will keep).
+  const [picked, setPicked] = useState(false)
   // The month, year or decade the grid is showing.
   const viewOf = (d: PartialDate) => ({ year: Number(d.slice(0, 4)), month: d.length >= 7 ? Number(d.slice(5, 7)) : 1 })
-  const [view, setView] = useState(() => viewOf(start))
-  // When the start changes from outside (filled in from destinations), show it.
-  const [shownStart, setShownStart] = useState(start)
-  if (shownStart !== start) {
-    setShownStart(start)
-    const v = viewOf(start)
-    if (precision !== 'day' || v.year !== view.year || v.month !== view.month) setView(v)
+  // (Opening it shows the saved dates, which can change while it's folded, e.g. filled in from destinations.)
+  const [view, setView] = useState(() => viewOf(savedStart))
+
+  const openCalendar = () => {
+    setDraft([savedStart, savedEnd])
+    setView(viewOf(savedStart))
+    setPicking('start')
+    setPicked(false)
+    setOpen(true)
+  }
+  const close = () => {
+    setPicking('start')
+    setPicked(false)
+    if (onClose) onClose()
+    else setOpen(false)
+  }
+  const done = () => {
+    if (draft[0] !== savedStart || draft[1] !== savedEnd) onChange(...draft)
+    close()
   }
 
   const tap = (date: PartialDate) => {
     if (picking === 'start') {
-      onChange(date, date)
+      setDraft([date, date])
       setPicking('end')
+      setPicked(false)
     } else {
-      onChange(...ordered(start, date))
+      setDraft(ordered(start, date))
       setPicking('start')
-      // The range is complete: fold the calendar away.
-      setOpen(false)
+      setPicked(true)
     }
   }
 
   const switchTo = (p: DatePrecision) => {
-    onChange(toPrecision(start, p), toPrecision(end, p))
+    setDraft([toPrecision(start, p), toPrecision(end, p)])
     setPicking('start')
+    setPicked(false)
   }
 
   const inRange = (d: PartialDate) => comparePartialDates(d, start) >= 0 && comparePartialDates(d, end) <= 0
@@ -181,10 +206,7 @@ export function DateRangeField({
           type="button"
           aria-expanded={false}
           aria-label={`Change ${label} (${formatDateRange(start, end)})`}
-          onClick={() => {
-            setPicking('start')
-            setOpen(true)
-          }}
+          onClick={openCalendar}
           className="flex h-11 w-full items-center gap-2 rounded-lg border border-line bg-bg px-3 text-left text-base hover:border-muted"
         >
           <svg viewBox="0 0 20 20" className="size-4 shrink-0 text-muted" aria-hidden>
@@ -227,19 +249,19 @@ export function DateRangeField({
       </div>
       <div className="rounded-xl border border-line bg-bg p-2">
         {grid}
-        <div className="mt-1 flex items-center gap-2 px-1">
-          <p className="min-w-0 flex-1 text-xs text-muted">
-            {picking === 'start' ? `Tap the first ${UNIT[precision]}.` : `Now tap the last ${UNIT[precision]} (or the same one again).`}
-          </p>
-          <button
-            type="button"
-            aria-expanded
-            onClick={() => {
-              setPicking('start')
-              setOpen(false)
-            }}
-            className="min-h-9 rounded-lg px-2 text-sm font-bold text-primary hover:bg-raised"
-          >
+        <p className="mt-1 px-1 text-xs text-muted">
+          {picking === 'end'
+            ? `Now tap the last ${UNIT[precision]} (or the same one again).`
+            : picked
+              ? `Done keeps ${formatDateRange(start, end)}; tap another ${UNIT[precision]} to start over.`
+              : `Tap the first ${UNIT[precision]}.`}
+        </p>
+        <div className="mt-1 flex items-center gap-1 border-t border-line pt-1.5">
+          {extraAction}
+          <button type="button" aria-label={`Cancel ${label}`} onClick={close} className="ml-auto min-h-11 rounded-lg px-3 text-sm font-bold text-muted hover:bg-raised hover:text-fg">
+            Cancel
+          </button>
+          <button type="button" aria-label={`Done with ${label}`} onClick={done} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-bold text-on-primary">
             Done
           </button>
         </div>

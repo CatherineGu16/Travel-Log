@@ -10,15 +10,16 @@ const MAX_STRIP_DAYS = 60
 
 /**
  * When you were at one stop. For a trip with whole-day dates, a strip of the trip's days: tap the
- * day you arrived, then the day you left (or the same day again), and it closes. It opens on the
- * day the stop before ended. Otherwise, or for days outside the trip, the calendar.
+ * day you arrived, then the day you left (or the same day again). It opens on the day the stop
+ * before ended. Otherwise, or for days outside the trip, the calendar. Either way taps only change
+ * what's shown: Done keeps the dates, Cancel leaves them as they were; Clear takes them off.
  */
 export function StopDates({
   place,
   tripStart,
   tripEnd,
-  start,
-  end,
+  start: savedStart,
+  end: savedEnd,
   suggested,
   calendarOnly,
   onChange,
@@ -34,8 +35,11 @@ export function StopDates({
   /** Use the calendar (e.g. a new trip, whose dates come from its stops). */
   calendarOnly: boolean
   onChange: (start: PartialDate | null, end: PartialDate | null) => void
+  /** Closes it (after Done, Cancel or Clear). */
   onDone: () => void
 }) {
+  // The days as you pick them on the strip, kept until Done.
+  const [[start, end], setDraft] = useState<[PartialDate | null, PartialDate | null]>([savedStart, savedEnd])
   const length = tripDays(tripStart, tripEnd)
   const outside = !!start && (comparePartialDates(start, tripStart) < 0 || comparePartialDates(end ?? start, tripEnd) > 0)
   const [calendar, setCalendar] = useState(calendarOnly || length === null || length > MAX_STRIP_DAYS || outside || (!!start && precisionOf(start) !== 'day'))
@@ -50,24 +54,21 @@ export function StopDates({
     if (day && strip.current) strip.current.children[day - 1]?.scrollIntoView({ inline: 'center', block: 'nearest' })
   }, [calendar, tripStart])
 
-  const actions = (
-    <div className="flex flex-wrap items-center gap-1 text-sm">
-      {start && (
-        <button type="button" onClick={() => onChange(null, null)} className="min-h-9 rounded-lg px-2 text-muted hover:bg-raised hover:text-fg">
-          Clear
-        </button>
-      )}
-      {!calendar && (
-        <button type="button" onClick={() => setCalendar(true)} className="min-h-9 rounded-lg px-2 text-muted hover:bg-raised hover:text-fg">
-          Other dates…
-        </button>
-      )}
-      <button type="button" onClick={onDone} className="ml-auto min-h-9 rounded-lg px-3 font-bold text-primary hover:bg-raised">
-        Done
-      </button>
-    </div>
+  const clear = savedStart !== null && (
+    <button
+      type="button"
+      aria-label={`Clear the dates at ${place}`}
+      onClick={() => {
+        onChange(null, null)
+        onDone()
+      }}
+      className="min-h-11 rounded-lg px-2 text-sm text-muted hover:bg-raised hover:text-fg"
+    >
+      Clear
+    </button>
   )
 
+  // The calendar has its own Cancel and Done.
   if (calendar)
     return (
       <div className="flex flex-col gap-1 border-t border-line p-2">
@@ -77,8 +78,9 @@ export function StopDates({
           start={start ?? suggested ?? tripStart}
           end={end ?? start ?? suggested ?? tripStart}
           onChange={(s, e) => onChange(s, e === s ? null : e)}
+          onClose={onDone}
+          extraAction={clear}
         />
-        {actions}
       </div>
     )
 
@@ -86,18 +88,27 @@ export function StopDates({
   const last = end ?? start
   const tap = (day: PartialDate) => {
     if (picking === 'first' || !start) {
-      onChange(day, null)
+      setDraft([day, null])
       setPicking('last')
       return
     }
     const [a, b] = comparePartialDates(day, start) < 0 ? [day, start] : [start, day]
-    onChange(a, a === b ? null : b)
+    setDraft([a, a === b ? null : b])
     setPicking('first')
+  }
+  const done = () => {
+    if (start !== savedStart || end !== savedEnd) onChange(start, end)
     onDone()
   }
   return (
     <div className="flex flex-col gap-1 border-t border-line p-2" role="group" aria-label={`Days at ${place}`}>
-      <p className="px-1 text-xs text-muted">{picking === 'first' || !start ? 'Tap the day you got here.' : 'Now the day you left (or the same day again).'}</p>
+      <p className="px-1 text-xs text-muted">
+        {picking === 'last' && start
+          ? 'Now the day you left (or the same day again).'
+          : start && start !== savedStart
+            ? 'Done keeps these days; tap another day to start over.'
+            : 'Tap the day you got here.'}
+      </p>
       <div ref={strip} className="flex snap-x gap-1 overflow-x-auto pb-1 [scrollbar-width:thin]">
         {days.map((day, i) => {
           const within = !!start && !!last && comparePartialDates(day, start) >= 0 && comparePartialDates(day, last) <= 0
@@ -130,7 +141,18 @@ export function StopDates({
           )
         })}
       </div>
-      {actions}
+      <div className="flex flex-wrap items-center gap-1 text-sm">
+        {clear}
+        <button type="button" onClick={() => setCalendar(true)} className="min-h-11 rounded-lg px-2 text-muted hover:bg-raised hover:text-fg">
+          Other dates…
+        </button>
+        <button type="button" aria-label={`Cancel the dates at ${place}`} onClick={onDone} className="ml-auto min-h-11 rounded-lg px-3 font-bold text-muted hover:bg-raised hover:text-fg">
+          Cancel
+        </button>
+        <button type="button" aria-label={`Done with the dates at ${place}`} onClick={done} className="min-h-11 rounded-lg bg-primary px-4 font-bold text-on-primary">
+          Done
+        </button>
+      </div>
     </div>
   )
 }

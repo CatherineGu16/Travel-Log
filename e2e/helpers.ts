@@ -17,7 +17,7 @@ export async function openDates(scope: Locator, label: string) {
   if (await toggle.count()) await toggle.click()
 }
 
-/** Picks a range of days ("2024-05-01" to "2024-05-03") by tapping the first day, then the last. */
+/** Picks a range of days ("2024-05-01" to "2024-05-03") by tapping the first day, then the last, then Done. */
 export async function pickDays(scope: Locator, label: string, from: string, to: string) {
   await openDates(scope, label)
   const picker = dateRange(scope, label)
@@ -27,6 +27,7 @@ export async function pickDays(scope: Locator, label: string, from: string, to: 
     await picker.getByRole('combobox', { name: `${label} calendar month` }).selectOption(String(m))
     await picker.getByRole('button', { name: `${MONTHS[m - 1]} ${d}, ${y}`, exact: true }).click()
   }
+  await picker.getByRole('button', { name: `Done with ${label}` }).click()
 }
 
 /** Sets the trip's dates to one whole year, using the range picker's year mode. */
@@ -40,9 +41,10 @@ export async function setTripYear(dialog: Locator, year: string) {
     const first = Number((await picker.getByRole('button', { name: /^\d{4}$/ }).first().textContent()) ?? 0)
     await picker.getByRole('button', { name: Number(year) < first ? 'Previous years' : 'Next years' }).click()
   }
-  // Tapped twice: the first and the last year.
+  // Tapped twice: the first and the last year; Done keeps them.
   await button.click()
   await button.click()
+  await picker.getByRole('button', { name: 'Done with Trip dates' }).click()
 }
 
 /** The trip form ("Add trip" / "Edit trip"): in the Trips panel on wider screens, sliding up over the whole screen on phones. */
