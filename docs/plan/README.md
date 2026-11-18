@@ -27,6 +27,7 @@ Read only the file you need.
 | [ui-app.md](ui-app.md) | Header, navigation, settings, people & groups, responsive layout, theme |
 | [profile-and-achievements.md](profile-and-achievements.md) | The You page, tiered achievements and celebrations (M9; badge artwork next) |
 | [navigation-and-layout.md](navigation-and-layout.md) | Pages and addresses, You sections (left menu / top tabs), Trips on the map: a panel (desktop) or a sheet (phones) with a breadcrumb |
+| [park-badges.md](park-badges.md) | **Planned (M12):** You › Parks as a grid of badges (outlined / colored), the park flyout with visits and collapsible hikes, and where the badge art comes from |
 | [roadmap.md](roadmap.md) | World map (later), milestones, open and answered questions |
 | [setup.md](setup.md) | One-time setup steps for GitHub, Pages and the access key |
 
