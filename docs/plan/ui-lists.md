@@ -17,17 +17,20 @@
 ## Places (dropped)
 - There's no Places tab: map pins and the You page's **Most visited** cover it.
 
-## National parks checklist (You › Parks)
-- All 64 national parks as a checklist, A–Z or by state, with Visited / Not visited / All and a
-  "14 / 64" progress bar.
-- Visited parks show every visit date stacked (newest first) with links to the trips.
+## National parks (You › Parks)
+- All 64 national parks as a **grid of badges** (see park-badges.md), A–Z, by state or Recent
+  (newest visit first), with Visited / Not visited / All and a "14 / 64" progress bar. A badge is
+  outlined until you've been (on a trip that has started) and in color after, with "×3" from two
+  visits on; under it the name, then the year you were last there and your hikes, or "Upcoming ·
+  2027" for a trip dated ahead. Tapping one opens the park.
+- The park shows every visit date stacked (newest first) with links to the trips.
 - **Hikes**: not a checklist. Each park row shows how many hikes you've done ("3 hikes").
   Opening a park shows **Hikes you've done**, each with its dates (stacked if done more than
   once), trip, NPS facts and link when it came from the NPS list, and Remove. **Add a hike** is a
   search box with suggestions: hikes you've done there before, then hikes added to the shared
   list, then the park's NPS day hikes with distance and time; or add exactly what you typed.
   Adding asks which trip it belongs to when you've been more than once.
-- Unvisited parks have **"Log a visit"**, which opens Add trip with the park prefilled as the main
+- An unvisited park's page has **"Log a visit"**, which opens Add trip with the park prefilled as the main
   destination.
 
 ## Trip detail

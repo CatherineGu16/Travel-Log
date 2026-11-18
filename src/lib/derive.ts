@@ -1,4 +1,4 @@
-import { comparePartialDates } from './partialDate.ts'
+import { comparePartialDates, todayIso } from './partialDate.ts'
 import { hikeKey, live } from './travelActions.ts'
 import { FAMILY_GROUP_ID, type Group, type Person, type Place, type TravelData, type Trip } from './types.ts'
 
@@ -56,13 +56,23 @@ export const isState = (regionCode: string) => regionCode.startsWith('US-') && !
 /** Of the 50 states, how many you've been to. */
 export const statesVisited = (perRegion: Map<string, number>) => [...perRegion.keys()].filter(isState).length
 
-export function parksVisited(data: TravelData): Set<string> {
+/**
+ * Whether a visit starting then has begun by `today`: "2026" and "2026-11" count from their first
+ * day, so a trip dated just "2026" has started all through 2026.
+ */
+export const hasStarted = (start: string, today: string = todayIso()) => comparePartialDates(start, today) <= 0
+
+/**
+ * The national parks you've been to: on a trip that has started (by the park stop's own dates when
+ * it has them, else the trip's). A trip dated in the future doesn't count until it begins.
+ */
+export function parksVisited(data: TravelData, today: string = todayIso()): Set<string> {
   const parkOf = new Map(data.places.map((p) => [p.id, p.parkId]))
   const parks = new Set<string>()
   for (const trip of live(data.trips))
-    for (const id of tripPlaceIds(trip)) {
-      const park = parkOf.get(id)
-      if (park) parks.add(park)
+    for (const d of trip.destinations) {
+      const park = parkOf.get(d.placeId)
+      if (park && hasStarted(d.startDate ?? trip.startDate, today)) parks.add(park)
     }
   return parks
 }

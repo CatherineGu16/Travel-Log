@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hikesDone, includesFamily, tripPeopleIds, parkVisits, parksVisited, pinsOf, shadeLevel, statesVisited, tripsPerRegion, visitsTo } from './derive.ts'
+import { hasStarted, hikesDone, includesFamily, tripPeopleIds, parkVisits, parksVisited, pinsOf, shadeLevel, statesVisited, tripsPerRegion, visitsTo } from './derive.ts'
 import {
   addGroup,
   addHike,
@@ -246,5 +246,25 @@ describe('who went', () => {
     expect(tripPeopleIds(data.trips[0], data)).toEqual(['mom'])
     expect(includesFamily(data, ['mom'])).toBe(true)
     expect(includesFamily(data, [])).toBe(false)
+  })
+})
+
+describe('parks you have been to', () => {
+  it("count once the trip (or the park stop's own dates) has started, not before", () => {
+    expect(hasStarted('2026-11-18', '2026-11-18')).toBe(true)
+    expect(hasStarted('2026', '2026-11-18')).toBe(true)
+    expect(hasStarted('2026-11', '2026-11-18')).toBe(true)
+    expect(hasStarted('2026-11-19', '2026-11-18')).toBe(false)
+    expect(hasStarted('2027', '2026-11-18')).toBe(false)
+
+    let d = saveTrip(emptyData('t0'), ctx(), tripInput({ title: 'Later', startDate: '2027-06-01', main: zion }))
+    expect(parksVisited(d, '2026-11-18').size).toBe(0)
+    expect(parksVisited(d, '2027-06-01')).toEqual(new Set(['zion']))
+    // A trip that has started, with the park stop still days away.
+    d = saveTrip(emptyData('t0'), ctx(), tripInput({ title: 'Road trip', startDate: '2026-11-15', main: zion }))
+    const trip = d.trips[0]
+    d = { ...d, trips: [{ ...trip, destinations: [{ ...trip.destinations[0], startDate: '2026-11-20', endDate: null }] }] }
+    expect(parksVisited(d, '2026-11-18').size).toBe(0)
+    expect(parksVisited(d, '2026-11-20').size).toBe(1)
   })
 })

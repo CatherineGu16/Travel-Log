@@ -1,5 +1,5 @@
 <!-- Part of the Travel Log plan; index: docs/plan/README.md -->
-# Park badges (M12, planned; decisions made)
+# Park badges (M12: step 1 built)
 
 You › Parks becomes a **grid of badges**, one per national park (64), instead of a checklist. A
 park you haven't been to shows its badge **outlined**; one you have shows it **in color**. Tapping a
@@ -134,7 +134,7 @@ wider screens), redesigned top to bottom:
 
 1. **The badge, large** (~180 px), with the Apple Watch touch: **drag it sideways to spin it** in
    3D (CSS `rotateY`, following your finger, settling front or back when you let go); the **back**
-   is engraved with "First visited" and the date and your visit count. Tapping it flips it. Not
+   is engraved with **your earliest visit's date** ("First visited · May 1, 2016"). *(Decided.)* Tapping it flips it. Not
    visited: the outline badge, and "Not visited yet" on the back. (Keyboard: a "Turn over" button.)
 2. **The name and a one-line summary**: "Zion National Park · UT", then **"Visited 3 times ·
    first in 2016"**, or "Not visited yet" with **Log a visit**.
@@ -150,8 +150,8 @@ wider screens), redesigned top to bottom:
      device.
    - The owner's **Correct the hike suggestions** stays at the very bottom.
 
-**Decided:** hikes live here, in the flyout (not under the grid). Open: whether the badge's back
-should show anything else (miles hiked there, nights).
+**Decided:** hikes live here, in the flyout (not under the grid); the badge's back shows the
+earliest visit date.
 
 ## 4. Counting
 
@@ -164,10 +164,14 @@ should show anything else (miles hiked there, nights).
 
 ## 5. Build order
 
-1. **Grid with placeholder badges**: `ParkBadge.tsx` (your file when it exists, else the
+1. ✅ **Grid with placeholder badges**: `ParkBadge.tsx` (your file when it exists, else the
    placeholder frame with initials; the colored and not-visited looks, count chip), the grid in `ParksSection.tsx`, Recent order, cell names. Tests:
    e2e for outlined vs colored, the count, filters, opening a park (update `parks.spec.ts`,
-   which finds rows by `listitem` name today).
+   which finds rows by `listitem` name today). Built: `ParkBadge.tsx`, `parkBadgeArt.ts` (the
+   glob of `src/assets/park-badges/` and a unit test that every file there is named after a
+   park), `hasStarted` / `parksVisited` (a park counts once the trip has started, everywhere: the
+   grid, the profile's numbers, the map's parks layer, achievements). Log a visit is in the
+   flyout only.
 2. **Flyout redesign**: the large badge with flip and drag-to-spin, summary, Visits with trip links,
    the collapsible Hikes with the full list (done ones checked, tap to add). Unit tests for the
    counting rules in `derive.ts`.

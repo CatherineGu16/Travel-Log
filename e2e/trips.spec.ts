@@ -143,9 +143,12 @@ test('a trip with two main destinations, each with its own dates', async ({ page
   await saveNewTrip(dialog)
   await expect(dialog).toBeHidden()
 
-  // The parks checklist shows the days at Zion, not the whole trip.
+  // Zion's badge opens the park, which shows the days at Zion, not the whole trip.
   await page.goto('./#/parks')
-  await expect(page.getByRole('listitem', { name: 'Zion' })).toContainText('May 1 – 3, 2024')
+  await expect(page.getByRole('listitem', { name: 'Zion' })).toContainText('2024')
+  await page.getByRole('button', { name: 'Zion, visited once' }).click()
+  await expect(page.getByRole('dialog', { name: 'Zion National Park' })).toContainText('May 1 – 3, 2024')
+  await page.getByRole('dialog', { name: 'Zion National Park' }).getByRole('button', { name: 'Close' }).click()
 
   await page.goto('./#/trips')
   const row = page.getByRole('button', { name: /Zion & Las Vegas 2024/ })

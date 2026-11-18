@@ -159,6 +159,25 @@ input[type='month']::-webkit-date-and-time-value {
   }
 }
 
+/* A park badge you've earned: a faint light across it, which sweeps over when you point at it. */
+.badge-sheen {
+  pointer-events: none;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  background: linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 0.32) 45%, transparent 60%) no-repeat;
+  background-size: 250% 100%;
+  background-position: 100% 0;
+  transition: background-position 700ms ease;
+}
+button:hover .badge-sheen,
+button:focus-visible .badge-sheen {
+  background-position: 0 0;
+}
+
 /* The pin you're moving: lifted a little, with a hand to show it can be dragged. */
 .moving-pin {
   cursor: grab;

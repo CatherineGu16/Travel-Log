@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState, type PointerEvent } from 'react'
 import { parksVisited } from '../lib/derive.ts'
-import type { ParkInfo } from '../lib/placeSearch.ts'
 import { travelTotals } from '../lib/stats.ts'
 import { PROFILE_RECORD_ID } from '../lib/travelActions.ts'
 import type { Place, TravelData, Trip } from '../lib/types.ts'
@@ -61,7 +60,6 @@ export function YouPage({
   onClose,
   onSection,
   onOpenPark,
-  onLogVisit,
 }: {
   data: TravelData
   section: YouSection
@@ -73,7 +71,6 @@ export function YouPage({
   onClose: (fallbackHref: string) => void
   onSection: (section: YouSection) => void
   onOpenPark: (parkId: string) => void
-  onLogVisit: (park: ParkInfo) => void
 }) {
   const [editing, setEditing] = useState(false)
   const totals = useMemo(() => travelTotals(data), [data])
@@ -175,7 +172,7 @@ export function YouPage({
       <div className="mt-5 min-w-0 touch-pan-y md:mt-0" onPointerDown={startSwipe} onPointerUp={endSwipe} onPointerCancel={() => (swipe.current = null)}>
         {section === 'profile' && <ProfileSection data={data} onOpenPlace={onOpenPlace} />}
         {section === 'achievements' && <AchievementsSection data={data} />}
-        {section === 'parks' && <ParksSection data={data} onOpenPark={onOpenPark} onLogVisit={onLogVisit} />}
+        {section === 'parks' && <ParksSection data={data} onOpenPark={onOpenPark} />}
         {section === 'people' && <PeoplePanel />}
         {section === 'settings' && <Settings />}
       </div>

@@ -411,7 +411,6 @@ function Shell() {
               onClose={close}
               onSection={(s) => navigate(youHref(s))}
               onOpenPark={setParkSheetId}
-              onLogVisit={logParkVisit}
             />
           </div>
         )}

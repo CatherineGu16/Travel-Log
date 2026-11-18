@@ -68,7 +68,7 @@ formats are documented in `docs/plan/data.md` and the loaders in `src/lib/gazett
   `TripDetail.tsx` (a trip; Move pin lives on `PinCard`, the move banner and draggable pin in `App.tsx` / `MapView.tsx`),
   `ParkSheet.tsx`, `YouPage.tsx` (You: profile card, section menu/tabs, swipe, stat and
   achievement panels) with its sections `YouSections.tsx` (Profile, Achievements, `StatList`,
-  `AchievementDetail`), `ParksSection.tsx` (the 64-park checklist), `PeoplePanel.tsx`
+  `AchievementDetail`), `ParksSection.tsx` (the 64 park badges; `ParkBadge.tsx`, `parkBadgeArt.ts` for your art in `src/assets/park-badges/`), `PeoplePanel.tsx`
   (`PersonEditor` also edits your profile), `Settings.tsx` (+ panels, Home), `FilterPanel.tsx` (the filter, opening in the trip list).
 - `Navigation.tsx` (`TopBar`, phone `TabBar`), `cards.ts` (pressable vs flat card classes),
   `useAchievements.ts`.

@@ -14,13 +14,18 @@ async function saveYear(page: Page, year: string) {
   await expect(dialog).toBeHidden()
 }
 
-test('parks checklist: log a visit with hikes, then add more hikes', async ({ page }) => {
+test('park badges: log a visit with hikes, then add more hikes', async ({ page }) => {
   await page.goto('./')
   await openParks(page)
   await expect(page.getByText('0 / 64 visited')).toBeVisible()
+  // Every park is a badge, outlined (not visited) until you've been.
+  const grid = page.getByRole('region', { name: 'National parks' })
+  await expect(grid.getByRole('button', { name: /, not visited$/ })).toHaveCount(64)
 
-  // "Log a visit" opens Add trip with the park filled in; hikes are added by name, with suggestions.
-  await page.getByRole('listitem', { name: 'Zion' }).getByRole('button', { name: 'Log a visit' }).click()
+  // A badge opens the park; its "Log a visit" opens Add trip with the park filled in. Hikes are
+  // added by name, with suggestions.
+  await page.getByRole('listitem', { name: 'Zion' }).getByRole('button', { name: 'Zion, not visited' }).click()
+  await page.getByRole('dialog', { name: 'Zion National Park' }).getByRole('button', { name: 'Log a visit' }).first().click()
   const dialog = tripForm(page, 'Add trip')
   await toStep(dialog, 'Route')
   await expect(dialog.getByText('Zion National Park', { exact: true })).toBeVisible()
@@ -33,8 +38,10 @@ test('parks checklist: log a visit with hikes, then add more hikes', async ({ pa
   await openParks(page)
   await expect(page.getByText('1 / 64 visited')).toBeVisible()
   const zion = page.getByRole('listitem', { name: 'Zion' })
-  await expect(zion.getByLabel('Visited')).toBeVisible()
-  await expect(zion).toContainText('1 hike')
+  // Its badge is in color now, with the year and your hikes under it.
+  await expect(zion.getByRole('button', { name: 'Zion, visited once' })).toBeVisible()
+  await expect(zion).toContainText('2023 · 1 hike')
+  await expect(grid.getByRole('button', { name: /, not visited$/ })).toHaveCount(63)
 
   // In the park sheet, a hike you add goes on your (only) visit: an NPS suggestion, or your own.
   await zion.getByRole('button', { name: /Zion/ }).click()
@@ -82,4 +89,31 @@ test('a town inside a park offers to link the trip to the park', async ({ page }
   await expect(tripDetails(page, /Yosemite/)).toBeVisible()
   await openYou(page)
   await expect(page.getByRole('region', { name: 'Your travel in numbers' })).toContainText('1 / 64National parks')
+})
+
+test('park badges: visits counted, a trip dated ahead is upcoming, and Recent puts the newest first', async ({ page }) => {
+  await page.goto('./')
+  for (const [park, option, year] of [
+    ['zion', /Zion National Park/, '2019'],
+    ['zion', /Zion National Park/, '2023'],
+    ['arches', /Arches National Park/, '2021'],
+    ['yosemite', /Yosemite National Park/, '2099'],
+  ] as const) {
+    const dialog = await openAddTrip(page)
+    await toStep(dialog, 'Route')
+    await dialog.getByRole('combobox', { name: DEST }).fill(park)
+    await dialog.getByRole('option', { name: option }).first().click()
+    await saveYear(page, year)
+  }
+  await openParks(page)
+  await expect(page.getByText('2 / 64 visited')).toBeVisible()
+  const grid = page.getByRole('region', { name: 'National parks' })
+  // Two trips to Zion: "×2" on its badge.
+  await expect(grid.getByRole('button', { name: 'Zion, visited 2 times' })).toContainText('×2')
+  // A trip dated in the future doesn't color its badge yet.
+  await expect(grid.getByRole('button', { name: 'Yosemite, upcoming, 2099' })).toContainText('Upcoming · 2099')
+
+  await page.getByRole('combobox', { name: 'Order' }).selectOption('recent')
+  await expect(grid.getByRole('listitem').first()).toHaveAccessibleName('Zion')
+  await expect(grid.getByRole('listitem').nth(1)).toHaveAccessibleName('Arches')
 })
