@@ -1,4 +1,5 @@
-import { useId } from 'react'
+import { useId, useRef, useState, type PointerEvent } from 'react'
+import { formatPartialDate } from '../lib/partialDate.ts'
 import { badgeArt } from './parkBadgeArt.ts'
 
 /** "Black Canyon of the Gunnison" → "BC", "Zion" → "Z": the placeholder's letters. */
@@ -67,5 +68,84 @@ export function ParkBadge({ parkId, name, earned, size }: { parkId: string; name
       </svg>
       {earned && <span className="badge-sheen absolute inset-0 rounded-full" />}
     </span>
+  )
+}
+
+/**
+ * The park's badge, large, like an Apple Watch award you can pick up: drag it sideways to spin it
+ * (it follows your finger and settles on its front or back when you let go), or tap it to turn it
+ * over. The back says when you first visited.
+ */
+export function TurnableBadge({ parkId, name, earned, firstVisit, size }: { parkId: string; name: string; earned: boolean; firstVisit: string | null; size: number }) {
+  // How far it's turned, in degrees: a multiple of 180 at rest (front at 0, 360…; back at 180…).
+  const [turn, setTurn] = useState(0)
+  const [dragged, setDragged] = useState<number | null>(null)
+  const drag = useRef<{ x: number; moved: boolean } | null>(null)
+  // The click that ends a drag isn't a tap.
+  const skipClick = useRef(false)
+  const angle = turn + (dragged ?? 0)
+  const showingBack = Math.abs(Math.round(turn / 180)) % 2 === 1
+
+  const down = (e: PointerEvent<HTMLButtonElement>) => {
+    drag.current = { x: e.clientX, moved: false }
+  }
+  const move = (e: PointerEvent<HTMLButtonElement>) => {
+    const d = drag.current
+    if (!d) return
+    const dx = e.clientX - d.x
+    // A drag once it's clearly sideways, so a tap still turns it and scrolling still scrolls.
+    if (!d.moved && Math.abs(dx) > 6) {
+      d.moved = true
+      e.currentTarget.setPointerCapture(e.pointerId)
+    }
+    if (d.moved) setDragged(dx * 0.9)
+  }
+  const up = () => {
+    const d = drag.current
+    drag.current = null
+    if (!d?.moved) return
+    skipClick.current = true
+    setTurn((t) => Math.round((t + (dragged ?? 0)) / 180) * 180)
+    setDragged(null)
+  }
+
+  return (
+    <button
+      type="button"
+      aria-label={`Turn the ${name} badge over`}
+      aria-pressed={showingBack}
+      onPointerDown={down}
+      onPointerMove={move}
+      onPointerUp={up}
+      onPointerCancel={() => {
+        drag.current = null
+        setDragged(null)
+      }}
+      onClick={() => {
+        if (skipClick.current) skipClick.current = false
+        else setTurn((t) => t + 180)
+      }}
+      className="group relative mx-auto block touch-pan-y rounded-full select-none [perspective:900px]"
+      style={{ width: size, height: size }}
+    >
+      <span
+        className={`relative block size-full [transform-style:preserve-3d] ${dragged === null ? 'transition-transform duration-500 ease-out' : ''}`}
+        style={{ transform: `rotateY(${angle}deg)` }}
+      >
+        <span className="absolute inset-0 [backface-visibility:hidden]">
+          <ParkBadge parkId={parkId} name={name} earned={earned} size={size} />
+        </span>
+        {/* The back: when you first visited, engraved. */}
+        <span
+          className={`absolute inset-0 flex flex-col items-center justify-center rounded-full px-4 text-center [backface-visibility:hidden] [transform:rotateY(180deg)] ${
+            earned ? 'bg-park text-white shadow-[inset_0_0_0_6px_rgb(255_255_255/0.25)]' : 'border-2 border-dashed border-muted/60 bg-raised text-muted'
+          }`}
+        >
+          <span className="text-[0.65rem] font-bold tracking-[0.18em] uppercase opacity-80">{earned ? 'First visited' : name}</span>
+          <span className="mt-1 font-display text-xl leading-tight font-semibold">{firstVisit ? formatPartialDate(firstVisit) : 'Not visited yet'}</span>
+          {earned && <span className="mt-1 text-xs opacity-80">{name}</span>}
+        </span>
+      </span>
+    </button>
   )
 }

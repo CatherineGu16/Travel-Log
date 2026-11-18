@@ -23,7 +23,10 @@
   outlined until you've been (on a trip that has started) and in color after, with "×3" from two
   visits on; under it the name, then the year you were last there and your hikes, or "Upcoming ·
   2027" for a trip dated ahead. Tapping one opens the park.
-- The park shows every visit date stacked (newest first) with links to the trips.
+- **A park** (its badge tapped) opens on the badge, large: drag or tap it to turn it over to your
+  first visit's date. Under it "Visited 3 times · first in 2016" and Log a visit (or + Log another
+  visit), then **Visits** (each with its dates, the trip, who went; opens the trip on the map), then
+  **Hikes**, a section that opens and closes (see below).
 - **Hikes**: not a checklist. Each park row shows how many hikes you've done ("3 hikes").
   Opening a park shows **Hikes you've done**, each with its dates (stacked if done more than
   once), trip, NPS facts and link when it came from the NPS list, and Remove. **Add a hike** is a

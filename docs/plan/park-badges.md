@@ -1,5 +1,5 @@
 <!-- Part of the Travel Log plan; index: docs/plan/README.md -->
-# Park badges (M12: step 1 built)
+# Park badges (M12: steps 1–2 built)
 
 You › Parks becomes a **grid of badges**, one per national park (64), instead of a checklist. A
 park you haven't been to shows its badge **outlined**; one you have shows it **in color**. Tapping a
@@ -172,9 +172,12 @@ earliest visit date.
    park), `hasStarted` / `parksVisited` (a park counts once the trip has started, everywhere: the
    grid, the profile's numbers, the map's parks layer, achievements). Log a visit is in the
    flyout only.
-2. **Flyout redesign**: the large badge with flip and drag-to-spin, summary, Visits with trip links,
+2. ✅ **Flyout redesign**: the large badge with flip and drag-to-spin, summary, Visits with trip links,
    the collapsible Hikes with the full list (done ones checked, tap to add). Unit tests for the
-   counting rules in `derive.ts`.
+   counting rules in `derive.ts`. Built: `TurnableBadge` (in `ParkBadge.tsx`), the sheet's Badge,
+   Visits (each with its dates, an Upcoming tag for one dated ahead, the trip and who went) and
+   Hikes sections (`travel.park.hikes` remembers open / closed; until you choose, it's open when
+   you've done hikes there or the park has 8 or fewer). The owner's corrections sit under it.
 3. **Your artwork** (§1): the glob import of `src/assets/park-badges/`, `-outline` files when
    there, the automatic not-visited look otherwise, loaded only with the Parks section. A unit
    test that every file in the folder is named after a real park id (so a typo doesn't go

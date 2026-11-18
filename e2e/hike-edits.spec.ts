@@ -64,7 +64,8 @@ test("the public repo's owner corrects a suggested hike, and it's shared to the 
   await form.getByRole('textbox', { name: 'Distance (mi)' }).fill('5.4')
   await form.getByRole('button', { name: 'Save' }).click()
 
-  // The suggestion shows the correction at once.
+  // The suggestion shows the correction at once (in Hikes, closed for a park this long until opened).
+  await sheet.getByRole('button', { name: /^Hikes/ }).click()
   await sheet.getByRole('combobox', { name: 'Add a hike' }).fill('angels')
   await expect(sheet.getByRole('option', { name: /^Angels Landing/ })).toContainText('5.4 mi')
   await sheet.getByRole('button', { name: 'Close' }).click()
@@ -96,7 +97,8 @@ test("the owner corrects a hike people added: renamed, given a distance, or not 
   await expect(added.getByRole('listitem')).toContainText(['Panoramic Point Trail'])
   await expect(added).toContainText('corrected')
 
-  // The suggestion shows it at once, renamed and with its distance.
+  // The suggestion shows it at once, renamed and with its distance. (Hikes stays open from now on.)
+  await sheet.getByRole('button', { name: /^Hikes/ }).click()
   await sheet.getByRole('combobox', { name: 'Add a hike' }).fill('panoramic')
   await expect(sheet.getByRole('option', { name: /^Panoramic Point Trail/ })).toContainText('2.5 mi')
   await sheet.getByRole('combobox', { name: 'Add a hike' }).fill('')
@@ -124,6 +126,7 @@ test('nobody else sees the correction tools', async ({ page, context }) => {
   await page.goto('./')
   await connect(page, 'someone')
   const sheet = await openZion(page)
+  await sheet.getByRole('button', { name: /^Hikes/ }).click()
   await expect(sheet.getByRole('combobox', { name: 'Add a hike' })).toBeVisible()
   await expect(sheet.getByRole('button', { name: /Correct the hike suggestions/ })).toHaveCount(0)
 })
