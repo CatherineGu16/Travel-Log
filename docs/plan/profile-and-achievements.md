@@ -113,3 +113,53 @@ Modeled on GitHub's profile: a card with who you are beside wide content.
   achievements (National parks, Utah's Mighty 5, California's 9, Off the Grid) also list the parks
   that count (`Achievement.parks`), checked off once visited; each opens its park. Park Hopper
   counts parks on any one trip, so it has no list.
+
+## A calmer profile, with trips over time (M13, planned)
+
+The profile opens with **eight numbers** in a grid, then Recently earned, then Most visited. It's
+a lot to take in, and the numbers don't show how your travel has gone over the years. The plan:
+fewer numbers up front, and one chart of **trips by month**.
+
+**Fewer numbers.** Keep four headline numbers, in one row on wider screens (two by two on phones):
+
+| Kept up front | Why |
+|---|---|
+| **Trips** | the count everything else hangs off |
+| **States** n / 50 | the map's own measure |
+| **National parks** n / 64 | the badge wall's progress |
+| **Countries** | the world measure |
+
+The other four (**days traveled, miles driven, miles flown, hikes**) move into a **"More
+numbers"** row under them: one quiet line ("212 days · 18,400 mi driven · 41,200 mi flown · 37
+hikes") whose parts still open their lists, so nothing is lost, just quieter. *(Open: whether
+Days traveled should be a headline instead of Countries for someone who mostly travels in the
+US; Countries could hide while it's 1.)*
+
+**Trips over time.** A chart under the numbers, titled "Trips over time":
+
+- **Bars by month**: each month is a bar, its height the trips that **started** that month
+  (`startDate`). Months with none are empty slots, so gaps read as gaps. Year labels mark each
+  January along the bottom; the height scale is a few faint lines with whole numbers.
+- **Range**: **1Y · 3Y · All** (default 3Y, or All when you've traveled for less than that), the
+  newest month at the right. With All over many years the bars narrow; below ~6 px each it scrolls
+  sideways instead, starting at the newest.
+- **Tap or point at a bar**: a label above it ("Jun 2024 · 2 trips") and those trips listed under
+  the chart, each opening on the map. Keyboard: the arrows move between months.
+- **Trips with only a year or a month**: one dated "2019" can't sit in a month. They're left out of
+  the bars and counted in a line under the chart ("3 trips dated by year only aren't shown").
+  A trip dated "2019-06" goes in June.
+- **Trips dated ahead** (an upcoming trip) show as an outlined bar, not a filled one, like the
+  park badges.
+- One color (the accent), drawn as our own SVG (no chart library, nothing loaded from outside),
+  readable in light and dark. Under 3 trips in total, the chart is replaced by a line ("Log a few
+  more trips to see them over time").
+- Worked out in `stats.ts` (`tripsByMonth(data, today)` → `{ month: 'YYYY-MM', trips }[]`, plus
+  the trips with no month), unit-tested; the chart is its own component. (Load the dataviz skill
+  before building it.)
+
+**Order of the profile, after:** the four numbers · More numbers · Trips over time · Recently
+earned (the last 4, as now) · Most visited (top 5, as now).
+
+**Build order:** (1) `tripsByMonth` with tests; (2) the chart with range and selection; (3) the
+four numbers and More numbers; (4) e2e (numbers, a bar's label and its trips, year-only note) and
+docs.

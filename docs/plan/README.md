@@ -25,7 +25,7 @@ Read only the file you need.
 | [ui-trip-form.md](ui-trip-form.md) | Add / edit trip: the Details → Route → Notes stepper, the Route timeline, stop dates, who went, tags |
 | [ui-lists.md](ui-lists.md) | Trips list, parks checklist, trip detail (Places was dropped) |
 | [ui-app.md](ui-app.md) | Header, navigation, settings, people & groups, responsive layout, theme |
-| [profile-and-achievements.md](profile-and-achievements.md) | The You page, tiered achievements and celebrations (M9; badge artwork next) |
+| [profile-and-achievements.md](profile-and-achievements.md) | The You page, tiered achievements and celebrations (M9); **planned (M13):** fewer numbers up front and a trips-by-month chart |
 | [navigation-and-layout.md](navigation-and-layout.md) | Pages and addresses, You sections (left menu / top tabs), Trips on the map: a panel (desktop) or a sheet (phones) with a breadcrumb |
 | [park-badges.md](park-badges.md) | **Planned (M12):** You › Parks as a grid of badges (outlined / colored), the park flyout with visits and collapsible hikes, and the spec for the badge art you'll draw (file names, format) |
 | [roadmap.md](roadmap.md) | World map (later), milestones, open and answered questions |
