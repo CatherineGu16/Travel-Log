@@ -114,7 +114,7 @@ Modeled on GitHub's profile: a card with who you are beside wide content.
   that count (`Achievement.parks`), checked off once visited; each opens its park. Park Hopper
   counts parks on any one trip, so it has no list.
 
-## A calmer profile, with trips over time (M13, planned)
+## A calmer profile, with trips over time (M13, built)
 
 The profile opens with **eight numbers** in a grid, then Recently earned, then Most visited. It's
 a lot to take in, and the numbers don't show how your travel has gone over the years. The plan:
@@ -160,6 +160,15 @@ US; Countries could hide while it's 1.)*
 **Order of the profile, after:** the four numbers · More numbers · Trips over time · Recently
 earned (the last 4, as now) · Most visited (top 5, as now).
 
-**Build order:** (1) `tripsByMonth` with tests; (2) the chart with range and selection; (3) the
-four numbers and More numbers; (4) e2e (numbers, a bar's label and its trips, year-only note) and
-docs.
+**Build order:** ✅ (1) `tripsByMonth` with tests; ✅ (2) the chart with range and selection; ✅
+(3) the four numbers and More numbers; ✅ (4) e2e (numbers, a bar's label and its trips, year-only
+note) and docs.
+
+**As built** (`TripsChart.tsx`): Countries stays a headline. Bars are at most 24 px with 4 px
+rounded tops, square on the baseline, 2 px apart; whole-number hairlines; one color,
+`--chart-bar` (the accent in light, `#e3684e` in dark, both checked for chart contrast). The line
+above the chart shows the month you point at, else "11 trips in the last 3 years"; a picked month
+(tap, or ← → once the chart has focus; the first arrow picks the newest) lists its trips under
+it. A screen-reader table carries the same numbers. 1Y labels each month; 3Y and All label each
+January. The range is remembered per device. Too few trips (under 3), or only year-dated ones:
+a line instead of the chart.

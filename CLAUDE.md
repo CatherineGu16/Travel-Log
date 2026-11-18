@@ -67,7 +67,7 @@ formats are documented in `docs/plan/data.md` and the loaders in `src/lib/gazett
   phones, `FormSheet` (the phone trip form, full screen); the heading: breadcrumb, title, subtitle), `TripList.tsx` (the list), `PinCard.tsx` (a pin's trips as cards),
   `TripDetail.tsx` (a trip; Move pin lives on `PinCard`, the move banner and draggable pin in `App.tsx` / `MapView.tsx`),
   `ParkSheet.tsx` (a park: turnable badge, visits, collapsible hikes), `YouPage.tsx` (You: profile card, section menu/tabs, swipe, stat and
-  achievement panels) with its sections `YouSections.tsx` (Profile, Achievements, `StatList`,
+  achievement panels) with its sections `YouSections.tsx` (Profile: four numbers, More numbers, `TripsChart.tsx` trips by month; Achievements, `StatList`,
   `AchievementDetail`), `ParksSection.tsx` (the 64 park badges; `ParkBadge.tsx`, `parkBadgeArt.ts` for your art in `src/assets/park-badges/`), `PeoplePanel.tsx`
   (`PersonEditor` also edits your profile), `Settings.tsx` (+ panels, Home), `FilterPanel.tsx` (the filter, opening in the trip list).
 - `Navigation.tsx` (`TopBar`, phone `TabBar`), `cards.ts` (pressable vs flat card classes),

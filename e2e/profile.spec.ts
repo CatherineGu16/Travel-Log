@@ -93,3 +93,44 @@ test('your numbers open what they count, and achievements open their details', a
   await expect(detail).toBeHidden()
   await expect(page).toHaveURL(/#\/you\/achievements$/)
 })
+
+test('the profile: four numbers up front, the rest in one line, and trips over time by month', async ({ page }) => {
+  await page.goto('./')
+  // Three trips this month (a new trip starts today), and one dated by year only.
+  for (const [q, o] of [['moab', /^Moab/], ['zion', /Zion National Park/], ['bryce', /Bryce Canyon/]] as const) {
+    const dialog = await openAddTrip(page)
+    await toStep(dialog, 'Route')
+    await dialog.getByRole('combobox', { name: /^Add (a|another) destination$/ }).fill(q)
+    await dialog.getByRole('option', { name: o }).first().click()
+    await saveNewTrip(dialog)
+    await expect(dialog).toBeHidden()
+  }
+  await addTrip(page, 'arches', /Arches National Park/, '2019')
+  await openYou(page)
+
+  const numbers = page.getByRole('region', { name: 'Your travel in numbers' })
+  // Four numbers up front, and four more in the quieter line under them.
+  await expect(numbers.getByRole('link')).toHaveCount(8)
+  await expect(numbers.getByRole('link', { name: /^4\s*Trips/ })).toBeVisible()
+  const more = numbers.getByRole('navigation', { name: 'More numbers' })
+  await expect(more.getByRole('link')).toHaveText([/days? traveled/, /mi driven/, /mi flown/, /hikes?/])
+  await more.getByRole('link', { name: /hikes?$/ }).click()
+  await expect(page).toHaveURL(/#\/you\/stats\/hikes$/)
+  await page.goBack()
+
+  // The chart: how many trips it shows, and the year-only one counted under it.
+  const chart = page.getByRole('region', { name: 'Trips over time' })
+  await expect(chart).toContainText('3 trips in the last 3 years')
+  await expect(chart).toContainText('1 trip is dated by year only (2019)')
+  // Arrow keys pick a month (the newest first); its trips are listed, each opening on the map.
+  await chart.getByLabel('Trips by month. Left and right arrows pick a month.').focus()
+  await page.keyboard.press('ArrowLeft')
+  const month = chart.getByRole('region', { name: /^Trips in \w{3} \d{4}$/ })
+  await expect(month.getByRole('listitem')).toHaveCount(3)
+  await month.getByRole('button', { name: /^Zion/ }).click()
+  await expect(tripDetails(page, /^Zion/)).toBeVisible()
+
+  await openYou(page)
+  await chart.getByRole('radio', { name: 'All' }).click()
+  await expect(chart).toContainText(/3 trips since \w{3} \d{4}/)
+})

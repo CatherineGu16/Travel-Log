@@ -9,6 +9,7 @@ import { achievementHref, pageHref, statHref, youHref, type StatKind } from '../
 import { usePersistentState } from '../ui/usePersistentState.ts'
 import { FLAT_CARD, PRESSABLE_CARD, PRESSABLE_ROW } from './cards.ts'
 import { PinGlyph } from './PlacePicker.tsx'
+import { TripsChart } from './TripsChart.tsx'
 import { useAchievements } from './useAchievements.ts'
 
 const CATEGORY_ICONS: Record<AchievementCategory, string> = {
@@ -35,7 +36,7 @@ function Chevron({ className = '' }: { className?: string }) {
 }
 
 /** You › Profile: your travel in numbers (each opens what it counts), what you earned lately, and your most visited places. */
-export function ProfileSection({ data, onOpenPlace }: { data: TravelData; onOpenPlace: (place: Place) => void }) {
+export function ProfileSection({ data, onOpenPlace, onOpenTrip }: { data: TravelData; onOpenPlace: (place: Place) => void; onOpenTrip: (trip: Trip) => void }) {
   const statuses = useAchievements(data)
   const totals = useMemo(() => travelTotals(data), [data])
 
@@ -47,30 +48,48 @@ export function ProfileSection({ data, onOpenPlace }: { data: TravelData; onOpen
     .sort((a, b) => b.trips.length - a.trips.length || a.place.name.localeCompare(b.place.name))
     .slice(0, 5)
 
+  // Four numbers up front; the rest in one quieter line under them. Each opens what it counts.
   const stats: { label: string; value: string; href: string }[] = [
+    { label: 'Trips', value: String(totals.trips), href: pageHref('trips') },
     { label: 'States', value: `${totals.states} / 50`, href: statHref('states') },
     { label: 'National parks', value: `${totals.parks} / 64`, href: youHref('parks') },
     { label: 'Countries', value: String(totals.countries), href: statHref('countries') },
-    { label: 'Trips', value: String(totals.trips), href: pageHref('trips') },
-    { label: 'Days traveled', value: totals.days.toLocaleString('en-US'), href: statHref('days') },
-    { label: 'Miles driven', value: totals.driveMiles.toLocaleString('en-US'), href: statHref('drive') },
-    { label: 'Miles flown', value: totals.flightMiles.toLocaleString('en-US'), href: statHref('flight') },
-    { label: 'Hikes', value: String(totals.hikes), href: statHref('hikes') },
+  ]
+  const more: { label: string; value: string; href: string }[] = [
+    { label: totals.days === 1 ? 'day traveled' : 'days traveled', value: totals.days.toLocaleString('en-US'), href: statHref('days') },
+    { label: 'mi driven', value: totals.driveMiles.toLocaleString('en-US'), href: statHref('drive') },
+    { label: 'mi flown', value: totals.flightMiles.toLocaleString('en-US'), href: statHref('flight') },
+    { label: totals.hikes === 1 ? 'hike' : 'hikes', value: String(totals.hikes), href: statHref('hikes') },
   ]
 
   return (
     <section aria-label="Profile" className="flex flex-col gap-8">
-      <section aria-label="Your travel in numbers" className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
-        {stats.map((s) => (
-          <a key={s.label} href={s.href} className={`${PRESSABLE_CARD} flex items-start gap-2 p-3 sm:p-4`}>
-            <span className="min-w-0 flex-1">
-              <span className="block font-display text-2xl leading-tight font-semibold tabular-nums sm:text-3xl">{s.value}</span>
-              <span className="block text-xs text-muted sm:text-sm">{s.label}</span>
+      <section aria-label="Your travel in numbers">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+          {stats.map((s) => (
+            <a key={s.label} href={s.href} className={`${PRESSABLE_CARD} flex items-start gap-2 p-3 sm:p-4`}>
+              <span className="min-w-0 flex-1">
+                <span className="block font-display text-2xl leading-tight font-semibold tabular-nums sm:text-3xl">{s.value}</span>
+                <span className="block text-xs text-muted sm:text-sm">{s.label}</span>
+              </span>
+              <Chevron className="mt-1" />
+            </a>
+          ))}
+        </div>
+        {/* More numbers: quieter, each still opens its list. */}
+        <nav aria-label="More numbers" className="mt-2 flex flex-wrap items-center gap-x-1 text-sm text-muted">
+          {more.map((m, i) => (
+            <span key={m.label} className="flex items-center">
+              {i > 0 && <span aria-hidden className="px-1">·</span>}
+              <a href={m.href} className="flex min-h-10 items-center gap-1 rounded-md px-1 hover:bg-raised hover:text-fg">
+                <b className="text-fg tabular-nums">{m.value}</b> {m.label}
+              </a>
             </span>
-            <Chevron className="mt-1" />
-          </a>
-        ))}
+          ))}
+        </nav>
       </section>
+
+      <TripsChart data={data} onOpenTrip={onOpenTrip} />
 
       <section aria-label="Recently earned">
         <div className="mb-3 flex items-baseline gap-3">

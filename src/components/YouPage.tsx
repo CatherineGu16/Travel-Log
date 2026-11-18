@@ -170,7 +170,7 @@ export function YouPage({
       </aside>
 
       <div className="mt-5 min-w-0 touch-pan-y md:mt-0" onPointerDown={startSwipe} onPointerUp={endSwipe} onPointerCancel={() => (swipe.current = null)}>
-        {section === 'profile' && <ProfileSection data={data} onOpenPlace={onOpenPlace} />}
+        {section === 'profile' && <ProfileSection data={data} onOpenPlace={onOpenPlace} onOpenTrip={onOpenTrip} />}
         {section === 'achievements' && <AchievementsSection data={data} />}
         {section === 'parks' && <ParksSection data={data} onOpenPark={onOpenPark} />}
         {section === 'people' && <PeoplePanel />}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { hikesLogged, tripsBy, tripsByArea, tripWhere } from './stats.ts'
-import { emptyData, saveTrip } from './travelActions.ts'
+import { hikesLogged, nextMonth, tripsBy, tripsByArea, tripsByMonth, tripWhere } from './stats.ts'
+import { deleteTrip, emptyData, saveTrip } from './travelActions.ts'
 import type { EditContext, TravelData } from './types.ts'
 import { tripInput } from '../test/tripInput.ts'
 
@@ -51,5 +51,36 @@ describe('tripWhere', () => {
     const d = data()
     expect(tripWhere(d.trips.find((t) => t.title === 'Lisbon')!, d)).toBe('Lisbon')
     expect(tripWhere(d.trips.find((t) => t.title === 'Utah')!, d)).toMatch(/^Zion National Park · ~\d+ mi driven$/)
+  })
+})
+
+describe('tripsByMonth', () => {
+  it('counts trips by the month they started, with the empty months between, up to this month', () => {
+    let d = emptyData('t0')
+    for (const [title, startDate] of [['A', '2024-11-03'], ['B', '2025-01'], ['C', '2025-01-20'], ['Old', '2019'], ['Gone', '2024-12-01']] as const)
+      d = saveTrip(d, ctx(), tripInput({ title, startDate, main: { name: title, lat: 38, lng: -109, regionCode: 'US-UT' } }))
+    d = deleteTrip(d, ctx(), d.trips.find((t) => t.title === 'Gone')!.id)
+    const { months, yearOnly } = tripsByMonth(d, '2025-03-10')
+    expect(months.map((m) => [m.month, m.trips.map((t) => t.title)])).toEqual([
+      ['2024-11', ['A']],
+      ['2024-12', []],
+      ['2025-01', ['B', 'C']],
+      ['2025-02', []],
+      ['2025-03', []],
+    ])
+    // A year has no month to go in.
+    expect(yearOnly.map((t) => t.title)).toEqual(['Old'])
+  })
+
+  it('reaches a trip dated ahead; nothing month-dated means no months', () => {
+    let d = saveTrip(emptyData('t0'), ctx(), tripInput({ title: 'Later', startDate: '2025-05-01', main: { name: 'X', lat: 38, lng: -109, regionCode: 'US-UT' } }))
+    expect(tripsByMonth(d, '2025-03-10').months.map((m) => m.month)).toEqual(['2025-05'])
+    d = saveTrip(emptyData('t0'), ctx(), tripInput({ title: 'Year', startDate: '2020', main: { name: 'X', lat: 38, lng: -109, regionCode: 'US-UT' } }))
+    expect(tripsByMonth(d, '2025-03-10')).toMatchObject({ months: [], yearOnly: [{ title: 'Year' }] })
+  })
+
+  it('steps across a year end', () => {
+    expect(nextMonth('2024-12')).toBe('2025-01')
+    expect(nextMonth('2025-09')).toBe('2025-10')
   })
 })

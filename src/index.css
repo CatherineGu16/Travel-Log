@@ -24,6 +24,8 @@
   --toast-action: #f7a48f;
   --route: #2b6f8f;
   --route-text: #ffffff;
+  /* Chart bars: the accent in light; a step deeper in dark (checked for chart contrast). */
+  --chart-bar: #d1543a;
   --shade-1: #f6ebc4;
   --shade-2: #efd995;
   --shade-3: #e5c262;
@@ -49,6 +51,7 @@
     --toast-action: #f7a48f;
     --route: #7cc4e4;
     --route-text: #0f1b24;
+    --chart-bar: #e3684e;
   --shade-1: #4a4730;
     --shade-2: #625a33;
     --shade-3: #7f6f37;
@@ -74,6 +77,7 @@
   --toast-action: #f7a48f;
   --route: #7cc4e4;
   --route-text: #0f1b24;
+  --chart-bar: #e3684e;
   --shade-1: #4a4730;
   --shade-2: #625a33;
   --shade-3: #7f6f37;

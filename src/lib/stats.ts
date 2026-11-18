@@ -1,6 +1,6 @@
 import { isState, parksVisited, statesVisited, tripPlaceIds, tripsPerRegion } from './derive.ts'
 import { formatDistance, legMemory } from './legs.ts'
-import { comparePartialDates, tripDays, yearOf } from './partialDate.ts'
+import { comparePartialDates, todayIso, tripDays, yearOf } from './partialDate.ts'
 import { distancesByMode, routeOf } from './route.ts'
 import { countryName, regionName } from './states.ts'
 import type { LegMode, TravelData, Trip, TripHike } from './types.ts'
@@ -93,4 +93,34 @@ export function tripWhere(trip: Trip, data: TravelData): string {
     .map((d) => data.places.find((p) => p.id === d.placeId)?.name)
     .filter((n): n is string => !!n)
   return [mains.join(' & '), ...tripDistances(trip, data)].filter(Boolean).join(' · ')
+}
+
+/** One month of the "Trips over time" chart: the trips that started in it ("YYYY-MM"). */
+export interface MonthOfTrips {
+  month: string
+  trips: Trip[]
+}
+
+/** "2024-12" → "2025-01". */
+export const nextMonth = (month: string) => {
+  const [y, m] = month.split('-').map(Number)
+  return m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`
+}
+
+/**
+ * Trips by the month they started, for the chart: every month from the first trip's to this month
+ * (or a later trip's, for one dated ahead), empty months included so gaps show as gaps. A trip
+ * dated only by its year has no month: it's in `yearOnly` instead.
+ */
+export function tripsByMonth(data: TravelData, today: string = todayIso()): { months: MonthOfTrips[]; yearOnly: Trip[] } {
+  const trips = data.trips.filter((t) => !t.deleted)
+  const yearOnly = trips.filter((t) => t.startDate.length < 7).sort(newestFirst)
+  const byMonth = new Map<string, Trip[]>()
+  for (const t of trips) if (t.startDate.length >= 7) byMonth.set(t.startDate.slice(0, 7), [...(byMonth.get(t.startDate.slice(0, 7)) ?? []), t])
+  if (byMonth.size === 0) return { months: [], yearOnly }
+  const keys = [...byMonth.keys()].sort()
+  const last = keys.at(-1)! > today.slice(0, 7) ? keys.at(-1)! : today.slice(0, 7)
+  const months: MonthOfTrips[] = []
+  for (let m = keys[0]; m <= last; m = nextMonth(m)) months.push({ month: m, trips: (byMonth.get(m) ?? []).sort((a, b) => comparePartialDates(a.startDate, b.startDate)) })
+  return { months, yearOnly }
 }
