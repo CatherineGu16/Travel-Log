@@ -166,3 +166,27 @@ test('a park opens on its badge: turn it over for the first visit, every visit l
   await page.getByRole('button', { name: 'Zion, visited 2 times' }).click()
   await expect(sheet.getByRole('button', { name: /^Hikes/ })).toHaveAttribute('aria-expanded', 'true')
 })
+
+test('a new park badge is announced with the save, and colors in once on the grid', async ({ page }) => {
+  await page.goto('./')
+  // The grid has been seen with nothing earned: nothing to land.
+  await openParks(page)
+  await expect(page.locator('.badge-land')).toHaveCount(0)
+
+  const dialog = await openAddTrip(page)
+  await toStep(dialog, 'Route')
+  await dialog.getByRole('combobox', { name: DEST }).fill('zion')
+  await dialog.getByRole('option', { name: /Zion National Park/ }).first().click()
+  await toStep(dialog, 'Notes')
+  await dialog.getByRole('button', { name: 'Add trip', exact: true }).click()
+  await expect(page.getByRole('status')).toContainText('🏅 New badge: Zion')
+
+  // The next time the grid shows, Zion's badge lands (just Zion); after that it's simply there.
+  await openParks(page)
+  await expect(page.locator('.badge-land')).toHaveCount(1)
+  await expect(page.getByRole('listitem', { name: 'Zion' }).locator('.badge-land')).toHaveCount(1)
+  await page.reload()
+  await openParks(page)
+  await expect(page.getByRole('button', { name: 'Zion, visited once' })).toBeVisible()
+  await expect(page.locator('.badge-land')).toHaveCount(0)
+})

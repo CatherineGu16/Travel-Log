@@ -599,7 +599,7 @@ test('stop dates from a strip of the trip days, shown as day numbers; details li
   await expect(dialog).toBeHidden()
   // Two parks on one trip earns a tier, announced with the save (Undo still there).
   // (One check: the message only shows for a moment.)
-  await expect(page.getByRole('status')).toContainText(/🏅 Bronze · Park Hopper\s*Undo/)
+  await expect(page.getByRole('status')).toContainText(/🏅 New badge: Zion \(\+1 more\) · Bronze · Park Hopper\s*Undo/)
 
   // Saved, the trip opens with its details: how long, each stop's days, and Edit on each part.
   const detail = tripDetails(page, /Zion/)

@@ -4,7 +4,8 @@ import { comparePartialDates, dayLabel, formatDateRange, todayIso, yearOf } from
 import { addPerson, saveTrip, type PlaceInput, type TripInput } from '../lib/travelActions.ts'
 import { followTraveledBends, legPaths, type RoutePoint } from '../lib/route.ts'
 import { achievementStatus, newlyEarned, TIER_NAMES } from '../lib/achievements.ts'
-import { loadWorldCities } from '../lib/gazetteer.ts'
+import { loadWorldCities, PARKS } from '../lib/gazetteer.ts'
+import { parksVisited } from '../lib/derive.ts'
 import { endOfHome, homeLeg, legMemory, stopLegs, type Leg, type LegEnd } from '../lib/legs.ts'
 import { type LegMode, type LngLat, type PartialDate, type Place, type TravelData, type Trip, type TripHike, type TripStart } from '../lib/types.ts'
 import { newId, useStore, useTravelState } from '../store/useTravel.ts'
@@ -407,15 +408,20 @@ export function TripForm({
       hikes: hikes.filter((h) => parkIds.includes(h.parkId)),
     }
     const before = achievementStatus(store.getState().data, { continents })
+    const parksBefore = parksVisited(store.getState().data)
     const undoId = store.apply((d, c) => saveTrip(d, c, input, trip?.id), trip ? `Edited ${input.title}` : `Added ${input.title}`)
     if (undoId === null) return setError(store.getState().error ?? "Couldn't save the trip.")
     const saved = trip ? store.getState().data.trips.find((t) => t.id === trip.id)! : store.getState().data.trips.at(-1)!
-    // A tier this save earned rides along on the same message, so Undo stays one tap away.
+    // A park badge or a tier this save earned rides along on the same message, so Undo stays one tap away.
+    const newParks = [...parksVisited(store.getState().data)].filter((id) => !parksBefore.has(id))
     const won = newlyEarned(before, achievementStatus(store.getState().data, { continents }))
-    const prize = won.length
-      ? ` · 🏅 ${won[0].status.achievement.tiers.length > 1 ? `${TIER_NAMES[won[0].tier.level]} · ` : ''}${won[0].status.achievement.name}${won.length > 1 ? ` (+${won.length - 1} more)` : ''}`
-      : ''
-    // A plain save shows for a moment; one that earned an achievement stays long enough to read.
+    const prizes = [
+      newParks.length > 0 && `New badge: ${PARKS.find((p) => p.id === newParks[0])?.name ?? newParks[0]}${newParks.length > 1 ? ` (+${newParks.length - 1} more)` : ''}`,
+      won.length > 0 &&
+        `${won[0].status.achievement.tiers.length > 1 ? `${TIER_NAMES[won[0].tier.level]} · ` : ''}${won[0].status.achievement.name}${won.length > 1 ? ` (+${won.length - 1} more)` : ''}`,
+    ].filter(Boolean)
+    const prize = prizes.length ? ` · 🏅 ${prizes.join(' · ')}` : ''
+    // A plain save shows for a moment; one that earned a badge or an achievement stays long enough to read.
     toast(`${trip ? 'Trip updated' : `Added ${saved.title}`}${prize}`, [{ label: 'Undo', onClick: () => store.undo(undoId) }], { long: !!prize })
     onSaved(saved.destinations.find((d) => d.isMain)!.placeId, saved.id)
   }

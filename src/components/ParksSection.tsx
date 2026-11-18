@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { hasStarted, hikesDone, parkVisits } from '../lib/derive.ts'
 import { PARKS } from '../lib/gazetteer.ts'
 import { comparePartialDates, formatPartialDate, todayIso, yearOf } from '../lib/partialDate.ts'
@@ -35,6 +35,17 @@ export function ParksSection({ data, onOpenPark }: { data: TravelData; onOpenPar
     })
   }, [data])
   const visitedCount = rows.filter((r) => r.been.length > 0).length
+  // Badges this device has already shown in color. One earned since (a park you just visited)
+  // "lands" once: it colors in with a bounce. The first time, everything earned counts as seen.
+  const [seen, setSeen] = usePersistentState<string[] | null>('travel.parks.seenBadges', null, (v) =>
+    Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : null,
+  )
+  const earned = rows.filter((r) => r.been.length > 0).map((r) => r.park.id)
+  const [landing] = useState(() => new Set(seen === null ? [] : earned.filter((id) => !seen.includes(id))))
+  const earnedKey = earned.join(',')
+  useEffect(() => {
+    setSeen(earnedKey ? earnedKey.split(',') : [])
+  }, [earnedKey, setSeen])
   const shown = rows.filter((r) => show === 'all' || (show === 'visited') === r.been.length > 0)
   // Recent: newest visit first, then the parks you haven't been to, A–Z.
   const recent = (list: typeof shown) =>
@@ -110,7 +121,9 @@ export function ParksSection({ data, onOpenPark }: { data: TravelData; onOpenPar
                       className="flex w-full flex-col items-center gap-1 rounded-2xl px-1 pt-2.5 pb-2 text-center hover:bg-raised focus-visible:bg-raised"
                     >
                       <span className="relative">
-                        <ParkBadge parkId={park.id} name={park.name} earned={times > 0} size={84} />
+                        <span className={`block ${times > 0 && landing.has(park.id) ? 'badge-land' : ''}`}>
+                          <ParkBadge parkId={park.id} name={park.name} earned={times > 0} size={84} />
+                        </span>
                         {times > 1 && (
                           <span className="absolute -top-0.5 -right-1 rounded-full bg-park px-1.5 text-xs leading-5 font-bold text-white ring-2 ring-bg">×{times}</span>
                         )}

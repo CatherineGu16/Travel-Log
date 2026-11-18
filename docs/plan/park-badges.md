@@ -1,5 +1,5 @@
 <!-- Part of the Travel Log plan; index: docs/plan/README.md -->
-# Park badges (M12: steps 1–2 built)
+# Park badges (M12 built; your artwork goes in as you make it)
 
 You › Parks becomes a **grid of badges**, one per national park (64), instead of a checklist. A
 park you haven't been to shows its badge **outlined**; one you have shows it **in color**. Tapping a
@@ -182,8 +182,11 @@ earliest visit date.
    there, the automatic not-visited look otherwise, loaded only with the Parks section. A unit
    test that every file in the folder is named after a real park id (so a typo doesn't go
    unnoticed). Then badges arrive whenever you add them, no code change.
-4. **Celebration**: a save that first visits a park shows the badge in the message ("🏅 New badge:
-   Zion"), like tier achievements, and the grid plays its "land" once.
+4. ✅ **Celebration**: a save that first visits a park shows the badge in the message ("🏅 New badge:
+   Zion"), like tier achievements, and the grid plays its "land" once. Built: the message names
+   the first new park ("(+1 more)" for others) before any achievement, with one 🏅, and stays
+   5 s; the grid remembers per device which earned badges it has shown (`travel.parks.seenBadges`;
+   the first time, everything already earned counts as shown, so nothing lands at once).
 5. Docs (this file, ui-lists.md, CLAUDE.md code map) and screenshots at 390 px and desktop.
 
 ## Files
