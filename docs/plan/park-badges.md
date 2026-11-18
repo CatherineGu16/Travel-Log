@@ -1,5 +1,5 @@
 <!-- Part of the Travel Log plan; index: docs/plan/README.md -->
-# Park badges (M12, planned)
+# Park badges (M12, planned; decisions made)
 
 You › Parks becomes a **grid of badges**, one per national park (64), instead of a checklist. A
 park you haven't been to shows its badge **outlined**; one you have shows it **in color**. Tapping a
@@ -11,32 +11,102 @@ pick up and turn over.
 Nothing new is saved: like achievements, badges are worked out from your trips (`parkVisits`,
 `hikesDone`), so they're always right after an edit, an Undo or a sync.
 
-## 1. The artwork (decide first)
+## 1. The artwork: your own badges
 
-The request names Shutterstock's "national park logo" search as the image source. That doesn't
-fit this app as it stands:
+**Decided:** you draw the 64 badges yourself and add them to the repo. (Shutterstock's files were
+ruled out: its licences don't allow publishing the image files, which a public repo and site
+would do, and there's no matching set of 64. The NPS arrowhead is a registered emblem, so it's
+out too.) The app works before any art exists: each park shows a **placeholder** badge (a plain
+frame with the park's initials) until its file is there, so badges can be added a few at a time.
 
-- **Licence.** Shutterstock images are licensed per download. Their standard licences don't
-  allow making the files available for others to download or reuse, and this app's repo is public
-  (`CatherineGu16/Travel-Log`) and so is the site (GitHub Pages): any badge image we bundle can be
-  downloaded by anyone. Covering that would need each image's licence checked (likely an
-  extended one), paid for, and the files kept out of the public repo.
-- **No set of 64.** The search is mostly generic "national park" emblems and templates from
-  many artists, not one consistent badge per park. Mixed styles would look like a sticker pile, not
-  a badge wall.
-- **"Outlined if not visited" needs two versions of every image.** A colored raster image has no
-  outline to fall back to, so each one would need a second, hand-made outline version.
-- **Not the NPS arrowhead.** It's a registered emblem of the National Park Service; it can't be
-  used as a badge.
+**What to make, per park**
 
-| Option | What it is | Cost / risk |
-|---|---|---|
-| **A. Our own SVG badges (recommended)** | One illustration per park in one style: the park's landmark (Delicate Arch, Half Dome, Old Faithful, the Narrows…) inside a shared frame, as simple line art with a few fill regions. **Outlined** = the same SVG drawn with strokes only, muted; **colored** = its fills on, in the park's own palette. Ours to publish, no outside request. | Drawing 64 landmarks. Done in batches (§5); a placeholder badge (frame + initials + a generic mountain) stands in until a park's art exists, so the grid ships first. |
-| B. Buy a licensed set | One artist's matching set of US national park badges (vector, so an outline version can be made), with a licence that allows use in an app. Files kept in a private repo and pulled in by the build (a CI secret), never committed to the public one. | Paying for it, checking that the licence covers a public website, and the build setup. Outline versions still made by hand. |
-| C. Photos | A public-domain NPS photo per park, cropped into the badge frame, grayscale when not visited. | Easiest art, but photos read as thumbnails, not badges, and add ~1–2 MB. |
+- **File name**: the park's id from the table below, e.g. `zion.svg`.
+- **Format**: SVG preferred (sharp at any size, small). PNG or WebP also work: **512 × 512 px**,
+  transparent background.
+- **Canvas**: square, transparent outside the badge. Any badge shape (circle, shield, hexagon…),
+  like Apple's awards; keep it within the canvas with a little margin (~4 %) so the shadow fits.
+- **Size**: under ~20 KB for an SVG, ~80 KB for a PNG/WebP (64 of them load with the Parks page).
+- **Two looks**: the file you make is the **colored, earned** badge. For **not visited**, either
+  - add a second file, `<id>-outline.svg` (or `.png`), drawn as you like it unearned; or
+  - don't, and the app makes one: the same art in gray, faded, with an outlined ring.
+- **The back** (seen when you turn a badge over in the flyout) is drawn by the app (first visit
+  date, times visited), so it isn't part of the file.
 
-**Recommendation: A**, with placeholders first (§5). If you'd like the look of a particular
-Shutterstock set, it can be the style reference for the drawings, without using its files.
+**Where they go**: `src/assets/park-badges/` in the repo. On GitHub: open that folder, **Add file
+› Upload files**, drop them in, commit. The build picks up whatever is there (a Vite glob import),
+so a new file shows up on the next deploy with no code change, and a missing one keeps its
+placeholder. (Or send them to me and I'll add them.) Adding badges from inside the app isn't
+planned: it would mean the app writing image files into the public repo.
+
+**The 64 ids**
+
+| File name (id) | Park |
+|---|---|
+| `acadia` | Acadia |
+| `american-samoa` | American Samoa |
+| `arches` | Arches |
+| `badlands` | Badlands |
+| `big-bend` | Big Bend |
+| `biscayne` | Biscayne |
+| `black-canyon-of-the-gunnison` | Black Canyon of the Gunnison |
+| `bryce-canyon` | Bryce Canyon |
+| `canyonlands` | Canyonlands |
+| `capitol-reef` | Capitol Reef |
+| `carlsbad-caverns` | Carlsbad Caverns |
+| `channel-islands` | Channel Islands |
+| `chiricahua` | Chiricahua |
+| `congaree` | Congaree |
+| `crater-lake` | Crater Lake |
+| `cuyahoga-valley` | Cuyahoga Valley |
+| `death-valley` | Death Valley |
+| `denali` | Denali |
+| `dry-tortugas` | Dry Tortugas |
+| `everglades` | Everglades |
+| `gates-of-the-arctic` | Gates of the Arctic |
+| `gateway-arch` | Gateway Arch |
+| `glacier` | Glacier |
+| `glacier-bay` | Glacier Bay |
+| `grand-canyon` | Grand Canyon |
+| `grand-teton` | Grand Teton |
+| `great-basin` | Great Basin |
+| `great-sand-dunes` | Great Sand Dunes |
+| `great-smoky-mountains` | Great Smoky Mountains |
+| `guadalupe-mountains` | Guadalupe Mountains |
+| `haleakala` | Haleakalā |
+| `hawaii-volcanoes` | Hawaiʻi Volcanoes |
+| `hot-springs` | Hot Springs |
+| `indiana-dunes` | Indiana Dunes |
+| `isle-royale` | Isle Royale |
+| `joshua-tree` | Joshua Tree |
+| `katmai` | Katmai |
+| `kenai-fjords` | Kenai Fjords |
+| `kings-canyon` | Kings Canyon |
+| `kobuk-valley` | Kobuk Valley |
+| `lake-clark` | Lake Clark |
+| `lassen-volcanic` | Lassen Volcanic |
+| `mammoth-cave` | Mammoth Cave |
+| `mesa-verde` | Mesa Verde |
+| `mount-rainier` | Mount Rainier |
+| `new-river-gorge` | New River Gorge |
+| `north-cascades` | North Cascades |
+| `olympic` | Olympic |
+| `petrified-forest` | Petrified Forest |
+| `pinnacles` | Pinnacles |
+| `redwood` | Redwood |
+| `rocky-mountain` | Rocky Mountain |
+| `saguaro` | Saguaro |
+| `sequoia` | Sequoia |
+| `shenandoah` | Shenandoah |
+| `theodore-roosevelt` | Theodore Roosevelt |
+| `virgin-islands` | Virgin Islands |
+| `voyageurs` | Voyageurs |
+| `white-sands` | White Sands |
+| `wind-cave` | Wind Cave |
+| `wrangell-st-elias` | Wrangell–St. Elias |
+| `yellowstone` | Yellowstone |
+| `yosemite` | Yosemite |
+| `zion` | Zion |
 
 ## 2. The grid (You › Parks)
 
@@ -80,38 +150,39 @@ wider screens), redesigned top to bottom:
      device.
    - The owner's **Correct the hike suggestions** stays at the very bottom.
 
-Open questions: whether "Hikes" should instead (or also) sit under the grid on the Parks page, and
-whether the badge's back should show anything else (miles hiked there, nights).
+**Decided:** hikes live here, in the flyout (not under the grid). Open: whether the badge's back
+should show anything else (miles hiked there, nights).
 
 ## 4. Counting
 
 - **Times visited** = trips that include the park (`parkVisits`): two stops at Zion on one trip
   count once; two trips count twice.
 - **First visited** = the earliest of those, by the park stop's own dates if set, else the trip's.
-- **Visited** (colored) = at least one trip that has started (today or earlier). A trip still to
-  come doesn't fill the badge early; the cell says "Planned · Jun 2027" instead. *(Decide: today
-  every trip counts, planned or not.)*
+- **Visited** (colored) = at least one trip to it that has **started** (start date today or
+  earlier). There's no planned-trips feature, but a trip can be given future dates; until they
+  come, it doesn't color the badge, and the cell says "Upcoming · Jun 2027" instead. *(Decided.)*
 
 ## 5. Build order
 
-1. **Grid with placeholder badges**: `ParkBadge.tsx` (frame, initials, a generic landmark; outline
-   and color states, count chip), the grid in `ParksSection.tsx`, Recent order, cell names. Tests:
+1. **Grid with placeholder badges**: `ParkBadge.tsx` (your file when it exists, else the
+   placeholder frame with initials; the colored and not-visited looks, count chip), the grid in `ParksSection.tsx`, Recent order, cell names. Tests:
    e2e for outlined vs colored, the count, filters, opening a park (update `parks.spec.ts`,
    which finds rows by `listitem` name today).
 2. **Flyout redesign**: the large badge with flip and drag-to-spin, summary, Visits with trip links,
    the collapsible Hikes with the full list (done ones checked, tap to add). Unit tests for the
    counting rules in `derive.ts`.
-3. **Artwork**, per the decision in §1. With A: one SVG per park in `src/assets/park-badges/`
-   (`<park-id>.svg`, line art with `class="fill"` regions), loaded as one lazy chunk with the
-   Parks section (~3 KB each, ~200 KB total), in batches of ~10, most visited parks first; parks
-   without art keep the placeholder.
+3. **Your artwork** (§1): the glob import of `src/assets/park-badges/`, `-outline` files when
+   there, the automatic not-visited look otherwise, loaded only with the Parks section. A unit
+   test that every file in the folder is named after a real park id (so a typo doesn't go
+   unnoticed). Then badges arrive whenever you add them, no code change.
 4. **Celebration**: a save that first visits a park shows the badge in the message ("🏅 New badge:
    Zion"), like tier achievements, and the grid plays its "land" once.
 5. Docs (this file, ui-lists.md, CLAUDE.md code map) and screenshots at 390 px and desktop.
 
 ## Files
 
-- New: `src/components/ParkBadge.tsx` (the badge: art, outline/color, spin), `src/assets/park-badges/`.
+- New: `src/components/ParkBadge.tsx` (the badge: your art or the placeholder, both looks, spin),
+  `src/assets/park-badges/` (your files).
 - Changed: `ParksSection.tsx` (grid), `ParkSheet.tsx` (flyout), `derive.ts` (first visit, counts),
   `e2e/parks.spec.ts`.
 - No change to the saved format, sync or `parseTravelData`.
